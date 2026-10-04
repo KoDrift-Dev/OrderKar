@@ -11,7 +11,7 @@ import { createClient as createRawClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/client';
 import type { Profile, Role, StaffMember } from '@/lib/types';
 import { Btn, Card, Empty, Input, Label, Select, Textarea } from './ui';
-import PhotoDropzone from './PhotoDropzone';
+import PhotoDropzone, { useUploadState } from './PhotoDropzone';
 import Avatar from './Avatar';
 import { useGuard, useUndoDelete, DeleteConfirm, UndoToast } from './DeleteFlow';
 
@@ -80,6 +80,9 @@ export default function TeamManager({
   const [cAddress, setCAddress] = useState('');
   const [cGender, setCGender] = useState<Gender>('');
   const [cPhoto, setCPhoto] = useState('');
+  const cUp = useUploadState();
+  const eUp = useUploadState();
+  const sUp = useUploadState();
   const [cSaving, setCSaving] = useState(false);
   const [cError, setCError] = useState('');
   const [showPass, setShowPass] = useState(false);
@@ -144,6 +147,7 @@ export default function TeamManager({
       setCError(problems.join(' '));
       return;
     }
+    await cUp.wait(); // photo upload finish ho jaye to nayi URL save ho
     setCSaving(true);
     setCError('');
     const tmp = signupClient();
@@ -190,6 +194,7 @@ export default function TeamManager({
   const saveProfile = () =>
     guard(async () => {
     if (!editing) return;
+    await eUp.wait();
     if (editing.id === meId && !eActive) {
       setEError('You cannot deactivate your own account.');
       return;
@@ -247,6 +252,7 @@ export default function TeamManager({
       setSError('Name is required.');
       return;
     }
+    await sUp.wait(); // photo upload finish ho jaye to nayi URL save ho
     setSSaving(true);
     setSError('');
     try {
@@ -414,7 +420,7 @@ export default function TeamManager({
             <div>
               <Label>Photo</Label>
               <div className="mt-1.5">
-                <PhotoDropzone bucket="staff-photos" folder={restaurantId} value={cPhoto} onChange={setCPhoto} onError={setCError} hint="Optional — otherwise a gender avatar shows" />
+                <PhotoDropzone bucket="staff-photos" folder={restaurantId} value={cPhoto} onChange={setCPhoto} onError={setCError} onUploadingChange={cUp.set} hint="Optional — otherwise a gender avatar shows" />
               </div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -487,7 +493,7 @@ export default function TeamManager({
             <div>
               <Label>Photo</Label>
               <div className="mt-1.5">
-                <PhotoDropzone bucket="staff-photos" folder={restaurantId} value={ePhoto} onChange={setEPhoto} onError={setEError} />
+                <PhotoDropzone bucket="staff-photos" folder={restaurantId} value={ePhoto} onChange={setEPhoto} onError={setEError} onUploadingChange={eUp.set} />
               </div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -540,7 +546,7 @@ export default function TeamManager({
       {/* ── Staff (no login) modal ── */}
       {sEditing && (
         <Modal title={sEditing === 'new' ? 'Add Staff' : 'Edit Staff'} onClose={() => !sSaving && setSEditing(null)}
-          footer={<ModalFooter onCancel={() => setSEditing(null)} onSave={saveStaff} saving={sSaving} saveLabel={sEditing === 'new' ? 'Add staff' : 'Save changes'} />}>
+          footer={<ModalFooter onCancel={() => setSEditing(null)} onSave={saveStaff} saving={sSaving || sUp.uploading} saveLabel={sUp.uploading ? 'Uploading photo…' : sEditing === 'new' ? 'Add staff' : 'Save changes'} />}>
           <div className="space-y-4">
             <div className="rounded-btn bg-amber/15 p-3 text-[12.5px] text-body">
               Login ke baghair — helpers, dishwashers waghera ke liye. Inhein app ka access <span className="font-bold">nahi</span> milega.
@@ -548,7 +554,7 @@ export default function TeamManager({
             <div>
               <Label>Photo</Label>
               <div className="mt-1.5">
-                <PhotoDropzone bucket="staff-photos" folder={restaurantId} value={sPhoto} onChange={setSPhoto} onError={setSError} hint="Optional — otherwise a gender avatar shows" />
+                <PhotoDropzone bucket="staff-photos" folder={restaurantId} value={sPhoto} onChange={setSPhoto} onError={setSError} onUploadingChange={sUp.set} hint="Optional — otherwise a gender avatar shows" />
               </div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">

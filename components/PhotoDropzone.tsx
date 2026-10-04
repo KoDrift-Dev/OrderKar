@@ -6,13 +6,42 @@
 import { useEffect, useRef, useState } from 'react';
 import { cdnUrl, uploadPhoto } from '@/lib/images';
 
+// Tracks a photo upload for a form: reactive `uploading` for disabling the
+// Save button, `ref` for checks inside async handlers, and `wait()` so a save
+// can pause until the upload finishes instead of saving the old photo URL.
+export function useUploadState() {
+  const [uploading, setUploading] = useState(false);
+  const ref = useRef(false);
+  const set = (v: boolean) => {
+    ref.current = v;
+    setUploading(v);
+  };
+  const wait = async () => {
+    if (!ref.current) return;
+    await new Promise<void>((resolve) => {
+      const iv = setInterval(() => {
+        if (!ref.current) {
+          clearInterval(iv);
+          resolve();
+        }
+      }, 150);
+      setTimeout(() => {
+        clearInterval(iv);
+        resolve();
+      }, 30000);
+    });
+  };
+  return { uploading, set, wait };
+}
+
 export default function PhotoDropzone({
   bucket,
   folder,
   value,
   onChange,
   onError,
-  hint = 'JPG/PNG — auto-resized',
+  hint = 'JPG · PNG · WEBP · GIF — auto-compressed to JPG',
+  onUploadingChange,
 }: {
   bucket: 'menu-images' | 'staff-photos';
   folder: string;
@@ -20,6 +49,7 @@ export default function PhotoDropzone({
   onChange: (url: string) => void;
   onError: (msg: string) => void;
   hint?: string;
+  onUploadingChange?: (uploading: boolean) => void;
 }) {
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -40,6 +70,7 @@ export default function PhotoDropzone({
     }
     setUploading(true);
     setImgFailed(false);
+    onUploadingChange?.(true);
     try {
       const url = await uploadPhoto(bucket, folder, file);
       onChange(url);
@@ -47,6 +78,7 @@ export default function PhotoDropzone({
       onError(e instanceof Error ? e.message : 'Upload failed');
     } finally {
       setUploading(false);
+      onUploadingChange?.(false);
     }
   };
 

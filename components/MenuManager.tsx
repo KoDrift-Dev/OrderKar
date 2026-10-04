@@ -11,7 +11,7 @@ import { fmtPKR } from '@/lib/format';
 import { categoryImage } from '@/lib/food-images';
 import { cdnUrl } from '@/lib/images';
 import { Btn, Card, Empty, Input, Label, Pill, Select, Textarea } from './ui';
-import PhotoDropzone from './PhotoDropzone';
+import PhotoDropzone, { useUploadState } from './PhotoDropzone';
 import { useGuard, useUndoDelete, DeleteConfirm, UndoToast } from './DeleteFlow';
 
 type StatusFilter = 'all' | 'available' | 'soldout' | 'popular';
@@ -56,6 +56,7 @@ export default function MenuManager({ restaurantId }: { restaurantId: string }) 
   const [editing, setEditing] = useState<MenuItem | 'new' | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+  const fUp = useUploadState(); // item photo upload tracker
   const guard = useGuard();
   const [confirmDel, setConfirmDel] = useState<MenuItem | null>(null);
   const del = useUndoDelete<MenuItem>(async (item) => {
@@ -141,6 +142,7 @@ export default function MenuManager({ restaurantId }: { restaurantId: string }) 
       setError('Name, category and a valid price are required.');
       return;
     }
+    await fUp.wait(); // photo upload finish ho jaye to nayi URL save ho
     setSaving(true);
     setError('');
     try {
@@ -356,6 +358,7 @@ export default function MenuManager({ restaurantId }: { restaurantId: string }) 
                     value={form.image_url}
                     onChange={(url) => setForm((f) => ({ ...f, image_url: url }))}
                     onError={setError}
+                    onUploadingChange={fUp.set}
                   />
                 </div>
               </div>
@@ -418,8 +421,8 @@ export default function MenuManager({ restaurantId }: { restaurantId: string }) 
               <button onClick={() => setEditing(null)} disabled={saving} className="rounded-btn px-4 py-2.5 text-[13.5px] font-bold text-muted hover:text-ink">
                 Cancel
               </button>
-              <Btn onClick={save} disabled={saving}>
-                {saving ? 'Saving…' : editing === 'new' ? 'Add item' : 'Save changes'}
+              <Btn onClick={save} disabled={saving || fUp.uploading}>
+                {saving ? 'Saving…' : fUp.uploading ? 'Uploading photo…' : editing === 'new' ? 'Add item' : 'Save changes'}
               </Btn>
             </div>
           </div>

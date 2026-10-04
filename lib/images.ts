@@ -19,9 +19,37 @@ export function cdnUrl(url: string | null | undefined): string {
   return url;
 }
 
+// Decode any common image file (JPG, PNG, WEBP, GIF, BMP…) into a bitmap.
+// Tries createImageBitmap first, then falls back to an <img> element, since
+// different browsers decode slightly different format sets.
+async function decodeImage(file: File): Promise<ImageBitmap> {
+  try {
+    return await createImageBitmap(file);
+  } catch {
+    const url = URL.createObjectURL(file);
+    try {
+      const img = new Image();
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error('decode-failed'));
+        img.src = url;
+      });
+      return await createImageBitmap(img);
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+}
+
 // Downscale photos in the browser so storage stays light (~100KB each).
+// Any readable image format is accepted and converted to JPEG.
 export async function resizeImage(file: File, maxDim = 1024): Promise<Blob> {
-  const bmp = await createImageBitmap(file);
+  let bmp: ImageBitmap;
+  try {
+    bmp = await decodeImage(file);
+  } catch {
+    throw new Error('Could not read that image. Please try a JPG or PNG file.');
+  }
   const scale = Math.min(1, maxDim / Math.max(bmp.width, bmp.height));
   const canvas = document.createElement('canvas');
   canvas.width = Math.max(1, Math.round(bmp.width * scale));
