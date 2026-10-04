@@ -99,6 +99,20 @@ body {
   color: #fff;
 }
 
+/* ── Playful micro-animations ── */
+@keyframes float-y {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3.5px); }
+}
+.animate-float-y { animation: float-y 3.2s ease-in-out infinite; }
+
+@keyframes steam-rise {
+  0% { opacity: 0; transform: translateY(5px); }
+  35% { opacity: 0.9; }
+  100% { opacity: 0; transform: translateY(-7px); }
+}
+.animate-steam { animation: steam-rise 2.6s ease-in-out infinite; transform-box: fill-box; }
+
 /* ── Glass primitives ── */
 .glass {
   background: var(--c-surface);

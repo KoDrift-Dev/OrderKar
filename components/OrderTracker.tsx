@@ -20,7 +20,17 @@ function stepIndex(s: OrderStatus): number {
   return STEPS.findIndex((x) => x.key === s);
 }
 
-export default function OrderTracker({ orderId, orderNumber }: { orderId: string; orderNumber?: number }) {
+export default function OrderTracker({
+  orderId,
+  orderNumber,
+  tableNumber,
+  onDismiss,
+}: {
+  orderId: string;
+  orderNumber?: number;
+  tableNumber?: number;
+  onDismiss?: () => void;
+}) {
   const [status, setStatus] = useState<OrderStatus>('pending');
 
   useEffect(() => {
@@ -46,13 +56,23 @@ export default function OrderTracker({ orderId, orderNumber }: { orderId: string
   const idx = stepIndex(status);
 
   return (
-    <Card deep className="p-5">
+    <Card deep className="relative p-5">
+      {onDismiss && (
+        <button
+          onClick={onDismiss}
+          aria-label="Dismiss"
+          className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full text-[13px] font-bold text-muted hover:bg-soft hover:text-ink"
+        >
+          ✕
+        </button>
+      )}
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-[13px] font-bold uppercase tracking-wide text-muted">Order status</p>
-          {orderNumber != null && (
-            <p className="mt-0.5 font-mono text-xl font-bold text-ink">#{orderNumber}</p>
-          )}
+          <p className="mt-0.5 font-mono text-xl font-bold text-ink">
+            {orderNumber != null && <>#{orderNumber}</>}
+            {tableNumber != null && <span className="ml-2 text-[13px] font-bold text-muted">· 🍽️ Table {tableNumber}</span>}
+          </p>
         </div>
         <StatusPill status={status} size="lg" />
       </div>
