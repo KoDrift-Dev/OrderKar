@@ -310,17 +310,19 @@ export default function MenuOrder({
       {cartOpen && (
         <div className="fixed inset-0 z-50" role="dialog" aria-modal="true">
           <div className="absolute inset-0 bg-ink/45 backdrop-blur-[2px]" onClick={() => setCartOpen(false)} />
-          <div className="absolute inset-x-0 bottom-0 mx-auto flex max-h-[85dvh] w-full max-w-2xl flex-col rounded-t-[24px] bg-[var(--c-surface)] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl">
-            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line" />
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="font-display text-[16px] font-extrabold text-ink">
-                Your order · Table {table.table_number}
-              </h2>
-              <button onClick={() => setCartOpen(false)} className="glass flex h-8 w-8 items-center justify-center !rounded-full text-muted" aria-label="Close">
-                ✕
-              </button>
+          <div className="absolute inset-x-0 bottom-0 mx-auto flex max-h-[85dvh] w-full max-w-2xl flex-col rounded-t-[24px] bg-[var(--c-surface-solid)] shadow-2xl">
+            <div className="px-4 pt-3">
+              <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line" />
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="font-display text-[16px] font-extrabold text-ink">
+                  Your order · Table {table.table_number}
+                </h2>
+                <button onClick={() => setCartOpen(false)} className="glass flex h-8 w-8 items-center justify-center !rounded-full text-muted" aria-label="Close">
+                  ✕
+                </button>
+              </div>
             </div>
-            <div className="flex-1 space-y-2 overflow-y-auto">
+            <div className="flex-1 space-y-2 overflow-y-auto px-4">
               {cart.map((l) => (
                 <div key={l.item.id} className="glass flex gap-3 !rounded-[14px] p-2.5">
                   <img
@@ -348,13 +350,15 @@ export default function MenuOrder({
                 </div>
               ))}
             </div>
-            <div className="mt-3 flex items-center justify-between border-t border-line pt-3">
-              <p className="font-mono text-[16px] font-bold text-ink">{fmtPKR(total)}</p>
-              <Btn size="lg" onClick={placeOrder} disabled={placing} className="!rounded-full px-7">
-                {placing ? 'Placing…' : `Place order · ${count}`}
-              </Btn>
+            <div className="border-t border-line bg-[var(--c-surface-solid)] px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+              <div className="flex items-center justify-between">
+                <p className="font-mono text-[16px] font-bold text-ink">{fmtPKR(total)}</p>
+                <Btn size="lg" onClick={placeOrder} disabled={placing} className="!rounded-full px-7">
+                  {placing ? 'Placing…' : `Place order · ${count}`}
+                </Btn>
+              </div>
+              {error && <p className="mt-2 text-center text-[12.5px] font-bold text-danger">{error}</p>}
             </div>
-            {error && <p className="mt-2 text-center text-[12.5px] font-bold text-danger">{error}</p>}
           </div>
         </div>
       )}
@@ -363,52 +367,56 @@ export default function MenuOrder({
       {detail && (
         <div className="fixed inset-0 z-50" role="dialog" aria-modal="true">
           <div className="absolute inset-0 bg-ink/45 backdrop-blur-[2px]" onClick={() => setDetail(null)} />
-          <div className="absolute inset-x-0 bottom-0 mx-auto max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-[24px] bg-[var(--c-surface)] pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl sm:inset-0 sm:m-auto sm:h-fit sm:rounded-[24px]">
-            <div className="relative">
-              <img
-                src={categoryImage(catName[detail.category_id] ?? '')}
-                alt={detail.name}
-                className="h-48 w-full object-cover sm:rounded-t-[24px]"
-              />
-              <button
-                onClick={() => setDetail(null)}
-                aria-label="Close"
-                className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-ink/55 text-[15px] font-bold text-white backdrop-blur"
-              >
-                ✕
-              </button>
-              <div className="absolute bottom-3 left-4 flex gap-1.5">
-                {detail.tags.includes('bestseller') && <Pill tone="amber">★ Bestseller</Pill>}
-                {detail.tags.includes('spicy') && <Pill tone="danger">🌶 Spicy</Pill>}
-                {detail.tags.includes('veg') && <Pill tone="ok">Veg</Pill>}
+          <div className="absolute inset-x-0 bottom-0 mx-auto flex max-h-[92dvh] w-full max-w-lg flex-col rounded-t-[24px] bg-[var(--c-surface-solid)] shadow-2xl sm:inset-0 sm:m-auto sm:h-fit sm:max-h-[90dvh] sm:rounded-[24px]">
+            <div className="flex-1 overflow-y-auto">
+              <div className="relative">
+                <img
+                  src={categoryImage(catName[detail.category_id] ?? '')}
+                  alt={detail.name}
+                  className="h-48 w-full object-cover sm:rounded-t-[24px]"
+                />
+                <button
+                  onClick={() => setDetail(null)}
+                  aria-label="Close"
+                  className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-ink/55 text-[15px] font-bold text-white backdrop-blur"
+                >
+                  ✕
+                </button>
+                <div className="absolute bottom-3 left-4 flex gap-1.5">
+                  {detail.tags.includes('bestseller') && <Pill tone="amber">★ Bestseller</Pill>}
+                  {detail.tags.includes('spicy') && <Pill tone="danger">🌶 Spicy</Pill>}
+                  {detail.tags.includes('veg') && <Pill tone="ok">Veg</Pill>}
+                </div>
+              </div>
+              <div className="p-4 sm:p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <h2 className="font-display text-[19px] font-extrabold leading-tight text-ink">{detail.name}</h2>
+                  <span className="shrink-0 font-mono text-[17px] font-bold text-brand">{fmtPKR(detail.price)}</span>
+                </div>
+                {detail.description && (
+                  <p className="mt-2 text-[13.5px] leading-relaxed text-muted">{detail.description}</p>
+                )}
+                {detail.ingredients && (
+                  <div className="mt-3">
+                    <p className="text-[11.5px] font-extrabold uppercase tracking-wide text-muted">Ingredients</p>
+                    <p className="mt-1 text-[13px] leading-relaxed text-ink">{detail.ingredients}</p>
+                  </div>
+                )}
+                <p className="mt-3 text-[12px] font-bold text-muted">⏱ ~{detail.prep_time_minutes} min preparation</p>
+                <div className="mt-4">
+                  <label className="text-[12px] font-extrabold text-ink">Special instructions <span className="font-bold text-muted">(optional)</span></label>
+                  <Textarea
+                    value={detailNotes}
+                    onChange={(e) => setDetailNotes(e.target.value)}
+                    rows={2}
+                    placeholder="e.g. less spicy, no onions…"
+                    className="mt-1.5 w-full text-[13.5px]"
+                  />
+                </div>
               </div>
             </div>
-            <div className="p-4 sm:p-5">
-              <div className="flex items-start justify-between gap-3">
-                <h2 className="font-display text-[19px] font-extrabold leading-tight text-ink">{detail.name}</h2>
-                <span className="shrink-0 font-mono text-[17px] font-bold text-brand">{fmtPKR(detail.price)}</span>
-              </div>
-              {detail.description && (
-                <p className="mt-2 text-[13.5px] leading-relaxed text-muted">{detail.description}</p>
-              )}
-              {detail.ingredients && (
-                <div className="mt-3">
-                  <p className="text-[11.5px] font-extrabold uppercase tracking-wide text-muted">Ingredients</p>
-                  <p className="mt-1 text-[13px] leading-relaxed text-ink">{detail.ingredients}</p>
-                </div>
-              )}
-              <p className="mt-3 text-[12px] font-bold text-muted">⏱ ~{detail.prep_time_minutes} min preparation</p>
-              <div className="mt-4">
-                <label className="text-[12px] font-extrabold text-ink">Special instructions <span className="font-bold text-muted">(optional)</span></label>
-                <Textarea
-                  value={detailNotes}
-                  onChange={(e) => setDetailNotes(e.target.value)}
-                  rows={2}
-                  placeholder="e.g. less spicy, no onions…"
-                  className="mt-1.5 w-full text-[13.5px]"
-                />
-              </div>
-              <div className="mt-4 flex items-center gap-3">
+            <div className="border-t border-line bg-[var(--c-surface-solid)] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:rounded-b-[24px]">
+              <div className="flex items-center gap-3">
                 <div className="glass flex items-center gap-1 !rounded-full p-1">
                   <button
                     aria-label="Decrease"
