@@ -195,11 +195,11 @@ export default function MenuOrder({
         ))}
       </div>
 
-      {/* Photo-forward menu cards — full-bleed image, gradient overlay */}
+      {/* Photo menu cards — compact 2-col, fixed dark scrim so text always reads */}
       {visible.length === 0 ? (
         <Empty title="Nothing here yet" sub="Try another category or search." />
       ) : (
-        <div className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-4">
           {visible.map((item) => {
             const line = lineFor(item.id);
             const img = categoryImage(catName[item.category_id] ?? '');
@@ -207,36 +207,27 @@ export default function MenuOrder({
               <div
                 key={item.id}
                 onClick={() => openDetail(item)}
-                className="group relative cursor-pointer overflow-hidden rounded-[22px] shadow-lift transition-transform active:scale-[0.99]"
+                className="group relative cursor-pointer overflow-hidden rounded-[18px] shadow-lift transition-transform active:scale-[0.98]"
               >
-                <img src={img} alt={item.name} loading="lazy" className="aspect-[16/10] w-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/30 to-transparent" />
-                <div className="absolute left-3 top-3 flex gap-1.5">
+                <img src={img} alt={item.name} loading="lazy" className="aspect-[4/3] w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[rgba(8,10,18,0.92)] via-[rgba(8,10,18,0.30)] to-transparent" />
+                <div className="absolute left-2 top-2 flex gap-1">
                   {item.tags.includes('bestseller') && (
-                    <span className="rounded-full bg-amber px-2.5 py-1 text-[10.5px] font-extrabold text-white shadow">★ Bestseller</span>
+                    <span className="rounded-full bg-amber px-2 py-0.5 text-[9.5px] font-extrabold text-white shadow">★</span>
                   )}
                   {item.tags.includes('spicy') && (
-                    <span className="rounded-full bg-danger px-2.5 py-1 text-[10.5px] font-extrabold text-white shadow">🌶 Spicy</span>
-                  )}
-                  {item.tags.includes('veg') && (
-                    <span className="rounded-full bg-ok px-2.5 py-1 text-[10.5px] font-extrabold text-white shadow">Veg</span>
+                    <span className="rounded-full bg-danger px-2 py-0.5 text-[9.5px] font-extrabold text-white shadow">🌶</span>
                   )}
                 </div>
-                <span className="absolute right-3 top-3 rounded-full bg-ink/45 px-2.5 py-1 text-[11px] font-bold text-white backdrop-blur">
-                  ~{item.prep_time_minutes} min
-                </span>
-                <div className="absolute inset-x-0 bottom-0 p-4">
-                  <h3 className="font-display text-[16.5px] font-extrabold leading-tight text-white">{item.name}</h3>
-                  {item.description && (
-                    <p className="mt-0.5 line-clamp-1 text-[12.5px] text-white/75">{item.description}</p>
-                  )}
-                  <div className="mt-2.5 flex items-center justify-between gap-2">
-                    <span className="font-mono text-[17px] font-bold text-white">{fmtPKR(item.price)}</span>
+                <div className="absolute inset-x-0 bottom-0 p-2.5">
+                  <h3 className="truncate font-display text-[12.5px] font-extrabold leading-tight text-white">{item.name}</h3>
+                  <div className="mt-1 flex items-center justify-between gap-1">
+                    <span className="font-mono text-[13px] font-bold text-white">{fmtPKR(item.price)}</span>
                     {line ? (
-                      <div className="flex items-center gap-0.5 rounded-full bg-white/20 p-1 backdrop-blur" onClick={(e) => e.stopPropagation()}>
-                        <button aria-label="Decrease" onClick={() => setQty(item.id, line.qty - 1)} className="flex h-8 w-8 items-center justify-center rounded-full text-[16px] font-bold text-white hover:bg-white/20">−</button>
-                        <span className="min-w-6 text-center font-mono text-[14px] font-bold text-white">{line.qty}</span>
-                        <button aria-label="Increase" onClick={() => setQty(item.id, line.qty + 1)} className="flex h-8 w-8 items-center justify-center rounded-full text-[16px] font-bold text-white hover:bg-white/20">+</button>
+                      <div className="flex items-center gap-0.5 rounded-full bg-white/20 p-0.5 backdrop-blur" onClick={(e) => e.stopPropagation()}>
+                        <button aria-label="Decrease" onClick={() => setQty(item.id, line.qty - 1)} className="flex h-7 w-7 items-center justify-center rounded-full text-[14px] font-bold text-white">−</button>
+                        <span className="min-w-4 text-center font-mono text-[12px] font-bold text-white">{line.qty}</span>
+                        <button aria-label="Increase" onClick={() => setQty(item.id, line.qty + 1)} className="flex h-7 w-7 items-center justify-center rounded-full text-[14px] font-bold text-white">+</button>
                       </div>
                     ) : (
                       <button
@@ -244,9 +235,10 @@ export default function MenuOrder({
                           e.stopPropagation();
                           addToCart(item, 1, '');
                         }}
-                        className="shrink-0 rounded-full bg-white px-5 py-2 text-[13px] font-extrabold text-brand shadow-lift transition-transform active:scale-95"
+                        aria-label={`Add ${item.name}`}
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-[17px] font-bold text-brand shadow-lift transition-transform active:scale-90"
                       >
-                        Add +
+                        +
                       </button>
                     )}
                   </div>
