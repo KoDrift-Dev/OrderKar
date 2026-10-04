@@ -70,6 +70,7 @@ create table if not exists menu_items (
   name              text not null,
   description       text,
   price             numeric(10, 2) not null check (price >= 0),
+  ingredients       text,
   image_url         text,
   is_available      boolean not null default true,
   prep_time_minutes int not null default 10,
@@ -430,6 +431,10 @@ grant all on public.recipes to authenticated;
 grant all on public.waste_logs to authenticated;
 grant all on public.reviews to authenticated;
 grant all on public.subscriptions to authenticated;
+
+-- sequences: anon + authenticated need USAGE to call nextval() (order numbers)
+grant usage, select on sequence public.order_number_seq to anon;
+grant usage, select on sequence public.order_number_seq to authenticated;
 
 -- keep the same grants for tables created in the future
 alter default privileges in schema public grant select, insert on tables to anon;
