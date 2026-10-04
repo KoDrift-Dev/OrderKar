@@ -9,6 +9,7 @@ import type { MenuCategory, MenuItem, Order, OrderItem, Profile } from '@/lib/ty
 import { fmtPKR, fmtNum } from '@/lib/format';
 import { CategoryDonut, HourlyHeatmap, RevenueTrend, TopItems, WeekdayBars } from './charts';
 import QrSection from './QrSection';
+import OwnerKitchenView from './OwnerKitchenView';
 import { Btn, Card, Empty, Input, Kpi, Label, PageHeader, SectionHead, Select, Tabs } from './ui';
 
 type Range = 'today' | '7d' | '30d' | '12m';
@@ -163,6 +164,23 @@ export default function OwnerApp({
     return base;
   }, [orders, items, catName, range]);
 
+  // Waiter activity — today's orders grouped by waiter
+  const waiterStats = useMemo(() => {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const nameOf = new Map(staff.map((s) => [s.id, s.name]));
+    const m = new Map<string, { name: string; orders: number; revenue: number }>();
+    for (const o of orders) {
+      if (new Date(o.created_at) < start || o.status === 'cancelled') continue;
+      const key = o.waiter_id ?? 'qr';
+      const e = m.get(key) ?? { name: key === 'qr' ? 'Self-order (QR)' : nameOf.get(key) ?? 'Unknown', orders: 0, revenue: 0 };
+      e.orders += 1;
+      e.revenue += Number(o.total_amount);
+      m.set(key, e);
+    }
+    return [...m.values()].sort((a, b) => b.orders - a.orders);
+  }, [orders, staff]);
+
   return (
     <div className="space-y-8">
       <PageHeader
@@ -207,6 +225,38 @@ export default function OwnerApp({
           </div>
         </>
       )}
+
+      {/* Live operations — read-only monitor */}
+      <OwnerKitchenView restaurantId={restaurantId} />
+
+      {/* Waiter activity — today */}
+      <div>
+        <SectionHead title="Waiter activity" sub="Today · kaun kitne orders handle kar raha hai" />
+        {waiterStats.length === 0 ? (
+          <Empty title="No orders today yet" />
+        ) : (
+          <Card className="overflow-x-auto p-0">
+            <table className="w-full min-w-[480px] text-left text-[13px]">
+              <thead>
+                <tr className="border-b border-line text-[11.5px] uppercase tracking-wide text-muted">
+                  <th className="px-4 py-3">Waiter</th>
+                  <th className="px-4 py-3">Orders</th>
+                  <th className="px-4 py-3">Revenue</th>
+                </tr>
+              </thead>
+              <tbody>
+                {waiterStats.map((w) => (
+                  <tr key={w.name} className="border-b border-line last:border-0">
+                    <td className="px-4 py-3 font-bold text-ink">{w.name}</td>
+                    <td className="px-4 py-3 font-mono font-bold text-body">{fmtNum(w.orders)}</td>
+                    <td className="px-4 py-3 font-mono font-bold text-ink">{fmtPKR(w.revenue)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
+        )}
+      </div>
 
       {/* Staff */}
       <div>
