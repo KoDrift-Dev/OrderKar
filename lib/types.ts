@@ -89,6 +89,7 @@ export interface Order {
   customer_name: string | null;
   customer_phone: string | null;
   notes: string | null;
+  cancel_reason: string | null;
   created_at: string;
   updated_at: string;
 }

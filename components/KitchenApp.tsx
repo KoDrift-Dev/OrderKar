@@ -52,7 +52,16 @@ async function setStatus(orderId: string, status: OrderStatus) {
   await supabase.from('orders').update({ status }).eq('id', orderId);
 }
 
+async function cancelOrder(orderId: string, reason: string) {
+  const supabase = createClient();
+  await supabase.from('orders').update({ status: 'cancelled', cancel_reason: reason }).eq('id', orderId);
+}
+
+const CANCEL_REASONS = ['customer request', 'kitchen error', 'long wait', 'item unavailable', 'duplicate order'];
+
 function OrderCard({ order, flash }: { order: OrderWithItems; flash: boolean }) {
+  const [cancelling, setCancelling] = useState(false);
+  const [reason, setReason] = useState(CANCEL_REASONS[0]);
   const now = useClock();
   const elapsedMs = now.getTime() - new Date(order.created_at).getTime();
   const late = elapsedMs > 20 * 60000 && order.status !== 'ready';
@@ -114,6 +123,26 @@ function OrderCard({ order, flash }: { order: OrderWithItems; flash: boolean }) 
           </p>
         )}
       </div>
+      {order.status !== 'ready' &&
+        (cancelling ? (
+          <div className="mt-2 flex gap-2">
+            <select value={reason} onChange={(e) => setReason(e.target.value)} className="min-w-0 flex-1 rounded-btn border border-line bg-[var(--c-surface-solid)] px-3 py-2 text-[13px] font-bold text-ink">
+              {CANCEL_REASONS.map((r) => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
+            <button onClick={() => cancelOrder(order.id, reason)} className="shrink-0 rounded-btn bg-danger px-4 py-2 text-[13px] font-extrabold text-white">
+              Confirm
+            </button>
+            <button onClick={() => setCancelling(false)} className="shrink-0 rounded-btn border border-line px-3 py-2 text-[13px] font-bold text-muted">
+              ✕
+            </button>
+          </div>
+        ) : (
+          <button onClick={() => setCancelling(true)} className="mt-2 w-full rounded-btn py-2 text-[12.5px] font-bold text-danger/80 hover:bg-danger/10 hover:text-danger">
+            Cancel order
+          </button>
+        ))}
     </Card>
   );
 }

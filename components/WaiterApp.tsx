@@ -19,6 +19,18 @@ export default function WaiterApp({ restaurantId, waiterId }: { restaurantId: st
   const [view, setView] = useState<View>('tables');
   const [activeTable, setActiveTable] = useState<DiningTable | null>(null);
   const [placedTick, setPlacedTick] = useState(0);
+  const [payFor, setPayFor] = useState<string | null>(null);
+  const [payMethod, setPayMethod] = useState('cash');
+
+  const collectPayment = async (orderId: string) => {
+    const supabase = createClient();
+    await supabase
+      .from('orders')
+      .update({ status: 'completed', payment_status: 'paid', payment_method: payMethod })
+      .eq('id', orderId);
+    setPayFor(null);
+    load();
+  };
 
   const load = async () => {
     const supabase = createClient();
@@ -131,16 +143,37 @@ export default function WaiterApp({ restaurantId, waiterId }: { restaurantId: st
             <Empty title="No active orders" sub="Pick a table to start an order." />
           ) : (
             mine.map((o) => (
-              <Card key={o.id} className="flex items-center justify-between gap-3 p-4">
-                <div>
-                  <p className="font-mono text-lg font-bold text-ink">
-                    #{o.order_number} · {o.tables ? `Table ${o.tables.table_number}` : o.order_type}
-                  </p>
-                  <p className="text-[12.5px] text-muted">
-                    {o.order_items.reduce((s, i) => s + i.quantity, 0)} items · {fmtPKR(o.total_amount)} · {fmtAgo(o.created_at)}
-                  </p>
+              <Card key={o.id} className="p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="font-mono text-lg font-bold text-ink">
+                      #{o.order_number} · {o.tables ? `Table ${o.tables.table_number}` : o.order_type}
+                    </p>
+                    <p className="text-[12.5px] text-muted">
+                      {o.order_items.reduce((s, i) => s + i.quantity, 0)} items · {fmtPKR(o.total_amount)} · {fmtAgo(o.created_at)}
+                    </p>
+                  </div>
+                  <StatusPill status={o.status} />
                 </div>
-                <StatusPill status={o.status} />
+                {o.status === 'ready' && o.payment_status !== 'paid' &&
+                  (payFor === o.id ? (
+                    <div className="mt-3 flex gap-2">
+                      <select value={payMethod} onChange={(e) => setPayMethod(e.target.value)} className="min-w-0 flex-1 rounded-btn border border-line bg-[var(--c-surface-solid)] px-3 py-2.5 text-[13px] font-bold text-ink">
+                        <option value="cash">💵 Cash</option>
+                        <option value="card">💳 Card</option>
+                        <option value="jazzcash">📱 JazzCash</option>
+                        <option value="easypaisa">📱 EasyPaisa</option>
+                      </select>
+                      <button onClick={() => collectPayment(o.id)} className="btn-3d shrink-0 rounded-btn px-4 py-2.5 text-[13px] font-extrabold text-white">
+                        Paid ✓
+                      </button>
+                      <button onClick={() => setPayFor(null)} className="shrink-0 rounded-btn border border-line px-3 py-2.5 text-[13px] font-bold text-muted">✕</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => { setPayFor(o.id); setPayMethod('cash'); }} className="mt-3 w-full rounded-btn bg-ok/10 py-2.5 text-[13.5px] font-extrabold text-ok hover:bg-ok/20">
+                      Collect payment · {fmtPKR(o.total_amount)}
+                    </button>
+                  ))}
               </Card>
             ))
           )}
