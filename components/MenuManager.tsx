@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/client';
 import type { MenuCategory, MenuItem } from '@/lib/types';
 import { fmtPKR } from '@/lib/format';
 import { categoryImage } from '@/lib/food-images';
+import { cdnUrl } from '@/lib/images';
 import { Btn, Card, Empty, Input, Label, Pill, Select, Textarea } from './ui';
 
 type StatusFilter = 'all' | 'available' | 'soldout' | 'popular';
@@ -233,7 +234,8 @@ export default function MenuManager({ restaurantId }: { restaurantId: string }) 
     if (!error) setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, is_available: !i.is_available } : i)));
   };
 
-  const photoFor = (item: MenuItem) => item.image_url || categoryImage(catName[item.category_id] ?? '');
+  const photoFor = (item: MenuItem) =>
+    cdnUrl(item.image_url || categoryImage(catName[item.category_id] ?? ''));
 
   return (
     <div>
@@ -365,7 +367,7 @@ export default function MenuManager({ restaurantId }: { restaurantId: string }) 
                 <Label>Photo</Label>
                 <div className="mt-1.5 flex items-center gap-3">
                   {form.image_url ? (
-                    <img src={form.image_url} alt="" className="h-20 w-20 rounded-[14px] object-cover" />
+                    <img src={cdnUrl(form.image_url)} alt="" className="h-20 w-20 rounded-[14px] object-cover" />
                   ) : (
                     <div className="flex h-20 w-20 items-center justify-center rounded-[14px] bg-soft text-[22px] text-muted">🍽️</div>
                   )}

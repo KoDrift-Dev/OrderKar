@@ -11,11 +11,13 @@ import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
 import type { MenuCategory, MenuItem, DiningTable } from '@/lib/types';
 import { fmtPKR } from '@/lib/format';
 import { categoryImage } from '@/lib/food-images';
+import { cdnUrl } from '@/lib/images';
 import { Btn, Card, Empty, Pill, Textarea } from './ui';
 
 // Real uploaded photo first, bundled category photo as fallback.
 function itemPhoto(item: MenuItem, catName: Record<string, string>): string {
-  return item.image_url || categoryImage(catName[item.category_id] ?? '');
+  const origin = item.image_url || categoryImage(catName[item.category_id] ?? '');
+  return cdnUrl(origin);
 }
 
 export interface CartLine {
