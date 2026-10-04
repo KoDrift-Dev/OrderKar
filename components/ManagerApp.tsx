@@ -27,6 +27,18 @@ export default function ManagerApp({
   restaurantName: string;
 }) {
   const [orders, setOrders] = useState<OrderWithItems[]>([]);
+  const [payFor, setPayFor] = useState<string | null>(null);
+  const [payMethod, setPayMethod] = useState('cash');
+
+  const collectPayment = async (orderId: string) => {
+    const supabase = createClient();
+    await supabase
+      .from('orders')
+      .update({ status: 'completed', payment_status: 'paid', payment_method: payMethod })
+      .eq('id', orderId);
+    setPayFor(null);
+    load();
+  };
   const [tables, setTables] = useState<DiningTable[]>([]);
   const [waste, setWaste] = useState<WasteLog[]>([]);
   const [wForm, setWForm] = useState({ item: '', qty: '1', reason: 'spoilage', cost: '' });
@@ -121,16 +133,42 @@ export default function ManagerApp({
               <Empty title="No orders yet today" sub="Orders will stream in here live." />
             ) : (
               orders.slice(0, 25).map((o) => (
-                <Card key={o.id} className="flex items-center justify-between gap-3 p-4">
-                  <div className="min-w-0">
-                    <p className="truncate font-mono text-[15px] font-bold text-ink">
-                      #{o.order_number} · {o.tables ? `Table ${o.tables.table_number}` : o.order_type}
-                    </p>
-                    <p className="text-[12.5px] text-muted">
-                      {o.order_items.reduce((s, i) => s + i.quantity, 0)} items · {fmtPKR(o.total_amount)} · {fmtAgo(o.created_at)}
-                    </p>
+                <Card key={o.id} className="p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate font-mono text-[15px] font-bold text-ink">
+                        #{o.order_number} · {o.tables ? `Table ${o.tables.table_number}` : o.order_type}
+                      </p>
+                      <p className="text-[12.5px] text-muted">
+                        {o.order_items.reduce((s, i) => s + i.quantity, 0)} items · {fmtPKR(o.total_amount)} · {fmtAgo(o.created_at)}
+                        {o.payment_status === 'paid' ? (
+                          <span className="ml-1.5 font-bold text-ok">· paid ({o.payment_method ?? 'cash'})</span>
+                        ) : (
+                          <span className="ml-1.5 font-bold text-amber">· unpaid</span>
+                        )}
+                      </p>
+                    </div>
+                    <StatusPill status={o.status} />
                   </div>
-                  <StatusPill status={o.status} />
+                  {o.payment_status !== 'paid' && o.status !== 'cancelled' &&
+                    (payFor === o.id ? (
+                      <div className="mt-3 flex gap-2">
+                        <select value={payMethod} onChange={(e) => setPayMethod(e.target.value)} className="min-w-0 flex-1 rounded-btn border border-line bg-[var(--c-surface-solid)] px-3 py-2 text-[13px] font-bold text-ink">
+                          <option value="cash">💵 Cash</option>
+                          <option value="card">💳 Card</option>
+                          <option value="jazzcash">📱 JazzCash</option>
+                          <option value="easypaisa">📱 EasyPaisa</option>
+                        </select>
+                        <button onClick={() => collectPayment(o.id)} className="btn-3d shrink-0 rounded-btn px-4 py-2 text-[13px] font-extrabold text-white">
+                          Paid ✓
+                        </button>
+                        <button onClick={() => setPayFor(null)} className="shrink-0 rounded-btn border border-line px-3 py-2 text-[13px] font-bold text-muted">✕</button>
+                      </div>
+                    ) : (
+                      <button onClick={() => { setPayFor(o.id); setPayMethod('cash'); }} className="mt-3 w-full rounded-btn bg-ok/10 py-2 text-[12.5px] font-extrabold text-ok hover:bg-ok/20">
+                        Collect payment · {fmtPKR(o.total_amount)}
+                      </button>
+                    ))}
                 </Card>
               ))
             )}

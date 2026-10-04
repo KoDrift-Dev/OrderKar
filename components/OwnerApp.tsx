@@ -12,18 +12,40 @@ import OwnerSalesTab from './OwnerSalesTab';
 import OwnerOpsTab from './OwnerOpsTab';
 import OwnerStaffTab from './OwnerStaffTab';
 import OwnerCustomersTab from './OwnerCustomersTab';
+import OwnerGuide from './OwnerGuide';
 import { Empty, PageHeader, Tabs } from './ui';
 
-type Range = 'today' | '7d' | '30d' | '12m';
+type Range = 'today' | '7d' | '30d' | '12m' | 'custom';
 type TabKey = 'dashboard' | 'sales' | 'operations' | 'staff' | 'customers';
 
-function rangeStart(r: Range): Date {
-  const d = new Date();
-  if (r === 'today') d.setHours(0, 0, 0, 0);
-  else if (r === '7d') d.setDate(d.getDate() - 7);
-  else if (r === '30d') d.setDate(d.getDate() - 30);
-  else d.setMonth(d.getMonth() - 12);
-  return d;
+function isoDay(d: Date): string {
+  return d.toLocaleDateString('en-CA'); // YYYY-MM-DD
+}
+
+function defaultCustom(): { from: string; to: string } {
+  const to = new Date();
+  const from = new Date();
+  from.setDate(from.getDate() - 6);
+  return { from: isoDay(from), to: isoDay(to) };
+}
+
+function rangeBounds(r: Range, custom: { from: string; to: string }): { start: Date; end: Date } {
+  const now = new Date();
+  if (r === 'today') {
+    const s = new Date(now);
+    s.setHours(0, 0, 0, 0);
+    return { start: s, end: now };
+  }
+  if (r === 'custom') {
+    const s = new Date(custom.from + 'T00:00:00');
+    const e = new Date(custom.to + 'T23:59:59');
+    return { start: s, end: e };
+  }
+  const s = new Date(now);
+  if (r === '7d') s.setDate(s.getDate() - 7);
+  else if (r === '30d') s.setDate(s.getDate() - 30);
+  else s.setMonth(s.getMonth() - 12);
+  return { start: s, end: now };
 }
 
 interface Agg {
@@ -37,25 +59,51 @@ interface Agg {
   cats: { name: string; revenue: number }[];
 }
 
-function aggregate(orders: Order[], items: OrderItem[], range: Range): Agg {
+function aggregate(orders: Order[], items: OrderItem[], range: Range, start: Date, end: Date): Agg {
   const done = orders.filter((o) => o.status !== 'cancelled');
   const revenue = done.reduce((s, o) => s + Number(o.total_amount), 0);
   const itemsSold = items.reduce((s, i) => s + i.quantity, 0);
 
+  const hourly = range === 'today';
+  const monthly = range === '12m';
   const bucketKey = (d: Date): string => {
-    if (range === 'today') return `${d.getHours()}:00`;
-    if (range === '12m') return d.toLocaleDateString('en-PK', { month: 'short' });
+    if (hourly) return `${d.getHours()}:00`;
+    if (monthly) return d.toLocaleDateString('en-PK', { month: 'short', year: '2-digit' });
     return d.toLocaleDateString('en-PK', { day: 'numeric', month: 'short' });
   };
+  // Pre-fill every bucket in the range with 0 so sparse data still draws a
+  // proper timeline instead of a single "4 Oct → 4 Oct" point.
   const buckets = new Map<string, number>();
   const orderOf = new Map<string, number>();
   let bi = 0;
-  for (const o of done) {
-    const k = bucketKey(new Date(o.created_at));
+  const addBucket = (k: string) => {
     if (!buckets.has(k)) {
       buckets.set(k, 0);
       orderOf.set(k, bi++);
     }
+  };
+  if (hourly) {
+    for (let h = 0; h < 24; h++) addBucket(`${h}:00`);
+  } else if (monthly) {
+    const d = new Date(start);
+    d.setDate(1);
+    while (d <= end) {
+      addBucket(bucketKey(d));
+      d.setMonth(d.getMonth() + 1);
+    }
+  } else {
+    const d = new Date(start);
+    d.setHours(0, 0, 0, 0);
+    const stop = new Date(end);
+    stop.setHours(0, 0, 0, 0);
+    while (d <= stop) {
+      addBucket(bucketKey(d));
+      d.setDate(d.getDate() + 1);
+    }
+  }
+  for (const o of done) {
+    const k = bucketKey(new Date(o.created_at));
+    addBucket(k);
     buckets.set(k, (buckets.get(k) ?? 0) + Number(o.total_amount));
   }
   const trend = [...buckets.entries()]
@@ -87,6 +135,7 @@ const RANGE_LABEL: Record<Range, string> = {
   '7d': 'Last 7 days',
   '30d': 'Last 30 days',
   '12m': 'Last 12 months',
+  custom: 'Custom range',
 };
 
 export default function OwnerApp({
@@ -99,6 +148,7 @@ export default function OwnerApp({
   restaurantName: string;
 }) {
   const [range, setRange] = useState<Range>('30d');
+  const [custom, setCustom] = useState(defaultCustom);
   const [tab, setTab] = useState<TabKey>('dashboard');
   const [orders, setOrders] = useState<Order[]>([]);
   const [items, setItems] = useState<OrderItem[]>([]);
@@ -110,10 +160,12 @@ export default function OwnerApp({
   const [loading, setLoading] = useState(true);
   const [tableCount, setTableCount] = useState(6);
 
-  const load = async (r: Range) => {
+  const { start, end } = rangeBounds(range, custom);
+
+  const load = async () => {
     const supabase = createClient();
     setLoading(true);
-    const iso = rangeStart(r).toISOString();
+    const iso = start.toISOString();
     const { data: o } = await supabase
       .from('orders')
       .select('*')
@@ -153,9 +205,9 @@ export default function OwnerApp({
   };
 
   useEffect(() => {
-    load(range);
+    load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [restaurantId, range]);
+  }, [restaurantId, range, custom.from, custom.to]);
 
   const catName = useMemo(() => {
     const map = new Map<string, string>();
@@ -173,7 +225,7 @@ export default function OwnerApp({
   }, [orders]);
 
   const agg = useMemo(() => {
-    const base = aggregate(orders, items, range);
+    const base = aggregate(orders, items, range, start, end);
     const catRev = new Map<string, number>();
     for (const i of items) {
       const catId = i.menu_item_id ? catName.itemToCat.get(i.menu_item_id) : undefined;
@@ -184,7 +236,7 @@ export default function OwnerApp({
       .map(([name, revenue]) => ({ name, revenue }))
       .sort((a, b) => b.revenue - a.revenue);
     return base;
-  }, [orders, items, catName, range]);
+  }, [orders, items, catName, range, start, end]);
 
   return (
     <div className="space-y-6">
@@ -192,16 +244,27 @@ export default function OwnerApp({
         title="Owner dashboard"
         sub={`${restaurantName} · full analytics`}
         right={
-          <Tabs<Range>
-            active={range}
-            onChange={setRange}
-            tabs={[
-              { key: 'today', label: 'Today' },
-              { key: '7d', label: '7 days' },
-              { key: '30d', label: '30 days' },
-              { key: '12m', label: '12 months' },
-            ]}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <OwnerGuide />
+            <Tabs<Range>
+              active={range}
+              onChange={setRange}
+              tabs={[
+                { key: 'today', label: 'Today' },
+                { key: '7d', label: '7 days' },
+                { key: '30d', label: '30 days' },
+                { key: '12m', label: '12 months' },
+                { key: 'custom', label: '📅 Custom' },
+              ]}
+            />
+            {range === 'custom' && (
+              <div className="glass flex items-center gap-1.5 !rounded-[16px] p-1.5 text-[12.5px] font-bold">
+                <input type="date" value={custom.from} max={custom.to} onChange={(e) => setCustom((c) => ({ ...c, from: e.target.value }))} className="rounded-[10px] border border-line bg-[var(--c-surface-solid)] px-2 py-1.5 text-ink" />
+                <span className="text-muted">→</span>
+                <input type="date" value={custom.to} min={custom.from} onChange={(e) => setCustom((c) => ({ ...c, to: e.target.value }))} className="rounded-[10px] border border-line bg-[var(--c-surface-solid)] px-2 py-1.5 text-ink" />
+              </div>
+            )}
+          </div>
         }
       />
 

@@ -143,7 +143,7 @@ export default function OwnerKitchenView({ restaurantId }: { restaurantId: strin
                   <p className="font-display text-[14px] font-extrabold text-ink">{col.label}</p>
                   <span className="rounded-full bg-ink px-2.5 py-0.5 font-mono text-[12px] font-bold text-white">{list.length}</span>
                 </div>
-                <div className="space-y-2.5">
+                <div className="max-h-[440px] space-y-2.5 overflow-y-auto pr-1">
                   {list.length === 0 && <p className="px-1 py-4 text-center text-[12.5px] text-muted">—</p>}
                   {list.map((o) => (
                     <div key={o.id} className={flashIds.has(o.id) ? 'animate-flash-new rounded-[14px] ring-2 ring-brand' : ''}>

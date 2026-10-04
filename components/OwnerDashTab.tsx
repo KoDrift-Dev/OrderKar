@@ -7,7 +7,7 @@ import { fmtPKR, fmtNum } from '@/lib/format';
 import { CategoryDonut, RevenueTrend } from './charts';
 import QrSection from './QrSection';
 import OwnerSmartSummary from './OwnerSmartSummary';
-import { Kpi, SectionHead } from './ui';
+import { Kpi } from './ui';
 
 export interface DashAgg {
   revenue: number;
@@ -62,10 +62,7 @@ export default function OwnerDashTab({
         <CategoryDonut cats={agg.cats} />
       </div>
 
-      <div>
-        <SectionHead title="QR codes" sub="Tables + reviews — print & place" />
-        <QrSection slug={slug} tableCount={tableCount} restaurantName={restaurantName} />
-      </div>
+      <QrSection slug={slug} tableCount={tableCount} restaurantName={restaurantName} />
     </div>
   );
 }

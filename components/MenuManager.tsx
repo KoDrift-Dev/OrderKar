@@ -86,6 +86,11 @@ export default function MenuManager({ restaurantId }: { restaurantId: string }) 
     cats.forEach((c) => (m[c.id] = c.name));
     return m;
   }, [cats]);
+  const catActive = useMemo(() => {
+    const m: Record<string, boolean> = {};
+    cats.forEach((c) => (m[c.id] = c.is_active));
+    return m;
+  }, [cats]);
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -276,6 +281,16 @@ export default function MenuManager({ restaurantId }: { restaurantId: string }) 
                 {item.tags.includes('bestseller') && (
                   <span className="absolute left-2.5 top-2.5 rounded-md bg-amber px-2 py-1 text-[10px] font-extrabold uppercase tracking-wide text-white shadow">
                     ★ Popular
+                  </span>
+                )}
+                {!item.image_url && (
+                  <span title="No photo uploaded — customers see a generic image" className="absolute left-2.5 top-2.5 rounded-md bg-ink/55 px-2 py-1 text-[10px] font-extrabold uppercase tracking-wide text-white backdrop-blur">
+                    📷 No photo
+                  </span>
+                )}
+                {catActive[item.category_id] === false && (
+                  <span title="Is category ko off kiya hua hai — customers is item ko dekh hi nahi sakte!" className="absolute left-2.5 bottom-2.5 rounded-md bg-danger px-2 py-1 text-[10px] font-extrabold uppercase tracking-wide text-white shadow">
+                    ⚠️ Hidden category
                   </span>
                 )}
                 <span className="absolute bottom-2.5 right-2.5 rounded-md bg-ink/55 px-2 py-1 text-[10.5px] font-bold text-white backdrop-blur">
