@@ -46,10 +46,12 @@ create table if not exists profiles (
   is_super_admin boolean not null default false,
   name           text not null,
   phone          text,
+  address        text,
   is_active      boolean not null default true,
   created_at     timestamptz not null default now()
 );
 -- NOTE: super_admin rows have restaurant_id NULL (platform scope).
+alter table public.profiles add column if not exists address text;
 
 -- ── Menu ────────────────────────────────────────────────────────────────────
 
@@ -439,3 +441,39 @@ grant usage, select on sequence public.order_number_seq to authenticated;
 -- keep the same grants for tables created in the future
 alter default privileges in schema public grant select, insert on tables to anon;
 alter default privileges in schema public grant all on tables to authenticated;
+
+-- ── Supabase Storage: menu item photos ───────────────────────────────────
+-- Public bucket; staff upload only into their own restaurant's folder.
+
+insert into storage.buckets (id, name, public)
+values ('menu-images', 'menu-images', true)
+on conflict (id) do nothing;
+
+drop policy if exists "menu-images public read" on storage.objects;
+create policy "menu-images public read" on storage.objects
+  for select to anon, authenticated
+  using (bucket_id = 'menu-images');
+
+drop policy if exists "menu-images staff insert" on storage.objects;
+create policy "menu-images staff insert" on storage.objects
+  for insert to authenticated
+  with check (
+    bucket_id = 'menu-images'
+    and ((storage.foldername(name))[1] = public.my_restaurant_id()::text or public.am_super_admin())
+  );
+
+drop policy if exists "menu-images staff update" on storage.objects;
+create policy "menu-images staff update" on storage.objects
+  for update to authenticated
+  using (
+    bucket_id = 'menu-images'
+    and ((storage.foldername(name))[1] = public.my_restaurant_id()::text or public.am_super_admin())
+  );
+
+drop policy if exists "menu-images staff delete" on storage.objects;
+create policy "menu-images staff delete" on storage.objects
+  for delete to authenticated
+  using (
+    bucket_id = 'menu-images'
+    and ((storage.foldername(name))[1] = public.my_restaurant_id()::text or public.am_super_admin())
+  );

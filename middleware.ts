@@ -15,6 +15,8 @@ const ROLE_ROUTES: { prefix: string; minRole: string }[] = [
   { prefix: '/kitchen', minRole: 'kitchen' },
   { prefix: '/manager', minRole: 'manager' },
   { prefix: '/owner', minRole: 'owner' },
+  { prefix: '/menu', minRole: 'manager' },
+  { prefix: '/team', minRole: 'manager' },
 ];
 
 const RANK: Record<string, number> = {

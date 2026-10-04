@@ -13,6 +13,11 @@ import { fmtPKR } from '@/lib/format';
 import { categoryImage } from '@/lib/food-images';
 import { Btn, Card, Empty, Pill, Textarea } from './ui';
 
+// Real uploaded photo first, bundled category photo as fallback.
+function itemPhoto(item: MenuItem, catName: Record<string, string>): string {
+  return item.image_url || categoryImage(catName[item.category_id] ?? '');
+}
+
 export interface CartLine {
   item: MenuItem;
   qty: number;
@@ -202,7 +207,7 @@ export default function MenuOrder({
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-4">
           {visible.map((item) => {
             const line = lineFor(item.id);
-            const img = categoryImage(catName[item.category_id] ?? '');
+            const img = itemPhoto(item, catName);
             return (
               <div
                 key={item.id}
@@ -308,7 +313,7 @@ export default function MenuOrder({
               {cart.map((l) => (
                 <div key={l.item.id} className="glass flex gap-3 !rounded-[14px] p-2.5">
                   <img
-                    src={categoryImage(catName[l.item.category_id] ?? '')}
+                    src={itemPhoto(l.item, catName)}
                     alt=""
                     className="h-12 w-12 shrink-0 rounded-[10px] object-cover"
                   />
@@ -353,7 +358,7 @@ export default function MenuOrder({
             <div className="flex-1 overflow-y-auto">
               <div className="relative">
                 <img
-                  src={categoryImage(catName[detail.category_id] ?? '')}
+                  src={itemPhoto(detail, catName)}
                   alt={detail.name}
                   className="h-48 w-full rounded-t-[24px] object-cover"
                 />

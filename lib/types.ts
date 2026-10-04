@@ -19,6 +19,7 @@ export interface Profile {
   is_super_admin: boolean;
   name: string;
   phone: string | null;
+  address: string | null;
   is_active: boolean;
   created_at: string;
 }

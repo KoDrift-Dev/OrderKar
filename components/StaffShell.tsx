@@ -10,11 +10,17 @@ import type { Role } from '@/lib/types';
 import ThemeToggle from './ThemeToggle';
 import Logo from './Logo';
 
-const NAV: { href: string; label: string; roles: Role[] }[] = [
+const ROLE_TABS: { href: string; label: string; roles: Role[] }[] = [
   { href: 'owner', label: 'Owner', roles: ['owner', 'super_admin'] },
   { href: 'manager', label: 'Manager', roles: ['owner', 'manager', 'super_admin'] },
   { href: 'kitchen', label: 'Kitchen', roles: ['owner', 'manager', 'kitchen', 'super_admin'] },
   { href: 'waiter', label: 'Waiter', roles: ['owner', 'manager', 'waiter', 'super_admin'] },
+];
+
+// Management sections — separate from the dashboard, for owner/manager.
+const MANAGE_TABS: { href: string; label: string; icon: string; roles: Role[] }[] = [
+  { href: 'menu', label: 'Menu', icon: '🍽️', roles: ['owner', 'manager', 'super_admin'] },
+  { href: 'team', label: 'Team', icon: '👥', roles: ['owner', 'manager', 'super_admin'] },
 ];
 
 export default function StaffShell({
@@ -36,7 +42,25 @@ export default function StaffShell({
     router.refresh();
   };
 
-  const tabs = NAV.filter((n) => n.roles.includes(role));
+  const roleTabs = ROLE_TABS.filter((n) => n.roles.includes(role));
+  const manageTabs = MANAGE_TABS.filter((n) => n.roles.includes(role));
+
+  const renderTab = (t: { href: string; label: string; icon?: string }) => {
+    const href = `/r/${tenant.slug}/${t.href}`;
+    const active = pathname === href || pathname.startsWith(href + '/');
+    return (
+      <Link
+        key={t.href}
+        href={href}
+        prefetch
+        className={`whitespace-nowrap rounded-[10px] px-3.5 py-1.5 text-[13.5px] font-bold transition-all ${
+          active ? 'btn-3d text-white' : 'text-muted hover:text-ink'
+        }`}
+      >
+        {t.icon ? `${t.icon} ` : ''}{t.label}
+      </Link>
+    );
+  };
 
   return (
     <div className="min-h-screen">
@@ -61,23 +85,13 @@ export default function StaffShell({
             </button>
           </div>
         </div>
-        {tabs.length > 1 && (
-          <nav className="mx-auto flex max-w-7xl gap-1 overflow-x-auto px-4 pb-2 sm:px-6">
-            {tabs.map((t) => {
-              const href = `/r/${tenant.slug}/${t.href}`;
-              const active = pathname === href;
-              return (
-                <Link
-                  key={t.href}
-                  href={href}
-                  className={`whitespace-nowrap rounded-[10px] px-3.5 py-1.5 text-[13.5px] font-bold transition-all ${
-                    active ? 'btn-3d text-white' : 'text-muted hover:text-ink'
-                  }`}
-                >
-                  {t.label}
-                </Link>
-              );
-            })}
+        {(roleTabs.length > 1 || manageTabs.length > 0) && (
+          <nav className="mx-auto flex max-w-7xl items-center gap-1 overflow-x-auto px-4 pb-2 sm:px-6">
+            {roleTabs.map(renderTab)}
+            {roleTabs.length > 1 && manageTabs.length > 0 && (
+              <span className="mx-1.5 h-5 w-px shrink-0 bg-line" aria-hidden="true" />
+            )}
+            {manageTabs.map(renderTab)}
           </nav>
         )}
       </header>
