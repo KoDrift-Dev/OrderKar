@@ -20,6 +20,21 @@ export interface Profile {
   name: string;
   phone: string | null;
   address: string | null;
+  gender: 'male' | 'female' | null;
+  photo_url: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface StaffMember {
+  id: string;
+  restaurant_id: string;
+  name: string;
+  job_title: string | null;
+  phone: string | null;
+  address: string | null;
+  gender: 'male' | 'female' | null;
+  photo_url: string | null;
   is_active: boolean;
   created_at: string;
 }

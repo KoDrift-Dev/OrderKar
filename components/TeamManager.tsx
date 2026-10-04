@@ -1,16 +1,20 @@
 'use client';
 
-// Team management for owner/manager: list staff, link a new staff member
-// (auth user is created in Supabase Dashboard > Authentication > Users —
-// paste their UUID here), edit role / details, activate / deactivate.
+// Team management for owner/manager.
+// Tab 1 — Login accounts: create real auth accounts in-app (email+password),
+//   edit role / details, activate / deactivate. No Dashboard needed.
+// Tab 2 — Staff: people without login (helpers, dishwashers…) — name, job
+//   title, contact, gender, photo.
 
 import { useEffect, useState } from 'react';
+import { createClient as createRawClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/client';
-import type { Profile, Role } from '@/lib/types';
+import type { Profile, Role, StaffMember } from '@/lib/types';
 import { Btn, Card, Empty, Input, Label, Select, Textarea } from './ui';
+import PhotoDropzone from './PhotoDropzone';
+import Avatar from './Avatar';
 
-const ROLE_LABEL: Record<Role, string> = {
-  super_admin: 'Super Admin',
+const ROLE_LABEL: Record<string, string> = {
   owner: 'Owner',
   manager: 'Manager',
   kitchen: 'Kitchen',
@@ -22,41 +26,89 @@ const ROLE_STYLE: Record<string, string> = {
   manager: 'bg-teal/10 text-teal',
   kitchen: 'bg-amber/15 text-amber',
   waiter: 'bg-ok/10 text-ok',
-  super_admin: 'bg-danger/10 text-danger',
 };
 
-const EDITABLE_ROLES: Role[] = ['owner', 'manager', 'kitchen', 'waiter'];
+type Gender = 'male' | 'female' | '';
 
-interface FormState {
-  auth_id: string;
-  name: string;
-  phone: string;
-  address: string;
-  role: Role;
-  is_active: boolean;
+// Which roles the current user may assign.
+function assignableRoles(myRole: Role): Role[] {
+  if (myRole === 'owner' || myRole === 'super_admin') return ['owner', 'manager', 'kitchen', 'waiter'];
+  return ['kitchen', 'waiter']; // manager
 }
 
-const EMPTY_FORM: FormState = { auth_id: '', name: '', phone: '', address: '', role: 'waiter', is_active: true };
+// Temp client with isolated session storage — signUp here never touches the
+// owner's own login session.
+function signupClient() {
+  return createRawClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+    auth: { storageKey: 'orderkar-tmp-signup', persistSession: true, autoRefreshToken: false, detectSessionInUrl: false },
+  });
+}
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const GENDER_OPTIONS: { v: Gender; label: string }[] = [
+  { v: '', label: 'Not specified' },
+  { v: 'male', label: 'Male' },
+  { v: 'female', label: 'Female' },
+];
 
-export default function TeamManager({ restaurantId, meId }: { restaurantId: string; meId: string }) {
-  const [staff, setStaff] = useState<Profile[]>([]);
+export default function TeamManager({
+  restaurantId,
+  meId,
+  myRole,
+}: {
+  restaurantId: string;
+  meId: string;
+  myRole: Role;
+}) {
+  const [tab, setTab] = useState<'accounts' | 'staff'>('accounts');
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [staff, setStaff] = useState<StaffMember[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState<Profile | 'new' | null>(null);
-  const [form, setForm] = useState<FormState>(EMPTY_FORM);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+
+  // create-account modal
+  const [creating, setCreating] = useState(false);
+  const [cName, setCName] = useState('');
+  const [cEmail, setCEmail] = useState('');
+  const [cPass, setCPass] = useState('');
+  const [cRole, setCRole] = useState<Role>('waiter');
+  const [cPhone, setCPhone] = useState('');
+  const [cAddress, setCAddress] = useState('');
+  const [cGender, setCGender] = useState<Gender>('');
+  const [cPhoto, setCPhoto] = useState('');
+  const [cSaving, setCSaving] = useState(false);
+  const [cError, setCError] = useState('');
+
+  // edit-profile modal
+  const [editing, setEditing] = useState<Profile | null>(null);
+  const [eRole, setERole] = useState<Role>('waiter');
+  const [ePhone, setEPhone] = useState('');
+  const [eAddress, setEAddress] = useState('');
+  const [eGender, setEGender] = useState<Gender>('');
+  const [ePhoto, setEPhoto] = useState('');
+  const [eActive, setEActive] = useState(true);
+  const [eSaving, setESaving] = useState(false);
+  const [eError, setEError] = useState('');
+
+  // staff (no-login) modal
+  const [sEditing, setSEditing] = useState<StaffMember | 'new' | null>(null);
+  const [sName, setSName] = useState('');
+  const [sTitle, setSTitle] = useState('');
+  const [sPhone, setSPhone] = useState('');
+  const [sAddress, setSAddress] = useState('');
+  const [sGender, setSGender] = useState<Gender>('');
+  const [sPhoto, setSPhoto] = useState('');
+  const [sActive, setSActive] = useState(true);
+  const [sSaving, setSSaving] = useState(false);
+  const [sError, setSError] = useState('');
 
   const load = async () => {
     setLoading(true);
     const supabase = createClient();
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('restaurant_id', restaurantId)
-      .order('created_at');
-    setStaff((data ?? []) as Profile[]);
+    const [{ data: p }, { data: s }] = await Promise.all([
+      supabase.from('profiles').select('*').eq('restaurant_id', restaurantId).order('created_at'),
+      supabase.from('staff_members').select('*').eq('restaurant_id', restaurantId).order('created_at'),
+    ]);
+    setProfiles((p ?? []) as Profile[]);
+    setStaff((s ?? []) as StaffMember[]);
     setLoading(false);
   };
 
@@ -65,75 +117,163 @@ export default function TeamManager({ restaurantId, meId }: { restaurantId: stri
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restaurantId]);
 
-  const openNew = () => {
-    setForm(EMPTY_FORM);
-    setEditing('new');
-    setError('');
+  const canManageRole = (targetRole: Role) =>
+    myRole === 'owner' || myRole === 'super_admin' || targetRole === 'kitchen' || targetRole === 'waiter';
+
+  // ── create account ──────────────────────────────────────────────────────
+  const openCreate = () => {
+    setCName(''); setCEmail(''); setCPass(''); setCRole('waiter');
+    setCPhone(''); setCAddress(''); setCGender(''); setCPhoto('');
+    setCError(''); setCreating(true);
   };
 
+  const createAccount = async () => {
+    if (!cName.trim() || !cEmail.trim() || cPass.length < 6) {
+      setCError('Name, a valid email and a 6+ character password are required.');
+      return;
+    }
+    setCSaving(true);
+    setCError('');
+    const tmp = signupClient();
+    try {
+      const { data, error } = await tmp.auth.signUp({ email: cEmail.trim(), password: cPass });
+      if (error) throw new Error(error.message);
+      const userId = data.user?.id;
+      if (!userId) throw new Error('Signup failed — please try again.');
+      const supabase = createClient();
+      const { error: pErr } = await supabase.from('profiles').insert({
+        id: userId,
+        restaurant_id: restaurantId,
+        name: cName.trim(),
+        phone: cPhone.trim() || null,
+        address: cAddress.trim() || null,
+        gender: cGender || null,
+        photo_url: cPhoto || null,
+        role: cRole,
+        is_active: true,
+      });
+      if (pErr) throw new Error(pErr.message);
+      setCreating(false);
+      await load();
+    } catch (e) {
+      setCError(e instanceof Error ? e.message : 'Failed to create account');
+    } finally {
+      try { await tmp.auth.signOut(); } catch { /* cleanup only */ }
+      setCSaving(false);
+    }
+  };
+
+  // ── edit profile ────────────────────────────────────────────────────────
   const openEdit = (p: Profile) => {
-    setForm({ auth_id: p.id, name: p.name, phone: p.phone ?? '', address: p.address ?? '', role: p.role, is_active: p.is_active });
     setEditing(p);
-    setError('');
+    setERole(p.role);
+    setEPhone(p.phone ?? '');
+    setEAddress(p.address ?? '');
+    setEGender((p.gender ?? '') as Gender);
+    setEPhoto(p.photo_url ?? '');
+    setEActive(p.is_active);
+    setEError('');
   };
 
-  const save = async () => {
-    if (!form.name.trim()) {
-      setError('Name is required.');
+  const saveProfile = async () => {
+    if (!editing) return;
+    if (editing.id === meId && !eActive) {
+      setEError('You cannot deactivate your own account.');
       return;
     }
-    if (editing === 'new' && !UUID_RE.test(form.auth_id.trim())) {
-      setError('Paste a valid auth UUID (Dashboard > Authentication > Users > copy UID).');
-      return;
-    }
-    setSaving(true);
-    setError('');
+    setESaving(true);
+    setEError('');
     try {
       const supabase = createClient();
-      if (editing === 'new') {
-        const { error } = await supabase.from('profiles').insert({
-          id: form.auth_id.trim(),
-          restaurant_id: restaurantId,
-          name: form.name.trim(),
-          phone: form.phone.trim() || null,
-          address: form.address.trim() || null,
-          role: form.role,
-          is_active: form.is_active,
-        });
-        if (error) throw new Error(error.message);
-      } else if (editing) {
-        if (editing.id === meId && !form.is_active) {
-          setError('You cannot deactivate your own account.');
-          setSaving(false);
-          return;
-        }
-        const { error } = await supabase
-          .from('profiles')
-          .update({
-            name: form.name.trim(),
-            phone: form.phone.trim() || null,
-            address: form.address.trim() || null,
-            role: form.role,
-            is_active: form.is_active,
-          })
-          .eq('id', editing.id);
-        if (error) throw new Error(error.message);
-      }
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          role: eRole,
+          phone: ePhone.trim() || null,
+          address: eAddress.trim() || null,
+          gender: eGender || null,
+          photo_url: ePhoto || null,
+          is_active: eActive,
+        })
+        .eq('id', editing.id);
+      if (error) throw new Error(error.message);
       setEditing(null);
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Save failed');
+      setEError(e instanceof Error ? e.message : 'Save failed');
     } finally {
-      setSaving(false);
+      setESaving(false);
     }
   };
 
-  const toggleActive = async (p: Profile) => {
+  const toggleProfileActive = async (p: Profile) => {
     if (p.id === meId) return;
     const supabase = createClient();
     const { error } = await supabase.from('profiles').update({ is_active: !p.is_active }).eq('id', p.id);
-    if (!error) setStaff((prev) => prev.map((x) => (x.id === p.id ? { ...x, is_active: !x.is_active } : x)));
+    if (!error) setProfiles((prev) => prev.map((x) => (x.id === p.id ? { ...x, is_active: !p.is_active } : x)));
   };
+
+  // ── staff (no login) ────────────────────────────────────────────────────
+  const openNewStaff = () => {
+    setSName(''); setSTitle(''); setSPhone(''); setSAddress('');
+    setSGender(''); setSPhoto(''); setSActive(true);
+    setSError(''); setSEditing('new');
+  };
+
+  const openEditStaff = (s: StaffMember) => {
+    setSName(s.name); setSTitle(s.job_title ?? ''); setSPhone(s.phone ?? '');
+    setSAddress(s.address ?? ''); setSGender((s.gender ?? '') as Gender);
+    setSPhoto(s.photo_url ?? ''); setSActive(s.is_active);
+    setSError(''); setSEditing(s);
+  };
+
+  const saveStaff = async () => {
+    if (!sName.trim()) {
+      setSError('Name is required.');
+      return;
+    }
+    setSSaving(true);
+    setSError('');
+    try {
+      const supabase = createClient();
+      const payload = {
+        restaurant_id: restaurantId,
+        name: sName.trim(),
+        job_title: sTitle.trim() || null,
+        phone: sPhone.trim() || null,
+        address: sAddress.trim() || null,
+        gender: sGender || null,
+        photo_url: sPhoto || null,
+        is_active: sActive,
+      };
+      if (sEditing === 'new') {
+        const { error } = await supabase.from('staff_members').insert(payload);
+        if (error) throw new Error(error.message);
+      } else if (sEditing) {
+        const { error } = await supabase.from('staff_members').update(payload).eq('id', sEditing.id);
+        if (error) throw new Error(error.message);
+      }
+      setSEditing(null);
+      await load();
+    } catch (e) {
+      setSError(e instanceof Error ? e.message : 'Save failed');
+    } finally {
+      setSSaving(false);
+    }
+  };
+
+  const removeStaff = async (s: StaffMember) => {
+    if (!window.confirm(`Remove "${s.name}" from staff?`)) return;
+    const supabase = createClient();
+    const { error } = await supabase.from('staff_members').delete().eq('id', s.id);
+    if (!error) load();
+  };
+
+  const switchCls = (on: boolean, color: string) =>
+    `relative h-6 w-11 rounded-full transition-colors ${on ? color : 'bg-line'}`;
+
+  const knobCls = (on: boolean) =>
+    `absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${on ? 'left-[22px]' : 'left-0.5'}`;
 
   return (
     <div>
@@ -141,137 +281,310 @@ export default function TeamManager({ restaurantId, meId }: { restaurantId: stri
         <div>
           <h1 className="font-display text-[22px] font-extrabold text-ink">Team Members</h1>
           <p className="mt-0.5 text-[13px] text-muted">
-            {staff.length} staff · roles control what each person can open.
+            {profiles.length} login accounts · {staff.length} staff
           </p>
         </div>
-        <Btn onClick={openNew}>+ Add Staff</Btn>
+        {tab === 'accounts' ? <Btn onClick={openCreate}>+ Create Account</Btn> : <Btn onClick={openNewStaff}>+ Add Staff</Btn>}
+      </div>
+
+      <div className="mb-5 flex gap-1.5">
+        {(
+          [
+            { key: 'accounts', label: '🔑 Login Accounts' },
+            { key: 'staff', label: '👥 Staff (no login)' },
+          ] as const
+        ).map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={`rounded-[12px] px-4 py-2 text-[13.5px] font-bold transition-all ${
+              tab === t.key ? 'btn-3d text-white' : 'glass text-muted hover:text-ink'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
 
       {loading ? (
         <Empty title="Loading team…" />
+      ) : tab === 'accounts' ? (
+        profiles.length === 0 ? (
+          <Empty title="No accounts yet" sub="Create the first login account for your team." />
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {profiles.map((p) => (
+              <Card key={p.id} className={`p-4 ${p.is_active ? '' : 'opacity-60'}`}>
+                <div className="flex items-start gap-3">
+                  <Avatar name={p.name} photoUrl={p.photo_url} gender={p.gender} size={46} />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="truncate font-display text-[14.5px] font-extrabold text-ink">{p.name}</p>
+                      {p.id === meId && <span className="shrink-0 text-[10.5px] font-bold text-muted">(you)</span>}
+                    </div>
+                    <span className={`mt-1 inline-block rounded-full px-2.5 py-0.5 text-[11px] font-bold ${ROLE_STYLE[p.role] ?? 'bg-soft text-muted'}`}>
+                      {ROLE_LABEL[p.role] ?? p.role}
+                    </span>
+                  </div>
+                  <button onClick={() => openEdit(p)} title="Edit" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] text-muted hover:bg-brand-soft hover:text-brand">✎</button>
+                </div>
+                <div className="mt-3 space-y-1 border-t border-line pt-3 text-[12.5px]">
+                  {p.phone && <p className="text-body">📞 <span className="font-bold text-ink">{p.phone}</span></p>}
+                  {p.address && <p className="truncate text-muted">📍 {p.address}</p>}
+                  <div className="flex items-center justify-between pt-1">
+                    <span className={`text-[11.5px] font-bold ${p.is_active ? 'text-ok' : 'text-danger'}`}>
+                      {p.is_active ? '● Active' : '● Deactivated'}
+                    </span>
+                    {p.id !== meId && (
+                      <button onClick={() => toggleProfileActive(p)} className="text-[11.5px] font-bold text-brand hover:underline">
+                        {p.is_active ? 'Deactivate' : 'Activate'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )
       ) : staff.length === 0 ? (
-        <Empty title="No staff yet" sub="Add your first team member to get started." />
+        <Empty title="No staff yet" sub="Add helpers, dishwashers and others who don't need a login." />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {staff.map((p) => (
-            <Card key={p.id} className={`p-4 ${p.is_active ? '' : 'opacity-60'}`}>
+          {staff.map((s) => (
+            <Card key={s.id} className={`p-4 ${s.is_active ? '' : 'opacity-60'}`}>
               <div className="flex items-start gap-3">
-                <div className="btn-3d flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] font-display text-[17px] font-extrabold text-white">
-                  {p.name.charAt(0).toUpperCase()}
-                </div>
+                <Avatar name={s.name} photoUrl={s.photo_url} gender={s.gender} size={46} />
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="truncate font-display text-[14.5px] font-extrabold text-ink">{p.name}</p>
-                    {p.id === meId && <span className="shrink-0 text-[10.5px] font-bold text-muted">(you)</span>}
-                  </div>
-                  <span className={`mt-1 inline-block rounded-full px-2.5 py-0.5 text-[11px] font-bold ${ROLE_STYLE[p.role] ?? 'bg-soft text-muted'}`}>
-                    {ROLE_LABEL[p.role] ?? p.role}
-                  </span>
-                </div>
-                <button onClick={() => openEdit(p)} title="Edit" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] text-muted hover:bg-brand-soft hover:text-brand">
-                  ✎
-                </button>
-              </div>
-              <div className="mt-3 space-y-1 border-t border-line pt-3 text-[12.5px]">
-                {p.phone && <p className="text-body">📞 <span className="font-bold text-ink">{p.phone}</span></p>}
-                {p.address && <p className="truncate text-muted">📍 {p.address}</p>}
-                <div className="flex items-center justify-between pt-1">
-                  <span className={`text-[11.5px] font-bold ${p.is_active ? 'text-ok' : 'text-danger'}`}>
-                    {p.is_active ? '● Active' : '● Deactivated'}
-                  </span>
-                  {p.id !== meId && (
-                    <button onClick={() => toggleActive(p)} className="text-[11.5px] font-bold text-brand hover:underline">
-                      {p.is_active ? 'Deactivate' : 'Activate'}
-                    </button>
+                  <p className="truncate font-display text-[14.5px] font-extrabold text-ink">{s.name}</p>
+                  {s.job_title && (
+                    <span className="mt-1 inline-block rounded-full bg-soft px-2.5 py-0.5 text-[11px] font-bold text-muted">
+                      {s.job_title}
+                    </span>
                   )}
                 </div>
+                <div className="flex shrink-0 gap-0.5">
+                  <button onClick={() => openEditStaff(s)} title="Edit" className="flex h-8 w-8 items-center justify-center rounded-[9px] text-muted hover:bg-brand-soft hover:text-brand">✎</button>
+                  <button onClick={() => removeStaff(s)} title="Remove" className="flex h-8 w-8 items-center justify-center rounded-[9px] text-muted hover:bg-danger/10 hover:text-danger">🗑</button>
+                </div>
+              </div>
+              <div className="mt-3 space-y-1 border-t border-line pt-3 text-[12.5px]">
+                {s.phone && <p className="text-body">📞 <span className="font-bold text-ink">{s.phone}</span></p>}
+                {s.address && <p className="truncate text-muted">📍 {s.address}</p>}
+                <p className={`pt-1 text-[11.5px] font-bold ${s.is_active ? 'text-ok' : 'text-danger'}`}>
+                  {s.is_active ? '● Active' : '● Inactive'}
+                </p>
               </div>
             </Card>
           ))}
         </div>
       )}
 
-      {/* Add / Edit modal */}
-      {editing && (
-        <div className="fixed inset-0 z-50" role="dialog" aria-modal="true">
-          <div className="absolute inset-0 bg-ink/45 backdrop-blur-[2px]" onClick={() => !saving && setEditing(null)} />
-          <div className="absolute inset-0 m-auto flex h-fit max-h-[92dvh] w-[calc(100%-2rem)] max-w-lg flex-col rounded-[24px] bg-[var(--c-surface-solid)] shadow-2xl">
-            <div className="flex items-center justify-between border-b border-line p-4 sm:px-6">
-              <h2 className="font-display text-[17px] font-extrabold text-ink">
-                {editing === 'new' ? 'Add Staff Member' : 'Edit Staff Member'}
-              </h2>
-              <button onClick={() => !saving && setEditing(null)} aria-label="Close" className="glass flex h-8 w-8 items-center justify-center !rounded-full text-muted">✕</button>
-            </div>
-            <div className="flex-1 space-y-4 overflow-y-auto p-4 sm:px-6">
-              {editing === 'new' && (
-                <div className="rounded-btn bg-amber/15 p-3 text-[12.5px] leading-relaxed text-body">
-                  <span className="font-bold text-ink">Two quick steps:</span> 1) create the login in
-                  Supabase Dashboard → Authentication → Users (copy their UID), 2) paste the UID below
-                  to link them to this restaurant.
-                </div>
-              )}
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <Label>Full name *</Label>
-                  <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="Ali Raza" className="mt-1.5" />
-                </div>
-                <div>
-                  <Label>Role *</Label>
-                  <Select value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as Role }))} className="mt-1.5">
-                    {EDITABLE_ROLES.map((r) => (
-                      <option key={r} value={r}>{ROLE_LABEL[r]}</option>
-                    ))}
-                  </Select>
-                </div>
+      {/* ── Create account modal ── */}
+      {creating && (
+        <Modal title="Create Login Account" onClose={() => !cSaving && setCreating(false)}
+          footer={<ModalFooter onCancel={() => setCreating(false)} onSave={createAccount} saving={cSaving} saveLabel="Create account" />}>
+          <div className="space-y-4">
+            <div>
+              <Label>Photo</Label>
+              <div className="mt-1.5">
+                <PhotoDropzone bucket="staff-photos" folder={restaurantId} value={cPhoto} onChange={setCPhoto} onError={setCError} hint="Optional — otherwise a gender avatar shows" />
               </div>
-              {editing === 'new' ? (
-                <div>
-                  <Label>Auth UID *</Label>
-                  <Input value={form.auth_id} onChange={(e) => setForm((f) => ({ ...f, auth_id: e.target.value }))} placeholder="paste UID from Dashboard" className="mt-1.5 font-mono !text-[12.5px]" />
-                </div>
-              ) : (
-                <div>
-                  <Label>Auth UID</Label>
-                  <p className="mt-1.5 truncate font-mono text-[12px] text-muted">{form.auth_id}</p>
-                </div>
-              )}
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <Label>Phone</Label>
-                  <Input value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} placeholder="0300-1234567" className="mt-1.5" />
-                </div>
-                <div className="flex items-end pb-1">
-                  <label className="flex cursor-pointer items-center gap-2 text-[13px] font-bold text-ink">
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={form.is_active}
-                      onClick={() => setForm((f) => ({ ...f, is_active: !f.is_active }))}
-                      className={`relative h-6 w-11 rounded-full transition-colors ${form.is_active ? 'bg-ok' : 'bg-line'}`}
-                    >
-                      <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${form.is_active ? 'left-[22px]' : 'left-0.5'}`} />
-                    </button>
-                    {form.is_active ? 'Active' : 'Deactivated'}
-                  </label>
-                </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <Label>Full name *</Label>
+                <Input value={cName} onChange={(e) => setCName(e.target.value)} placeholder="Ali Raza" className="mt-1.5" />
               </div>
               <div>
-                <Label>Address <span className="font-bold text-muted">(optional)</span></Label>
-                <Textarea value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} rows={2} placeholder="House, street, area…" className="mt-1.5" />
+                <Label>Role *</Label>
+                <Select value={cRole} onChange={(e) => setCRole(e.target.value as Role)} className="mt-1.5">
+                  {assignableRoles(myRole).map((r) => (
+                    <option key={r} value={r}>{ROLE_LABEL[r]}</option>
+                  ))}
+                </Select>
               </div>
-              {error && <p className="text-[13px] font-bold text-danger">{error}</p>}
             </div>
-            <div className="flex justify-end gap-2 border-t border-line p-4 sm:px-6">
-              <button onClick={() => setEditing(null)} disabled={saving} className="rounded-btn px-4 py-2.5 text-[13.5px] font-bold text-muted hover:text-ink">
-                Cancel
-              </button>
-              <Btn onClick={save} disabled={saving}>
-                {saving ? 'Saving…' : editing === 'new' ? 'Add staff' : 'Save changes'}
-              </Btn>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <Label>Email (login) *</Label>
+                <Input value={cEmail} onChange={(e) => setCEmail(e.target.value)} placeholder="ali@spicevilla.pk" inputMode="email" className="mt-1.5" />
+              </div>
+              <div>
+                <Label>Password *</Label>
+                <Input value={cPass} onChange={(e) => setCPass(e.target.value)} type="password" placeholder="min 6 characters" className="mt-1.5" />
+              </div>
             </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <Label>Phone</Label>
+                <Input value={cPhone} onChange={(e) => setCPhone(e.target.value)} placeholder="0300-1234567" className="mt-1.5" />
+              </div>
+              <div>
+                <Label>Gender</Label>
+                <Select value={cGender} onChange={(e) => setCGender(e.target.value as Gender)} className="mt-1.5">
+                  {GENDER_OPTIONS.map((g) => (
+                    <option key={g.v} value={g.v}>{g.label}</option>
+                  ))}
+                </Select>
+              </div>
+            </div>
+            <div>
+              <Label>Address <span className="font-bold text-muted">(optional)</span></Label>
+              <Textarea value={cAddress} onChange={(e) => setCAddress(e.target.value)} rows={2} placeholder="House, street, area…" className="mt-1.5" />
+            </div>
+            <p className="rounded-btn bg-brand-soft/60 p-3 text-[12px] leading-relaxed text-muted">
+              Account seedha Supabase mein banega — ye shakhs isi email/password se login kar sakega. Tumhara apna session mehfooz rahega.
+            </p>
+            {cError && <p className="text-[13px] font-bold text-danger">{cError}</p>}
           </div>
-        </div>
+        </Modal>
       )}
+
+      {/* ── Edit profile modal ── */}
+      {editing && (
+        <Modal title="Edit Account" onClose={() => !eSaving && setEditing(null)}
+          footer={<ModalFooter onCancel={() => setEditing(null)} onSave={saveProfile} saving={eSaving} saveLabel="Save changes" />}>
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <Avatar name={editing.name} photoUrl={ePhoto} gender={(eGender || editing.gender) as 'male' | 'female' | null} size={52} />
+              <div>
+                <p className="font-display text-[15px] font-extrabold text-ink">{editing.name}</p>
+                <p className="text-[12px] text-muted">{ROLE_LABEL[editing.role] ?? editing.role}</p>
+              </div>
+            </div>
+            <div>
+              <Label>Photo</Label>
+              <div className="mt-1.5">
+                <PhotoDropzone bucket="staff-photos" folder={restaurantId} value={ePhoto} onChange={setEPhoto} onError={setEError} />
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <Label>Role *</Label>
+                <Select
+                  value={eRole}
+                  onChange={(e) => setERole(e.target.value as Role)}
+                  disabled={editing.id === meId || !canManageRole(editing.role)}
+                  className="mt-1.5"
+                >
+                  {assignableRoles(myRole).map((r) => (
+                    <option key={r} value={r}>{ROLE_LABEL[r]}</option>
+                  ))}
+                </Select>
+              </div>
+              <div>
+                <Label>Gender</Label>
+                <Select value={eGender} onChange={(e) => setEGender(e.target.value as Gender)} className="mt-1.5">
+                  {GENDER_OPTIONS.map((g) => (
+                    <option key={g.v} value={g.v}>{g.label}</option>
+                  ))}
+                </Select>
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <Label>Phone</Label>
+                <Input value={ePhone} onChange={(e) => setEPhone(e.target.value)} placeholder="0300-1234567" className="mt-1.5" />
+              </div>
+              <div className="flex items-end pb-1">
+                <label className="flex cursor-pointer items-center gap-2 text-[13px] font-bold text-ink">
+                  <button type="button" role="switch" aria-checked={eActive} disabled={editing.id === meId}
+                    onClick={() => setEActive((a) => !a)} className={switchCls(eActive, 'bg-ok')}>
+                    <span className={knobCls(eActive)} />
+                  </button>
+                  {eActive ? 'Active' : 'Deactivated'}
+                </label>
+              </div>
+            </div>
+            <div>
+              <Label>Address <span className="font-bold text-muted">(optional)</span></Label>
+              <Textarea value={eAddress} onChange={(e) => setEAddress(e.target.value)} rows={2} className="mt-1.5" />
+            </div>
+            {eError && <p className="text-[13px] font-bold text-danger">{eError}</p>}
+          </div>
+        </Modal>
+      )}
+
+      {/* ── Staff (no login) modal ── */}
+      {sEditing && (
+        <Modal title={sEditing === 'new' ? 'Add Staff' : 'Edit Staff'} onClose={() => !sSaving && setSEditing(null)}
+          footer={<ModalFooter onCancel={() => setSEditing(null)} onSave={saveStaff} saving={sSaving} saveLabel={sEditing === 'new' ? 'Add staff' : 'Save changes'} />}>
+          <div className="space-y-4">
+            <div className="rounded-btn bg-amber/15 p-3 text-[12.5px] text-body">
+              Login ke baghair — helpers, dishwashers waghera ke liye. Inhein app ka access <span className="font-bold">nahi</span> milega.
+            </div>
+            <div>
+              <Label>Photo</Label>
+              <div className="mt-1.5">
+                <PhotoDropzone bucket="staff-photos" folder={restaurantId} value={sPhoto} onChange={setSPhoto} onError={setSError} hint="Optional — otherwise a gender avatar shows" />
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <Label>Full name *</Label>
+                <Input value={sName} onChange={(e) => setSName(e.target.value)} placeholder="Bilal Ahmed" className="mt-1.5" />
+              </div>
+              <div>
+                <Label>Job title</Label>
+                <Input value={sTitle} onChange={(e) => setSTitle(e.target.value)} placeholder="Dishwasher" className="mt-1.5" />
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <Label>Phone</Label>
+                <Input value={sPhone} onChange={(e) => setSPhone(e.target.value)} placeholder="0300-1234567" className="mt-1.5" />
+              </div>
+              <div>
+                <Label>Gender</Label>
+                <Select value={sGender} onChange={(e) => setSGender(e.target.value as Gender)} className="mt-1.5">
+                  {GENDER_OPTIONS.map((g) => (
+                    <option key={g.v} value={g.v}>{g.label}</option>
+                  ))}
+                </Select>
+              </div>
+            </div>
+            <div>
+              <Label>Address <span className="font-bold text-muted">(optional)</span></Label>
+              <Textarea value={sAddress} onChange={(e) => setSAddress(e.target.value)} rows={2} className="mt-1.5" />
+            </div>
+            <label className="flex cursor-pointer items-center gap-2 text-[13px] font-bold text-ink">
+              <button type="button" role="switch" aria-checked={sActive} onClick={() => setSActive((a) => !a)} className={switchCls(sActive, 'bg-ok')}>
+                <span className={knobCls(sActive)} />
+              </button>
+              {sActive ? 'Active' : 'Inactive'}
+            </label>
+            {sError && <p className="text-[13px] font-bold text-danger">{sError}</p>}
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+// Shared modal chrome.
+function Modal({ title, onClose, footer, children }: { title: string; onClose: () => void; footer: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true">
+      <div className="absolute inset-0 bg-ink/45 backdrop-blur-[2px]" onClick={onClose} />
+      <div className="absolute inset-0 m-auto flex h-fit max-h-[92dvh] w-[calc(100%-2rem)] max-w-lg flex-col rounded-[24px] bg-[var(--c-surface-solid)] shadow-2xl">
+        <div className="flex items-center justify-between border-b border-line p-4 sm:px-6">
+          <h2 className="font-display text-[17px] font-extrabold text-ink">{title}</h2>
+          <button onClick={onClose} aria-label="Close" className="glass flex h-8 w-8 items-center justify-center !rounded-full text-muted">✕</button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-4 sm:px-6">{children}</div>
+        {footer}
+      </div>
+    </div>
+  );
+}
+
+function ModalFooter({ onCancel, onSave, saving, saveLabel }: { onCancel: () => void; onSave: () => void; saving: boolean; saveLabel: string }) {
+  return (
+    <div className="flex justify-end gap-2 border-t border-line p-4 sm:px-6">
+      <button onClick={onCancel} disabled={saving} className="rounded-btn px-4 py-2.5 text-[13.5px] font-bold text-muted hover:text-ink">
+        Cancel
+      </button>
+      <Btn onClick={onSave} disabled={saving}>{saving ? 'Saving…' : saveLabel}</Btn>
     </div>
   );
 }

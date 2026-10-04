@@ -11,6 +11,7 @@ import { fmtPKR } from '@/lib/format';
 import { categoryImage } from '@/lib/food-images';
 import { cdnUrl } from '@/lib/images';
 import { Btn, Card, Empty, Input, Label, Pill, Select, Textarea } from './ui';
+import PhotoDropzone from './PhotoDropzone';
 
 type StatusFilter = 'all' | 'available' | 'soldout' | 'popular';
 type SortKey = 'name' | 'price-asc' | 'price-desc' | 'category';
@@ -43,22 +44,6 @@ const EMPTY_FORM: FormState = {
   image_url: '',
 };
 
-// Downscale photos in the browser so storage stays light.
-async function resizeImage(file: File, maxDim = 1024): Promise<Blob> {
-  const bmp = await createImageBitmap(file);
-  const scale = Math.min(1, maxDim / Math.max(bmp.width, bmp.height));
-  const canvas = document.createElement('canvas');
-  canvas.width = Math.max(1, Math.round(bmp.width * scale));
-  canvas.height = Math.max(1, Math.round(bmp.height * scale));
-  const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('Canvas not supported');
-  ctx.drawImage(bmp, 0, 0, canvas.width, canvas.height);
-  bmp.close();
-  const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, 'image/jpeg', 0.82));
-  if (!blob) throw new Error('Could not process image');
-  return blob;
-}
-
 export default function MenuManager({ restaurantId }: { restaurantId: string }) {
   const [items, setItems] = useState<MenuItem[]>([]);
   const [cats, setCats] = useState<MenuCategory[]>([]);
@@ -70,9 +55,8 @@ export default function MenuManager({ restaurantId }: { restaurantId: string }) 
   const [editing, setEditing] = useState<MenuItem | 'new' | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const savingRef = useRef(false); // blocks double-clicks from creating 2 items
   const [error, setError] = useState('');
-  const fileRef = useRef<HTMLInputElement>(null);
 
   const load = async () => {
     setLoading(true);
@@ -146,33 +130,13 @@ export default function MenuManager({ restaurantId }: { restaurantId: string }) 
   const toggleTag = (key: string) =>
     setForm((f) => ({ ...f, tags: f.tags.includes(key) ? f.tags.filter((t) => t !== key) : [...f.tags, key] }));
 
-  const onPickFile = async (file: File | undefined) => {
-    if (!file) return;
-    setUploading(true);
-    setError('');
-    try {
-      const blob = await resizeImage(file);
-      const supabase = createClient();
-      const path = `${restaurantId}/${crypto.randomUUID()}.jpg`;
-      const { error: upErr } = await supabase.storage.from('menu-images').upload(path, blob, {
-        contentType: 'image/jpeg',
-        upsert: false,
-      });
-      if (upErr) throw new Error(upErr.message);
-      const { data } = supabase.storage.from('menu-images').getPublicUrl(path);
-      setForm((f) => ({ ...f, image_url: data.publicUrl }));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Upload failed');
-    } finally {
-      setUploading(false);
-    }
-  };
-
   const save = async () => {
+    if (savingRef.current) return;
     if (!form.name.trim() || !form.category_id || Number(form.price) < 0 || Number.isNaN(Number(form.price))) {
       setError('Name, category and a valid price are required.');
       return;
     }
+    savingRef.current = true;
     setSaving(true);
     setError('');
     try {
@@ -201,6 +165,7 @@ export default function MenuManager({ restaurantId }: { restaurantId: string }) 
       setError(e instanceof Error ? e.message : 'Save failed');
     } finally {
       setSaving(false);
+      savingRef.current = false;
     }
   };
 
@@ -365,25 +330,15 @@ export default function MenuManager({ restaurantId }: { restaurantId: string }) 
               {/* Photo */}
               <div>
                 <Label>Photo</Label>
-                <div className="mt-1.5 flex items-center gap-3">
-                  {form.image_url ? (
-                    <img src={cdnUrl(form.image_url)} alt="" className="h-20 w-20 rounded-[14px] object-cover" />
-                  ) : (
-                    <div className="flex h-20 w-20 items-center justify-center rounded-[14px] bg-soft text-[22px] text-muted">🍽️</div>
-                  )}
-                  <div className="flex flex-col gap-1.5">
-                    <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => onPickFile(e.target.files?.[0])} />
-                    <Btn size="sm" onClick={() => fileRef.current?.click()} disabled={uploading}>
-                      {uploading ? 'Uploading…' : form.image_url ? 'Change photo' : 'Upload photo'}
-                    </Btn>
-                    {form.image_url && (
-                      <button onClick={() => setForm((f) => ({ ...f, image_url: '' }))} className="text-[12px] font-bold text-danger">
-                        Remove
-                      </button>
-                    )}
-                  </div>
+                <div className="mt-1.5">
+                  <PhotoDropzone
+                    bucket="menu-images"
+                    folder={restaurantId}
+                    value={form.image_url}
+                    onChange={(url) => setForm((f) => ({ ...f, image_url: url }))}
+                    onError={setError}
+                  />
                 </div>
-                <p className="mt-1 text-[11.5px] text-muted">JPG/PNG — auto-resized, stored in your restaurant&apos;s private folder.</p>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
@@ -444,7 +399,7 @@ export default function MenuManager({ restaurantId }: { restaurantId: string }) 
               <button onClick={() => setEditing(null)} disabled={saving} className="rounded-btn px-4 py-2.5 text-[13.5px] font-bold text-muted hover:text-ink">
                 Cancel
               </button>
-              <Btn onClick={save} disabled={saving || uploading}>
+              <Btn onClick={save} disabled={saving}>
                 {saving ? 'Saving…' : editing === 'new' ? 'Add item' : 'Save changes'}
               </Btn>
             </div>
