@@ -401,3 +401,36 @@ create policy subscriptions_tenant on subscriptions
   for all using (
     restaurant_id = public.my_restaurant_id() or public.am_super_admin()
   );
+
+-- ── Table privileges for anon / authenticated ──────────────────────────
+-- RLS policies alone are not enough: Postgres checks table-level GRANTs
+-- before RLS. Without these, every anon/authenticated query fails with
+-- 42501 "permission denied". (anon = public customer app, authenticated =
+-- logged-in staff; RLS policies still scope every row.)
+
+-- anon: read the public catalog, place + track orders, submit reviews
+grant select on public.restaurants to anon;
+grant select on public.menu_categories to anon;
+grant select on public.menu_items to anon;
+grant select on public.tables to anon;
+grant select, insert on public.orders to anon;
+grant select, insert on public.order_items to anon;
+grant select, insert on public.reviews to anon;
+
+-- authenticated staff: RLS policies scope all rows, so grant all actions
+grant all on public.restaurants to authenticated;
+grant all on public.profiles to authenticated;
+grant all on public.menu_categories to authenticated;
+grant all on public.menu_items to authenticated;
+grant all on public.tables to authenticated;
+grant all on public.orders to authenticated;
+grant all on public.order_items to authenticated;
+grant all on public.inventory_items to authenticated;
+grant all on public.recipes to authenticated;
+grant all on public.waste_logs to authenticated;
+grant all on public.reviews to authenticated;
+grant all on public.subscriptions to authenticated;
+
+-- keep the same grants for tables created in the future
+alter default privileges in schema public grant select, insert on tables to anon;
+alter default privileges in schema public grant all on tables to authenticated;
