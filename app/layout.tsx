@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Poppins, Inter, JetBrains_Mono } from 'next/font/google';
+import { Poppins, Inter, Space_Grotesk } from 'next/font/google';
 import './globals.css';
 import { LOGO_DATA_URL } from '@/lib/logo';
 
@@ -13,9 +13,9 @@ const inter = Inter({
   weight: ['400', '500', '600', '700'],
   variable: '--font-sans',
 });
-const jetbrains = JetBrains_Mono({
+const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
-  weight: ['500', '700'],
+  weight: ['500', '600', '700'],
   variable: '--font-mono',
 });
 
@@ -35,7 +35,7 @@ const THEME_INIT = `(function(){try{var t=localStorage.getItem('orderkar_theme')
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${poppins.variable} ${inter.variable} ${jetbrains.variable}`}>
+    <html lang="en" className={`${poppins.variable} ${inter.variable} ${spaceGrotesk.variable}`}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
       </head>
