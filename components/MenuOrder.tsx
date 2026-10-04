@@ -367,13 +367,13 @@ export default function MenuOrder({
       {detail && (
         <div className="fixed inset-0 z-50" role="dialog" aria-modal="true">
           <div className="absolute inset-0 bg-ink/45 backdrop-blur-[2px]" onClick={() => setDetail(null)} />
-          <div className="absolute inset-x-0 bottom-0 mx-auto flex max-h-[92dvh] w-full max-w-lg flex-col rounded-t-[24px] bg-[var(--c-surface-solid)] shadow-2xl sm:inset-0 sm:m-auto sm:h-fit sm:max-h-[90dvh] sm:rounded-[24px]">
+          <div className="absolute inset-0 m-auto flex h-fit max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg flex-col rounded-[24px] bg-[var(--c-surface-solid)] shadow-2xl">
             <div className="flex-1 overflow-y-auto">
               <div className="relative">
                 <img
                   src={categoryImage(catName[detail.category_id] ?? '')}
                   alt={detail.name}
-                  className="h-48 w-full object-cover sm:rounded-t-[24px]"
+                  className="h-48 w-full rounded-t-[24px] object-cover"
                 />
                 <button
                   onClick={() => setDetail(null)}
@@ -415,7 +415,7 @@ export default function MenuOrder({
                 </div>
               </div>
             </div>
-            <div className="border-t border-line bg-[var(--c-surface-solid)] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:rounded-b-[24px]">
+            <div className="rounded-b-[24px] border-t border-line bg-[var(--c-surface-solid)] p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <div className="flex items-center gap-3">
                 <div className="glass flex items-center gap-1 !rounded-full p-1">
                   <button
