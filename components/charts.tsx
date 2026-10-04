@@ -2,7 +2,7 @@
 
 // Hand-rolled SVG charts (no chart lib). Theme-aware via CSS variables.
 
-import { useId } from 'react';
+import { useId, useState } from 'react';
 import { Card } from './ui';
 import { fmtPKR, fmtNum } from '@/lib/format';
 
@@ -18,31 +18,105 @@ function ChartCard({ title, sub, children }: { title: string; sub?: string; chil
 }
 
 /* ── Revenue area trend ─────────────────────────────────────── */
+// Proper axes: y gridlines with PKR ticks, smart x labels, hover tooltip.
+function niceCeil(v: number): number {
+  if (v <= 0) return 1;
+  const exp = Math.floor(Math.log10(v));
+  const base = Math.pow(10, exp);
+  const n = v / base;
+  const nice = n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10;
+  return nice * base;
+}
+
+function compactPKR(v: number): string {
+  if (v >= 1000000) return `Rs ${(v / 1000000).toFixed(v >= 10000000 ? 0 : 1)}M`;
+  if (v >= 1000) return `Rs ${(v / 1000).toFixed(v >= 10000 ? 0 : 1)}k`;
+  return `Rs ${Math.round(v)}`;
+}
+
 export function RevenueTrend({ points, labels }: { points: number[]; labels: string[] }) {
   const gid = useId();
+  const [hover, setHover] = useState<number | null>(null);
   const W = 560;
-  const H = 180;
-  const P = 8;
-  const max = Math.max(1, ...points);
-  const step = points.length > 1 ? (W - P * 2) / (points.length - 1) : 0;
-  const xy = points.map((v, i) => [P + i * step, H - P - (v / max) * (H - P * 2)] as const);
+  const H = 210;
+  const PL = 48;
+  const PR = 12;
+  const PT = 12;
+  const PB = 28;
+  const iw = W - PL - PR;
+  const ih = H - PT - PB;
+  const max = niceCeil(Math.max(1, ...points));
+  const step = points.length > 1 ? iw / (points.length - 1) : 0;
+  const xy = points.map((v, i) => [PL + i * step, PT + ih - (v / max) * ih] as const);
   const line = xy.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
-  const area = `${line} L${(W - P).toFixed(1)},${H - P} L${P},${H - P} Z`;
+  const area = `${line} L${(W - PR).toFixed(1)},${PT + ih} L${PL},${PT + ih} Z`;
+
+  // y ticks: 0, 25%, 50%, 75%, 100%
+  const yTicks = [0, 0.25, 0.5, 0.75, 1].map((f) => ({ v: max * f, y: PT + ih - f * ih }));
+  // x ticks: ~6 evenly spaced
+  const xCount = Math.min(6, points.length);
+  const xTicks = Array.from({ length: xCount }, (_, k) => {
+    const i = xCount === 1 ? 0 : Math.round((k * (points.length - 1)) / (xCount - 1));
+    return { i, x: PL + i * step, label: labels[i] ?? '' };
+  });
+
+  const onMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const sx = W / rect.width;
+    const x = (e.clientX - rect.left) * sx - PL;
+    const i = Math.round(x / (step || 1));
+    setHover(Math.max(0, Math.min(points.length - 1, i)));
+  };
+
   return (
-    <ChartCard title="Revenue trend" sub={`${labels[0] ?? ''} → ${labels[labels.length - 1] ?? ''}`}>
-      <svg viewBox={`0 0 ${W} ${H}`} className="h-44 w-full">
-        <defs>
-          <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--c-brand)" stopOpacity="0.35" />
-            <stop offset="100%" stopColor="var(--c-brand)" stopOpacity="0.02" />
-          </linearGradient>
-        </defs>
-        <path d={area} fill={`url(#${gid})`} />
-        <path d={line} fill="none" stroke="var(--c-brand)" strokeWidth="2.5" strokeLinecap="round" />
-        {xy.map(([x, y], i) => (
-          <circle key={i} cx={x} cy={y} r="3" fill="var(--c-brand)" stroke="var(--c-surface-solid)" strokeWidth="1.5" />
-        ))}
-      </svg>
+    <ChartCard title="Revenue trend" sub="Har point pe hover karo — exact value dekho">
+      <div className="relative">
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          className="h-48 w-full cursor-crosshair"
+          onMouseMove={onMove}
+          onMouseLeave={() => setHover(null)}
+        >
+          <defs>
+            <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--c-brand)" stopOpacity="0.35" />
+              <stop offset="100%" stopColor="var(--c-brand)" stopOpacity="0.02" />
+            </linearGradient>
+          </defs>
+          {/* y gridlines + labels */}
+          {yTicks.map((t, i) => (
+            <g key={i}>
+              <line x1={PL} x2={W - PR} y1={t.y} y2={t.y} stroke="var(--c-line)" strokeWidth="1" strokeDasharray={i === 0 ? '' : '4 4'} opacity="0.7" />
+              <text x={PL - 8} y={t.y + 4} textAnchor="end" fontSize="10.5" fontWeight="700" fill="var(--c-muted)" fontFamily="monospace">
+                {compactPKR(t.v)}
+              </text>
+            </g>
+          ))}
+          {/* x labels */}
+          {xTicks.map((t, i) => (
+            <text key={i} x={t.x} y={H - 8} textAnchor="middle" fontSize="10.5" fontWeight="700" fill="var(--c-muted)">
+              {t.label}
+            </text>
+          ))}
+          <path d={area} fill={`url(#${gid})`} />
+          <path d={line} fill="none" stroke="var(--c-brand)" strokeWidth="2.5" strokeLinecap="round" />
+          {hover !== null && xy[hover] && (
+            <g>
+              <line x1={xy[hover][0]} x2={xy[hover][0]} y1={PT} y2={PT + ih} stroke="var(--c-brand)" strokeWidth="1" strokeDasharray="3 3" />
+              <circle cx={xy[hover][0]} cy={xy[hover][1]} r="5" fill="var(--c-brand)" stroke="var(--c-surface-solid)" strokeWidth="2.5" />
+            </g>
+          )}
+        </svg>
+        {hover !== null && xy[hover] && (
+          <div
+            className="pointer-events-none absolute z-10 -translate-x-1/2 rounded-[10px] bg-ink px-3 py-1.5 text-center shadow-xl"
+            style={{ left: `${(xy[hover][0] / W) * 100}%`, top: 0 }}
+          >
+            <p className="whitespace-nowrap text-[11px] font-bold text-white/70">{labels[hover]}</p>
+            <p className="whitespace-nowrap font-mono text-[13px] font-extrabold text-white">{fmtPKR(points[hover])}</p>
+          </div>
+        )}
+      </div>
     </ChartCard>
   );
 }
