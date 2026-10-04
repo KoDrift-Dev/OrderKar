@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { MenuCategory } from '@/lib/types';
 import { Btn, Card, Empty, Input, Label } from './ui';
+import { useGuard, useUndoDelete, DeleteConfirm, UndoToast } from './DeleteFlow';
 
 export default function CategoryManager({ restaurantId }: { restaurantId: string }) {
   const [cats, setCats] = useState<MenuCategory[]>([]);
@@ -18,6 +19,11 @@ export default function CategoryManager({ restaurantId }: { restaurantId: string
   const [active, setActive] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const guard = useGuard();
+  const [confirmDel, setConfirmDel] = useState<MenuCategory | null>(null);
+  const del = useUndoDelete<MenuCategory>(async (c) => {
+    await createClient().from('menu_categories').delete().eq('id', c.id);
+  });
 
   const load = async () => {
     setLoading(true);
@@ -56,7 +62,8 @@ export default function CategoryManager({ restaurantId }: { restaurantId: string
     setError('');
   };
 
-  const save = async () => {
+  const save = () =>
+    guard(async () => {
     if (!name.trim()) {
       setError('Category name is required.');
       return;
@@ -85,9 +92,10 @@ export default function CategoryManager({ restaurantId }: { restaurantId: string
     } finally {
       setSaving(false);
     }
-  };
+    });
 
-  const move = async (c: MenuCategory, dir: -1 | 1) => {
+  const move = (c: MenuCategory, dir: -1 | 1) =>
+    guard(async () => {
     const sorted = [...cats].sort((a, b) => a.display_order - b.display_order);
     const i = sorted.findIndex((x) => x.id === c.id);
     const j = i + dir;
@@ -98,23 +106,21 @@ export default function CategoryManager({ restaurantId }: { restaurantId: string
     await supabase.from('menu_categories').update({ display_order: b.display_order }).eq('id', a.id);
     await supabase.from('menu_categories').update({ display_order: a.display_order }).eq('id', b.id);
     load();
-  };
+    });
 
-  const toggleActive = async (c: MenuCategory) => {
+  const toggleActive = (c: MenuCategory) =>
+    guard(async () => {
     const supabase = createClient();
     const { error } = await supabase.from('menu_categories').update({ is_active: !c.is_active }).eq('id', c.id);
     if (!error) setCats((prev) => prev.map((x) => (x.id === c.id ? { ...x, is_active: !c.is_active } : x)));
-  };
+    });
 
-  const remove = async (c: MenuCategory) => {
+  const requestRemove = (c: MenuCategory) => {
     if ((counts[c.id] ?? 0) > 0) {
-      alert(`"${c.name}" has ${counts[c.id]} dish(es). Move or delete them first.`);
+      setError(`"${c.name}" has ${counts[c.id]} dish(es). Move or delete them first.`);
       return;
     }
-    if (!window.confirm(`Delete category "${c.name}"?`)) return;
-    const supabase = createClient();
-    const { error } = await supabase.from('menu_categories').delete().eq('id', c.id);
-    if (!error) load();
+    setConfirmDel(c);
   };
 
   return (
@@ -126,6 +132,7 @@ export default function CategoryManager({ restaurantId }: { restaurantId: string
         </div>
         <Btn onClick={openNew}>+ Add Category</Btn>
       </div>
+      {error && !editing && <p className="mb-3 text-[13px] font-bold text-danger">{error}</p>}
 
       {loading ? (
         <Empty title="Loading categories…" />
@@ -155,10 +162,33 @@ export default function CategoryManager({ restaurantId }: { restaurantId: string
                 {c.is_active ? '● On' : '● Off'}
               </button>
               <button onClick={() => openEdit(c)} title="Edit" className="flex h-8 w-8 items-center justify-center rounded-[9px] text-muted hover:bg-brand-soft hover:text-brand">✎</button>
-              <button onClick={() => remove(c)} title="Delete" className="flex h-8 w-8 items-center justify-center rounded-[9px] text-muted hover:bg-danger/10 hover:text-danger">🗑</button>
+              <button onClick={() => requestRemove(c)} title="Delete" className="flex h-8 w-8 items-center justify-center rounded-[9px] text-muted hover:bg-danger/10 hover:text-danger">🗑</button>
             </Card>
           ))}
         </div>
+      )}
+
+      {confirmDel && (
+        <DeleteConfirm
+          title="Delete this category?"
+          message={`"${confirmDel.name}" will be removed. You can undo this for 5 seconds.`}
+          onCancel={() => setConfirmDel(null)}
+          onConfirm={() => {
+            const c = confirmDel;
+            setConfirmDel(null);
+            del.schedule(c, c.name, () => {
+              setCats((prev) => prev.filter((x) => x.id !== c.id));
+              setCounts((prev) => {
+                const n = { ...prev };
+                delete n[c.id];
+                return n;
+              });
+            });
+          }}
+        />
+      )}
+      {del.pending && (
+        <UndoToast label={del.pending.label} seconds={del.seconds} onUndo={() => del.undo((c) => setCats((prev) => [...prev, c].sort((a, b) => a.display_order - b.display_order)))} />
       )}
 
       {editing && (

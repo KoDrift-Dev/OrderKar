@@ -3,7 +3,7 @@
 // Drag-and-drop photo field: drop a file or click to browse. Auto-resizes and
 // uploads to Supabase Storage, returns the public URL via onChange.
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { cdnUrl, uploadPhoto } from '@/lib/images';
 
 export default function PhotoDropzone({
@@ -23,8 +23,14 @@ export default function PhotoDropzone({
 }) {
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [imgFailed, setImgFailed] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const dragDepth = useRef(0);
+
+  // Reset the broken-image flag whenever a different photo is set.
+  useEffect(() => {
+    setImgFailed(false);
+  }, [value]);
 
   const handleFile = async (file: File | undefined) => {
     if (!file || uploading) return;
@@ -33,6 +39,7 @@ export default function PhotoDropzone({
       return;
     }
     setUploading(true);
+    setImgFailed(false);
     try {
       const url = await uploadPhoto(bucket, folder, file);
       onChange(url);
@@ -85,15 +92,15 @@ export default function PhotoDropzone({
           <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[14px] bg-soft text-[22px]">
             <span className="animate-spin">⏳</span>
           </div>
-        ) : value ? (
-          <img src={cdnUrl(value)} alt="" className="h-20 w-20 shrink-0 rounded-[14px] object-cover" />
+        ) : value && !imgFailed ? (
+          <img src={cdnUrl(value)} alt="" onError={() => setImgFailed(true)} className="h-20 w-20 shrink-0 rounded-[14px] object-cover" />
         ) : (
           <div
             className={`flex h-20 w-20 shrink-0 items-center justify-center rounded-[14px] text-[26px] transition-all ${
               dragging ? 'bg-brand text-white' : 'bg-soft text-muted'
             }`}
           >
-            {dragging ? '⬇' : '🖼️'}
+            {dragging ? '⬇' : imgFailed ? '⚠️' : '🖼️'}
           </div>
         )}
         <div className="min-w-0">

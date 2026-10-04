@@ -12,6 +12,7 @@ import { categoryImage } from '@/lib/food-images';
 import { cdnUrl } from '@/lib/images';
 import { Btn, Card, Empty, Input, Label, Pill, Select, Textarea } from './ui';
 import PhotoDropzone from './PhotoDropzone';
+import { useGuard, useUndoDelete, DeleteConfirm, UndoToast } from './DeleteFlow';
 
 type StatusFilter = 'all' | 'available' | 'soldout' | 'popular';
 type SortKey = 'name' | 'price-asc' | 'price-desc' | 'category';
@@ -55,7 +56,11 @@ export default function MenuManager({ restaurantId }: { restaurantId: string }) 
   const [editing, setEditing] = useState<MenuItem | 'new' | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
-  const savingRef = useRef(false); // blocks double-clicks from creating 2 items
+  const guard = useGuard();
+  const [confirmDel, setConfirmDel] = useState<MenuItem | null>(null);
+  const del = useUndoDelete<MenuItem>(async (item) => {
+    await createClient().from('menu_items').delete().eq('id', item.id);
+  });
   const [error, setError] = useState('');
 
   const load = async () => {
@@ -130,13 +135,12 @@ export default function MenuManager({ restaurantId }: { restaurantId: string }) 
   const toggleTag = (key: string) =>
     setForm((f) => ({ ...f, tags: f.tags.includes(key) ? f.tags.filter((t) => t !== key) : [...f.tags, key] }));
 
-  const save = async () => {
-    if (savingRef.current) return;
+  const save = () =>
+    guard(async () => {
     if (!form.name.trim() || !form.category_id || Number(form.price) < 0 || Number.isNaN(Number(form.price))) {
       setError('Name, category and a valid price are required.');
       return;
     }
-    savingRef.current = true;
     setSaving(true);
     setError('');
     try {
@@ -165,11 +169,11 @@ export default function MenuManager({ restaurantId }: { restaurantId: string }) 
       setError(e instanceof Error ? e.message : 'Save failed');
     } finally {
       setSaving(false);
-      savingRef.current = false;
     }
-  };
+    });
 
-  const duplicate = async (item: MenuItem) => {
+  const duplicate = (item: MenuItem) =>
+    guard(async () => {
     const supabase = createClient();
     const { error } = await supabase.from('menu_items').insert({
       restaurant_id: restaurantId,
@@ -184,20 +188,14 @@ export default function MenuManager({ restaurantId }: { restaurantId: string }) 
       prep_time_minutes: item.prep_time_minutes,
     });
     if (!error) load();
-  };
+    });
 
-  const remove = async (item: MenuItem) => {
-    if (!window.confirm(`Delete "${item.name}" from the menu?`)) return;
-    const supabase = createClient();
-    const { error } = await supabase.from('menu_items').delete().eq('id', item.id);
-    if (!error) load();
-  };
-
-  const toggleAvailable = async (item: MenuItem) => {
+  const toggleAvailable = (item: MenuItem) =>
+    guard(async () => {
     const supabase = createClient();
     const { error } = await supabase.from('menu_items').update({ is_available: !item.is_available }).eq('id', item.id);
     if (!error) setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, is_available: !i.is_available } : i)));
-  };
+    });
 
   const photoFor = (item: MenuItem) =>
     cdnUrl(item.image_url || categoryImage(catName[item.category_id] ?? ''));
@@ -306,13 +304,34 @@ export default function MenuManager({ restaurantId }: { restaurantId: string }) 
                   <div className="flex gap-1">
                     <button onClick={() => openEdit(item)} title="Edit" className="flex h-8 w-8 items-center justify-center rounded-[9px] text-muted hover:bg-brand-soft hover:text-brand">✎</button>
                     <button onClick={() => duplicate(item)} title="Duplicate" className="flex h-8 w-8 items-center justify-center rounded-[9px] text-muted hover:bg-brand-soft hover:text-brand">⧉</button>
-                    <button onClick={() => remove(item)} title="Delete" className="flex h-8 w-8 items-center justify-center rounded-[9px] text-muted hover:bg-danger/10 hover:text-danger">🗑</button>
+                    <button onClick={() => setConfirmDel(item)} title="Delete" className="flex h-8 w-8 items-center justify-center rounded-[9px] text-muted hover:bg-danger/10 hover:text-danger">🗑</button>
                   </div>
                 </div>
               </div>
             </Card>
           ))}
         </div>
+      )}
+
+      {/* Delete confirmation */}
+      {confirmDel && (
+        <DeleteConfirm
+          title="Delete this dish?"
+          message={`"${confirmDel.name}" will be removed from the menu. You can undo this for 5 seconds.`}
+          onCancel={() => setConfirmDel(null)}
+          onConfirm={() => {
+            const item = confirmDel;
+            setConfirmDel(null);
+            del.schedule(item, item.name, () => setItems((prev) => prev.filter((i) => i.id !== item.id)));
+          }}
+        />
+      )}
+      {del.pending && (
+        <UndoToast
+          label={del.pending.label}
+          seconds={del.seconds}
+          onUndo={() => del.undo((item) => setItems((prev) => [...prev, item]))}
+        />
       )}
 
       {/* Add / Edit modal */}

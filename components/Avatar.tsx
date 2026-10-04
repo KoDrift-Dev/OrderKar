@@ -2,6 +2,7 @@
 
 // Staff avatar: real photo when uploaded, otherwise a gender-based silhouette.
 
+import { useState } from 'react';
 import { cdnUrl } from '@/lib/images';
 
 function MaleGlyph() {
@@ -35,6 +36,7 @@ export default function Avatar({
   gender?: 'male' | 'female' | null;
   size?: number;
 }) {
+  const [failed, setFailed] = useState(false);
   const bg = gender === 'female' ? 'bg-pink-500/15 text-pink-600' : gender === 'male' ? 'bg-brand/15 text-brand' : 'bg-teal/15 text-teal';
   return (
     <div
@@ -42,8 +44,8 @@ export default function Avatar({
       className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full ${bg}`}
       style={{ width: size, height: size }}
     >
-      {photoUrl ? (
-        <img src={cdnUrl(photoUrl)} alt={name} className="h-full w-full object-cover" loading="lazy" />
+      {photoUrl && !failed ? (
+        <img src={cdnUrl(photoUrl)} alt={name} onError={() => setFailed(true)} className="h-full w-full object-cover" loading="lazy" />
       ) : (
         <div className="h-[72%] w-[72%]">{gender === 'female' ? <FemaleGlyph /> : <MaleGlyph />}</div>
       )}

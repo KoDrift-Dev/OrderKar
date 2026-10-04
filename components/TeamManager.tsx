@@ -13,6 +13,7 @@ import type { Profile, Role, StaffMember } from '@/lib/types';
 import { Btn, Card, Empty, Input, Label, Select, Textarea } from './ui';
 import PhotoDropzone from './PhotoDropzone';
 import Avatar from './Avatar';
+import { useGuard, useUndoDelete, DeleteConfirm, UndoToast } from './DeleteFlow';
 
 const ROLE_LABEL: Record<string, string> = {
   owner: 'Owner',
@@ -63,6 +64,11 @@ export default function TeamManager({
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [loading, setLoading] = useState(true);
+  const guard = useGuard();
+  const [confirmDel, setConfirmDel] = useState<StaffMember | null>(null);
+  const del = useUndoDelete<StaffMember>(async (s) => {
+    await createClient().from('staff_members').delete().eq('id', s.id);
+  });
 
   // create-account modal
   const [creating, setCreating] = useState(false);
@@ -76,6 +82,7 @@ export default function TeamManager({
   const [cPhoto, setCPhoto] = useState('');
   const [cSaving, setCSaving] = useState(false);
   const [cError, setCError] = useState('');
+  const [showPass, setShowPass] = useState(false);
 
   // edit-profile modal
   const [editing, setEditing] = useState<Profile | null>(null);
@@ -127,9 +134,14 @@ export default function TeamManager({
     setCError(''); setCreating(true);
   };
 
-  const createAccount = async () => {
-    if (!cName.trim() || !cEmail.trim() || cPass.length < 6) {
-      setCError('Name, a valid email and a 6+ character password are required.');
+  const createAccount = () =>
+    guard(async () => {
+    const problems: string[] = [];
+    if (!cName.trim()) problems.push('Full name is required.');
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(cEmail.trim())) problems.push('Enter a valid email address.');
+    if (cPass.length < 6) problems.push(`Password must be at least 6 characters (currently ${cPass.length}).`);
+    if (problems.length > 0) {
+      setCError(problems.join(' '));
       return;
     }
     setCSaving(true);
@@ -161,7 +173,7 @@ export default function TeamManager({
       try { await tmp.auth.signOut(); } catch { /* cleanup only */ }
       setCSaving(false);
     }
-  };
+    });
 
   // ── edit profile ────────────────────────────────────────────────────────
   const openEdit = (p: Profile) => {
@@ -175,7 +187,8 @@ export default function TeamManager({
     setEError('');
   };
 
-  const saveProfile = async () => {
+  const saveProfile = () =>
+    guard(async () => {
     if (!editing) return;
     if (editing.id === meId && !eActive) {
       setEError('You cannot deactivate your own account.');
@@ -204,14 +217,15 @@ export default function TeamManager({
     } finally {
       setESaving(false);
     }
-  };
+    });
 
-  const toggleProfileActive = async (p: Profile) => {
+  const toggleProfileActive = (p: Profile) =>
+    guard(async () => {
     if (p.id === meId) return;
     const supabase = createClient();
     const { error } = await supabase.from('profiles').update({ is_active: !p.is_active }).eq('id', p.id);
     if (!error) setProfiles((prev) => prev.map((x) => (x.id === p.id ? { ...x, is_active: !p.is_active } : x)));
-  };
+    });
 
   // ── staff (no login) ────────────────────────────────────────────────────
   const openNewStaff = () => {
@@ -227,7 +241,8 @@ export default function TeamManager({
     setSError(''); setSEditing(s);
   };
 
-  const saveStaff = async () => {
+  const saveStaff = () =>
+    guard(async () => {
     if (!sName.trim()) {
       setSError('Name is required.');
       return;
@@ -260,14 +275,9 @@ export default function TeamManager({
     } finally {
       setSSaving(false);
     }
-  };
+    });
 
-  const removeStaff = async (s: StaffMember) => {
-    if (!window.confirm(`Remove "${s.name}" from staff?`)) return;
-    const supabase = createClient();
-    const { error } = await supabase.from('staff_members').delete().eq('id', s.id);
-    if (!error) load();
-  };
+  // (actual delete runs through the confirm modal + undo flow below)
 
   const switchCls = (on: boolean, color: string) =>
     `relative h-6 w-11 rounded-full transition-colors ${on ? color : 'bg-line'}`;
@@ -364,7 +374,7 @@ export default function TeamManager({
                 </div>
                 <div className="flex shrink-0 gap-0.5">
                   <button onClick={() => openEditStaff(s)} title="Edit" className="flex h-8 w-8 items-center justify-center rounded-[9px] text-muted hover:bg-brand-soft hover:text-brand">✎</button>
-                  <button onClick={() => removeStaff(s)} title="Remove" className="flex h-8 w-8 items-center justify-center rounded-[9px] text-muted hover:bg-danger/10 hover:text-danger">🗑</button>
+                  <button onClick={() => setConfirmDel(s)} title="Remove" className="flex h-8 w-8 items-center justify-center rounded-[9px] text-muted hover:bg-danger/10 hover:text-danger">🗑</button>
                 </div>
               </div>
               <div className="mt-3 space-y-1 border-t border-line pt-3 text-[12.5px]">
@@ -377,6 +387,23 @@ export default function TeamManager({
             </Card>
           ))}
         </div>
+      )}
+
+      {/* ── Delete confirmation (staff, no login) ── */}
+      {confirmDel && (
+        <DeleteConfirm
+          title="Remove this staff member?"
+          message={`"${confirmDel.name}" will be removed from the staff list. You can undo this for 5 seconds.`}
+          onCancel={() => setConfirmDel(null)}
+          onConfirm={() => {
+            const s = confirmDel;
+            setConfirmDel(null);
+            del.schedule(s, s.name, () => setStaff((prev) => prev.filter((x) => x.id !== s.id)));
+          }}
+        />
+      )}
+      {del.pending && (
+        <UndoToast label={del.pending.label} seconds={del.seconds} onUndo={() => del.undo((s) => setStaff((prev) => [...prev, s]))} />
       )}
 
       {/* ── Create account modal ── */}
@@ -411,7 +438,12 @@ export default function TeamManager({
               </div>
               <div>
                 <Label>Password *</Label>
-                <Input value={cPass} onChange={(e) => setCPass(e.target.value)} type="password" placeholder="min 6 characters" className="mt-1.5" />
+                <div className="relative mt-1.5">
+                  <Input value={cPass} onChange={(e) => setCPass(e.target.value)} type={showPass ? 'text' : 'password'} placeholder="min 6 characters" className="!pr-12" />
+                  <button type="button" onClick={() => setShowPass((s) => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[15px] text-muted" title={showPass ? 'Hide' : 'Show'}>
+                    {showPass ? '🙈' : '👁️'}
+                  </button>
+                </div>
               </div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">

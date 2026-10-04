@@ -95,7 +95,6 @@ export default function OwnerApp({
   const [cats, setCats] = useState<MenuCategory[]>([]);
   const [menu, setMenu] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [newItem, setNewItem] = useState({ name: '', price: '', category: '', prep: '10' });
   const [tableCount, setTableCount] = useState(6);
 
   const load = async (r: Range) => {
@@ -131,12 +130,7 @@ export default function OwnerApp({
     ]);
     if (t) setTableCount(Math.max(1, t.length));
     if (s) setStaff(s as Profile[]);
-    if (c) {
-      setCats(c as MenuCategory[]);
-      if (!newItem.category && (c as MenuCategory[]).length > 0) {
-        setNewItem((f) => ({ ...f, category: (c as MenuCategory[])[0].id }));
-      }
-    }
+    if (c) setCats(c as MenuCategory[]);
     if (m) setMenu(m as MenuItem[]);
     setLoading(false);
   };
@@ -168,33 +162,6 @@ export default function OwnerApp({
       .sort((a, b) => b.revenue - a.revenue);
     return base;
   }, [orders, items, catName, range]);
-
-  const toggleAvailable = async (item: MenuItem) => {
-    const supabase = createClient();
-    await supabase.from('menu_items').update({ is_available: !item.is_available }).eq('id', item.id);
-    setMenu((prev) => prev.map((x) => (x.id === item.id ? { ...x, is_available: !x.is_available } : x)));
-  };
-
-  const addItem = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newItem.name.trim() || !newItem.price || !newItem.category) return;
-    const supabase = createClient();
-    const { data, error } = await supabase
-      .from('menu_items')
-      .insert({
-        restaurant_id: restaurantId,
-        category_id: newItem.category,
-        name: newItem.name.trim(),
-        price: Number(newItem.price),
-        prep_time_minutes: Number(newItem.prep) || 10,
-      })
-      .select()
-      .single();
-    if (!error && data) {
-      setMenu((prev) => [...prev, data as MenuItem]);
-      setNewItem((f) => ({ ...f, name: '', price: '' }));
-    }
-  };
 
   return (
     <div className="space-y-8">
@@ -257,51 +224,6 @@ export default function OwnerApp({
         </div>
       </div>
 
-      {/* Menu manager */}
-      <div>
-        <SectionHead title="Menu manager" sub="Toggle availability or add items" />
-        <Card className="p-5">
-          <form onSubmit={addItem} className="mb-5 grid gap-3 sm:grid-cols-4">
-            <div>
-              <Label>Item name</Label>
-              <Input value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} placeholder="e.g. Chicken Tikka" required />
-            </div>
-            <div>
-              <Label>Price (Rs)</Label>
-              <Input type="number" min="0" value={newItem.price} onChange={(e) => setNewItem({ ...newItem, price: e.target.value })} placeholder="450" required />
-            </div>
-            <div>
-              <Label>Category</Label>
-              <Select value={newItem.category} onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}>
-                {cats.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </Select>
-            </div>
-            <div className="flex items-end">
-              <Btn type="submit" className="w-full">Add item</Btn>
-            </div>
-          </form>
-          <div className="max-h-80 space-y-1.5 overflow-y-auto pr-1">
-            {menu.map((m) => (
-              <div key={m.id} className="flex items-center justify-between gap-3 rounded-[12px] border border-line px-3.5 py-2">
-                <div className="min-w-0">
-                  <p className={`truncate text-[14px] font-bold ${m.is_available ? 'text-ink' : 'text-muted line-through'}`}>{m.name}</p>
-                  <p className="font-mono text-[12px] text-muted">{fmtPKR(m.price)}</p>
-                </div>
-                <button
-                  onClick={() => toggleAvailable(m)}
-                  className={`shrink-0 rounded-full px-3 py-1.5 text-[12px] font-bold transition-all ${
-                    m.is_available ? 'bg-ok/10 text-ok' : 'bg-muted/15 text-muted'
-                  }`}
-                >
-                  {m.is_available ? 'Available' : 'Hidden'}
-                </button>
-              </div>
-            ))}
-          </div>
-        </Card>
-      </div>
 
       <QrSection slug={slug} tableCount={tableCount} restaurantName={restaurantName} />
     </div>
