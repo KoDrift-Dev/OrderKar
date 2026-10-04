@@ -19,6 +19,44 @@ export interface CartLine {
   notes: string;
 }
 
+
+// Quick add / stepper used on both tile and wide cards.
+function AddControl({
+  line,
+  onAdd,
+  onDec,
+  onInc,
+}: {
+  line: CartLine | undefined;
+  onAdd: () => void;
+  onDec: () => void;
+  onInc: () => void;
+}) {
+  if (!line)
+    return (
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onAdd();
+        }}
+        className="btn-3d shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-bold text-white"
+      >
+        Add
+      </button>
+    );
+  return (
+    <div className="flex items-center gap-0.5 rounded-full bg-brand-soft p-0.5" onClick={(e) => e.stopPropagation()}>
+      <button aria-label="Decrease" onClick={onDec} className="flex h-7 w-7 items-center justify-center rounded-full text-[15px] font-bold text-brand">
+        −
+      </button>
+      <span className="min-w-5 text-center font-mono text-[13px] font-bold text-ink">{line.qty}</span>
+      <button aria-label="Increase" onClick={onInc} className="flex h-7 w-7 items-center justify-center rounded-full text-[15px] font-bold text-brand">
+        +
+      </button>
+    </div>
+  );
+}
+
 export default function MenuOrder({
   restaurantId,
   table,
@@ -194,71 +232,63 @@ export default function MenuOrder({
         ))}
       </div>
 
-      {/* Compact item cards */}
+      {/* Bento item grid — mixed square tiles + wide cards */}
       {visible.length === 0 ? (
         <Empty title="Nothing here yet" sub="Try another category or search." />
       ) : (
-        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-          {visible.map((item) => {
+        <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+          {visible.map((item, i) => {
             const line = lineFor(item.id);
+            const img = categoryImage(catName[item.category_id] ?? '');
+            const ctl = (
+              <AddControl
+                line={line}
+                onAdd={() => addToCart(item, 1, '')}
+                onDec={() => setQty(item.id, (line?.qty ?? 1) - 1)}
+                onInc={() => setQty(item.id, (line?.qty ?? 0) + 1)}
+              />
+            );
+            // Every 3rd card goes wide (full row on mobile, half row on desktop)
+            if (i % 3 === 2)
+              return (
+                <div
+                  key={item.id}
+                  onClick={() => openDetail(item)}
+                  className="glass col-span-2 flex cursor-pointer gap-3 !rounded-[18px] p-2.5 text-left transition-transform active:scale-[0.99]"
+                >
+                  <img src={img} alt={item.name} loading="lazy" className="h-24 w-24 shrink-0 rounded-[12px] object-cover" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="truncate font-display text-[13.5px] font-extrabold text-ink">{item.name}</h3>
+                      <span className="shrink-0 font-mono text-[13px] font-bold text-brand">{fmtPKR(item.price)}</span>
+                    </div>
+                    {item.description && (
+                      <p className="mt-0.5 line-clamp-2 text-[12px] leading-snug text-muted">{item.description}</p>
+                    )}
+                    <div className="mt-1.5 flex items-center justify-between gap-2">
+                      <span className="flex min-w-0 items-center gap-1.5 text-[10.5px] font-bold text-muted">
+                        {item.tags.includes('bestseller') && <span className="text-amber">★</span>}
+                        {item.tags.includes('spicy') && <span className="text-danger">🌶</span>}
+                        <span className="truncate">~{item.prep_time_minutes} min</span>
+                      </span>
+                      {ctl}
+                    </div>
+                  </div>
+                </div>
+              );
+            // Square tile — photo on top, name + price + add below
             return (
               <div
                 key={item.id}
                 onClick={() => openDetail(item)}
-                className="glass flex cursor-pointer gap-3 !rounded-[16px] p-2.5 text-left transition-transform active:scale-[0.99]"
+                className="glass cursor-pointer !rounded-[18px] p-2 text-left transition-transform active:scale-[0.99]"
               >
-                <img
-                  src={categoryImage(catName[item.category_id] ?? '')}
-                  alt={item.name}
-                  loading="lazy"
-                  className="h-16 w-16 shrink-0 rounded-[12px] object-cover"
-                />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="truncate font-display text-[13.5px] font-extrabold text-ink">{item.name}</h3>
-                    <span className="shrink-0 font-mono text-[13px] font-bold text-brand">{fmtPKR(item.price)}</span>
-                  </div>
-                  {item.description && (
-                    <p className="mt-0.5 line-clamp-1 text-[12px] leading-snug text-muted">{item.description}</p>
-                  )}
-                  <div className="mt-1.5 flex items-center justify-between gap-2">
-                    <span className="flex min-w-0 items-center gap-1.5 text-[10.5px] font-bold text-muted">
-                      {item.tags.includes('bestseller') && <span className="text-amber">★</span>}
-                      {item.tags.includes('spicy') && <span className="text-danger">🌶</span>}
-                      <span className="truncate">~{item.prep_time_minutes} min</span>
-                    </span>
-                    {line ? (
-                      <div
-                        className="flex items-center gap-0.5 rounded-full bg-brand-soft p-0.5"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <button
-                          aria-label="Decrease"
-                          onClick={() => setQty(item.id, line.qty - 1)}
-                          className="flex h-7 w-7 items-center justify-center rounded-full text-[15px] font-bold text-brand"
-                        >
-                          −
-                        </button>
-                        <span className="min-w-5 text-center font-mono text-[13px] font-bold text-ink">{line.qty}</span>
-                        <button
-                          aria-label="Increase"
-                          onClick={() => setQty(item.id, line.qty + 1)}
-                          className="flex h-7 w-7 items-center justify-center rounded-full text-[15px] font-bold text-brand"
-                        >
-                          +
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          addToCart(item, 1, '');
-                        }}
-                        className="btn-3d shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-bold text-white"
-                      >
-                        Add
-                      </button>
-                    )}
+                <img src={img} alt={item.name} loading="lazy" className="aspect-square w-full rounded-[12px] object-cover" />
+                <div className="px-1 pb-1 pt-2">
+                  <h3 className="line-clamp-1 font-display text-[13px] font-extrabold text-ink">{item.name}</h3>
+                  <div className="mt-1.5 flex items-center justify-between gap-1">
+                    <span className="font-mono text-[12.5px] font-bold text-brand">{fmtPKR(item.price)}</span>
+                    {ctl}
                   </div>
                 </div>
               </div>

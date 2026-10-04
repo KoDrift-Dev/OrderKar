@@ -9,7 +9,7 @@
 
 :root {
   /* ── Light theme ── */
-  --c-page: #f9fafb;
+  --c-page: #e9e4f7; /* soft lavender — white cards pop */
   --c-soft: #f3f4f6;
   --c-surface: rgba(255, 255, 255, 0.72);
   --c-surface-solid: #ffffff;
