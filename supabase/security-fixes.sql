@@ -206,7 +206,7 @@ as $$
         'quantity', oi.quantity,
         'unit_price', oi.unit_price,
         'notes', oi.notes
-      ) order by oi.created_at)
+      ) order by oi.item_name)
       from public.order_items oi
       where oi.order_id = o.id
     ), '[]'::jsonb)
