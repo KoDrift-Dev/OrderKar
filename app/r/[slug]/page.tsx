@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useTenant } from '@/components/TenantProvider';
 import { Btn, Card } from '@/components/ui';
 import ThemeToggle from '@/components/ThemeToggle';
+import Logo from '@/components/Logo';
 
 export default function RestaurantHome() {
   const tenant = useTenant();
@@ -16,9 +17,7 @@ export default function RestaurantHome() {
     <div className="min-h-screen">
       <header className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4 sm:px-6">
         <div className="flex items-center gap-2.5">
-          <div className="btn-3d flex h-10 w-10 items-center justify-center rounded-[12px] font-display text-xl font-extrabold text-white">
-            O
-          </div>
+          <Logo size={40} />
           <span className="font-display text-xl font-extrabold text-ink">OrderKar</span>
         </div>
         <ThemeToggle />

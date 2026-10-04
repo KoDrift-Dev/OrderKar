@@ -4,6 +4,7 @@ import { createClient, isServerConfigured } from '@/lib/supabase/server';
 import { Card, Empty, PageHeader, Pill } from '@/components/ui';
 import ThemeToggle from '@/components/ThemeToggle';
 import { fmtPKR } from '@/lib/format';
+import Logo from '@/components/Logo';
 
 export default async function AdminPage() {
   if (!isServerConfigured()) {
@@ -28,7 +29,7 @@ export default async function AdminPage() {
       <header className="sticky top-0 z-40 border-b border-line bg-[var(--c-surface)] backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
           <div className="flex items-center gap-2.5">
-            <div className="btn-3d flex h-9 w-9 items-center justify-center rounded-[11px] font-display text-lg font-extrabold text-white">O</div>
+            <Logo size={36} />
             <div className="leading-tight">
               <p className="font-display text-[15px] font-extrabold text-ink">OrderKar Platform</p>
               <p className="text-[11.5px] font-bold uppercase tracking-wide text-muted">Super admin</p>

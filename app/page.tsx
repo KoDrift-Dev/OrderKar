@@ -1,13 +1,12 @@
 import Link from 'next/link';
 import ThemeToggle from '@/components/ThemeToggle';
 import { Btn, Card, Pill } from '@/components/ui';
+import Logo from '@/components/Logo';
 
 function BrandMark() {
   return (
     <div className="flex items-center gap-2.5">
-      <div className="btn-3d flex h-10 w-10 items-center justify-center rounded-[12px] font-display text-xl font-extrabold text-white">
-        O
-      </div>
+      <Logo size={40} />
       <span className="font-display text-xl font-extrabold tracking-tight text-ink">OrderKar</span>
     </div>
   );

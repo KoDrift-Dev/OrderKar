@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useTenant } from './TenantProvider';
 import type { Role } from '@/lib/types';
 import ThemeToggle from './ThemeToggle';
+import Logo from './Logo';
 
 const NAV: { href: string; label: string; roles: Role[] }[] = [
   { href: 'owner', label: 'Owner', roles: ['owner', 'super_admin'] },
@@ -42,9 +43,7 @@ export default function StaffShell({
       <header className="sticky top-0 z-40 border-b border-line bg-[var(--c-surface)] backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="flex items-center gap-3">
-            <div className="btn-3d flex h-9 w-9 items-center justify-center rounded-[11px] font-display text-lg font-extrabold text-white">
-              O
-            </div>
+            <Logo size={36} />
             <div className="leading-tight">
               <p className="font-display text-[15px] font-extrabold text-ink">{tenant.name}</p>
               <p className="text-[11.5px] font-bold uppercase tracking-wide text-muted">

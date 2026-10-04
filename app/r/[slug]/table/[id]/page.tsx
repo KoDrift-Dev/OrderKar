@@ -12,6 +12,7 @@ import MenuOrder from '@/components/MenuOrder';
 import OrderTracker from '@/components/OrderTracker';
 import ThemeToggle from '@/components/ThemeToggle';
 import { Card, Empty } from '@/components/ui';
+import Logo from '@/components/Logo';
 
 interface PlacedOrder {
   id: string;
@@ -57,7 +58,7 @@ export default function TablePage({ params }: { params: { slug: string; id: stri
       <header className="sticky top-0 z-40 border-b border-line bg-[var(--c-surface)] backdrop-blur-xl">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
           <Link href={`/r/${tenant.slug}`} className="flex items-center gap-2.5">
-            <div className="btn-3d flex h-9 w-9 items-center justify-center rounded-[11px] font-display text-lg font-extrabold text-white">O</div>
+            <Logo size={36} />
             <div className="leading-tight">
               <p className="font-display text-[15px] font-extrabold text-ink">{tenant.name}</p>
               <p className="text-[11.5px] font-bold text-muted">

@@ -10,6 +10,7 @@ import { isSupabaseConfigured } from '@/lib/supabase/client';
 import { signupRestaurant } from './actions';
 import { Btn, Card, Input, Label } from '@/components/ui';
 import ThemeToggle from '@/components/ThemeToggle';
+import Logo from '@/components/Logo';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -47,7 +48,7 @@ export default function SignupPage() {
       <div className="w-full max-w-md">
         <div className="mb-6 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
-            <div className="btn-3d flex h-10 w-10 items-center justify-center rounded-[12px] font-display text-xl font-extrabold text-white">O</div>
+            <Logo size={40} />
             <span className="font-display text-xl font-extrabold text-ink">OrderKar</span>
           </Link>
           <ThemeToggle />

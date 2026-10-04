@@ -11,6 +11,7 @@ import type { Review } from '@/lib/types';
 import { fmtAgo } from '@/lib/format';
 import { Btn, Card, Empty, Input, Textarea, SectionHead } from '@/components/ui';
 import ThemeToggle from '@/components/ThemeToggle';
+import Logo from '@/components/Logo';
 
 function Stars({ value, onPick, size = 34 }: { value: number; onPick?: (n: number) => void; size?: number }) {
   return (
@@ -90,7 +91,7 @@ export default function FeedbackPage() {
     <div className="min-h-screen">
       <header className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4 sm:px-6">
         <Link href={`/r/${tenant.slug}`} className="flex items-center gap-2.5">
-          <div className="btn-3d flex h-9 w-9 items-center justify-center rounded-[11px] font-display text-lg font-extrabold text-white">O</div>
+          <Logo size={36} />
           <span className="font-display text-[15px] font-extrabold text-ink">{tenant.name}</span>
         </Link>
         <ThemeToggle />

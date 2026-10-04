@@ -10,6 +10,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
 import { Btn, Card, Input, Label } from '@/components/ui';
 import ThemeToggle from '@/components/ThemeToggle';
+import Logo from '@/components/Logo';
 
 const ROLE_HOME: Record<string, string> = {
   owner: 'owner',
@@ -80,7 +81,7 @@ function LoginForm() {
       <div className="w-full max-w-md">
         <div className="mb-6 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
-            <div className="btn-3d flex h-10 w-10 items-center justify-center rounded-[12px] font-display text-xl font-extrabold text-white">O</div>
+            <Logo size={40} />
             <span className="font-display text-xl font-extrabold text-ink">OrderKar</span>
           </Link>
           <ThemeToggle />
