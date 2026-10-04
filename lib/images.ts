@@ -11,10 +11,14 @@ import { createClient } from './supabase/client';
 
 const CDN = (process.env.NEXT_PUBLIC_IMAGE_CDN ?? '').replace(/\/$/, '');
 
+// NOTE: only menu-images goes through the Cloudflare Worker — the deployed
+// worker code only proxies that bucket. staff-photos uses direct Supabase
+// URLs (public bucket) so previews never 404. If the worker is ever updated
+// to serve more buckets, extend the regex below.
 export function cdnUrl(url: string | null | undefined): string {
   if (!url) return '';
   if (!CDN) return url;
-  const m = url.match(/\/storage\/v1\/object\/public\/(menu-images|staff-photos)(\/.*)$/);
+  const m = url.match(/\/storage\/v1\/object\/public\/(menu-images)(\/.*)$/);
   if (m) return `${CDN}${m[2]}`;
   return url;
 }
