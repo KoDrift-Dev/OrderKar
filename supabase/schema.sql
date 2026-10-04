@@ -19,25 +19,9 @@
 -- level (not in app code). The service_role key bypasses RLS automatically.
 -- ============================================================================
 
--- ── Helpers (SECURITY DEFINER so policies never recurse) ────────────────────
-
-create or replace function public.my_restaurant_id()
-returns uuid
-language sql
-security definer
-stable
-as $$
-  select restaurant_id from public.profiles where id = auth.uid()
-$$;
-
-create or replace function public.am_super_admin()
-returns boolean
-language sql
-security definer
-stable
-as $$
-  select coalesce(is_super_admin, false) from public.profiles where id = auth.uid()
-$$;
+-- (Helper functions are defined after the tables, just before the RLS
+-- section, because Postgres resolves table references in SQL-language
+-- function bodies at creation time.)
 
 -- ── Restaurants (tenants) ───────────────────────────────────────────────────
 
@@ -235,6 +219,29 @@ drop trigger if exists trg_orders_touch on orders;
 create trigger trg_orders_touch
   before update on orders
   for each row execute function touch_updated_at();
+
+-- ════════════════════════════════════════════════════════════════════════════
+-- HELPERS (defined here — after all tables exist)
+-- ════════════════════════════════════════════════════════════════════════════
+-- SECURITY DEFINER so RLS policies never recurse into profiles.
+
+create or replace function public.my_restaurant_id()
+returns uuid
+language sql
+security definer
+stable
+as $$
+  select restaurant_id from public.profiles where id = auth.uid()
+$$;
+
+create or replace function public.am_super_admin()
+returns boolean
+language sql
+security definer
+stable
+as $$
+  select coalesce(is_super_admin, false) from public.profiles where id = auth.uid()
+$$;
 
 -- ════════════════════════════════════════════════════════════════════════════
 -- ROW LEVEL SECURITY
