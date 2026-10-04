@@ -7,9 +7,10 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useTenant } from '@/components/TenantProvider';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
-import type { DiningTable } from '@/lib/types';
+import type { DiningTable, OrderStatus } from '@/lib/types';
 import MenuOrder from '@/components/MenuOrder';
 import OrderTracker from '@/components/OrderTracker';
+import StatusPill from '@/components/StatusPill';
 import ThemeToggle from '@/components/ThemeToggle';
 import { Card, Empty } from '@/components/ui';
 import Logo from '@/components/Logo';
@@ -21,6 +22,47 @@ interface PlacedOrder {
 }
 
 const PLACED_TTL_MS = 12 * 3600 * 1000; // keep today's orders across refreshes
+
+// Compact row for a dismissed (past) order — fetches its latest status once.
+function HistoryRow({
+  order,
+  tableNum,
+  onRetrack,
+}: {
+  order: PlacedOrder;
+  tableNum: number;
+  onRetrack: () => void;
+}) {
+  const [status, setStatus] = useState<OrderStatus | null>(null);
+  useEffect(() => {
+    let live = true;
+    createClient()
+      .from('orders')
+      .select('status')
+      .eq('id', order.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (live && data) setStatus(data.status as OrderStatus);
+      });
+    return () => {
+      live = false;
+    };
+  }, [order.id]);
+  return (
+    <div className="flex items-center justify-between gap-2 border-b border-line py-2.5 last:border-0">
+      <div className="min-w-0">
+        <span className="font-mono text-[14px] font-bold text-ink">#{order.number}</span>
+        <span className="ml-1.5 text-[12px] font-bold text-muted">🍽️ Table {tableNum}</span>
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        {status && <StatusPill status={status} size="sm" />}
+        <button onClick={onRetrack} className="rounded-full bg-brand-soft px-3 py-1.5 text-[12px] font-bold text-brand">
+          Track again
+        </button>
+      </div>
+    </div>
+  );
+}
 
 // Animated table badge — a little cloche-on-table illustration with steam
 // and the table number, instead of plain "Table N" text.
@@ -58,6 +100,7 @@ export default function TablePage({ params }: { params: { slug: string; id: stri
   const [table, setTable] = useState<DiningTable | null>(null);
   const [loading, setLoading] = useState(true);
   const [placed, setPlaced] = useState<PlacedOrder[]>([]);
+  const [history, setHistory] = useState<PlacedOrder[]>([]);
   const [name, setName] = useState('');
 
   const placedKey = `orderkar:placed:${tenant.id}:${tableNum}`;
@@ -67,9 +110,14 @@ export default function TablePage({ params }: { params: { slug: string; id: stri
     try {
       const raw = window.localStorage.getItem(placedKey);
       if (!raw) return;
-      const arr = JSON.parse(raw) as PlacedOrder[];
-      const fresh = arr.filter((o) => o && o.id && Date.now() - (o.at || 0) < PLACED_TTL_MS);
-      if (fresh.length > 0) setPlaced(fresh);
+      const parsed = JSON.parse(raw) as PlacedOrder[] | { active: PlacedOrder[]; history: PlacedOrder[] };
+      const arr = Array.isArray(parsed) ? parsed : (parsed.active ?? []);
+      const hist = Array.isArray(parsed) ? [] : (parsed.history ?? []);
+      const fresh = (list: PlacedOrder[]) => list.filter((o) => o && o.id && Date.now() - (o.at || 0) < PLACED_TTL_MS);
+      const a = fresh(arr);
+      const h = fresh(hist).filter((o) => !a.some((x) => x.id === o.id));
+      if (a.length > 0) setPlaced(a);
+      if (h.length > 0) setHistory(h);
     } catch {
       /* ignore */
     }
@@ -78,11 +126,11 @@ export default function TablePage({ params }: { params: { slug: string; id: stri
   // Persist every change so a refresh never loses the tracker.
   useEffect(() => {
     try {
-      window.localStorage.setItem(placedKey, JSON.stringify(placed));
+      window.localStorage.setItem(placedKey, JSON.stringify({ active: placed, history }));
     } catch {
       /* ignore */
     }
-  }, [placedKey, placed]);
+  }, [placedKey, placed, history]);
 
   useEffect(() => {
     if (!isSupabaseConfigured() || !Number.isFinite(tableNum)) {
@@ -110,7 +158,22 @@ export default function TablePage({ params }: { params: { slug: string; id: stri
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const dismiss = (id: string) => setPlaced((p) => p.filter((o) => o.id !== id));
+  const dismiss = (id: string) => {
+    setPlaced((p) => {
+      const gone = p.find((o) => o.id === id);
+      if (gone) setHistory((h) => (h.some((o) => o.id === id) ? h : [{ ...gone }, ...h]));
+      return p.filter((o) => o.id !== id);
+    });
+  };
+
+  const retrack = (id: string) => {
+    setHistory((h) => {
+      const back = h.find((o) => o.id === id);
+      if (back) setPlaced((p) => (p.some((o) => o.id === id) ? p : [...p, back]));
+      return h.filter((o) => o.id !== id);
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
     <div className="min-h-screen pb-28">
@@ -146,6 +209,19 @@ export default function TablePage({ params }: { params: { slug: string; id: stri
                   />
                 ))}
               </div>
+            )}
+            {history.length > 0 && (
+              <details className="glass mb-6 !rounded-[18px] px-4 py-3">
+                <summary className="cursor-pointer list-none font-display text-[13.5px] font-extrabold text-ink">
+                  🕘 Past orders ({history.length})
+                  <span className="ml-1.5 font-sans text-[11.5px] font-bold text-muted">— tap to expand</span>
+                </summary>
+                <div className="mt-1">
+                  {history.map((o) => (
+                    <HistoryRow key={o.id} order={o} tableNum={tableNum} onRetrack={() => retrack(o.id)} />
+                  ))}
+                </div>
+              </details>
             )}
             <Card className="mb-5 p-4">
               <label className="mb-1.5 block text-[13px] font-bold text-body">
