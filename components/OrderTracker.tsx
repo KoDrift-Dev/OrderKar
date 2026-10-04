@@ -9,10 +9,10 @@ import type { OrderStatus } from '@/lib/types';
 import { Card } from './ui';
 import StatusPill from './StatusPill';
 
-const STEPS: { key: OrderStatus; label: string }[] = [
-  { key: 'pending', label: 'Received' },
-  { key: 'preparing', label: 'Preparing' },
-  { key: 'ready', label: 'Ready' },
+const STEPS: { key: OrderStatus; label: string; icon: string }[] = [
+  { key: 'pending', label: 'Received', icon: '🧾' },
+  { key: 'preparing', label: 'Preparing', icon: '👨‍🍳' },
+  { key: 'ready', label: 'Ready', icon: '🔔' },
 ];
 
 function stepIndex(s: OrderStatus): number {
@@ -82,15 +82,15 @@ export default function OrderTracker({
             <div key={s.key} className={`flex items-center ${i < STEPS.length - 1 ? 'flex-1' : ''}`}>
               <div className="flex flex-col items-center gap-1.5">
                 <div
-                  className={`flex h-10 w-10 items-center justify-center rounded-full border-2 font-bold transition-all ${
+                  className={`flex h-10 w-10 items-center justify-center rounded-full border-2 text-[19px] transition-all ${
                     i < idx
                       ? 'border-ok bg-ok text-white'
                       : i === idx
-                        ? 'border-brand bg-brand text-white shadow-glow'
-                        : 'border-line bg-soft text-muted'
+                        ? 'border-brand bg-brand shadow-glow'
+                        : 'border-line bg-soft grayscale opacity-60'
                   }`}
                 >
-                  {i < idx ? '✓' : i + 1}
+                  {i < idx ? <span className="text-[16px] font-bold text-white">✓</span> : <span className={i === idx ? 'animate-bounce' : ''}>{s.icon}</span>}
                 </div>
                 <span className={`text-[12px] font-bold ${i <= idx ? 'text-ink' : 'text-muted'}`}>{s.label}</span>
               </div>
