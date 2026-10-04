@@ -1,7 +1,8 @@
 'use client';
 
-// Live order status tracker. Subscribes to realtime updates on the order so
-// the customer sees pending -> preparing -> ready without refreshing.
+// Live order status tracker. Polls the track_order() RPC with the order's
+// private tracking token — anon cannot read the orders table directly, so the
+// token is the only key. Poll every 3s: pending -> preparing -> ready.
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
@@ -22,38 +23,66 @@ function stepIndex(s: OrderStatus): number {
 
 export default function OrderTracker({
   orderId,
+  trackingToken,
   orderNumber,
   tableNumber,
   onDismiss,
 }: {
   orderId: string;
+  trackingToken?: string | null;
   orderNumber?: number;
   tableNumber?: number;
   onDismiss?: () => void;
 }) {
   const [status, setStatus] = useState<OrderStatus>('pending');
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
+    if (!trackingToken) {
+      setNotFound(true);
+      return;
+    }
     const supabase = createClient();
     let live = true;
-    (async () => {
-      const { data } = await supabase.from('orders').select('status').eq('id', orderId).maybeSingle();
-      if (live && data) setStatus(data.status as OrderStatus);
-    })();
-    const ch = supabase
-      .channel(`order-${orderId}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` }, (payload) => {
-        const next = (payload.new as { status: OrderStatus }).status;
-        if (next) setStatus(next);
-      })
-      .subscribe();
+    const poll = async () => {
+      const { data } = await supabase.rpc('track_order', { p_token: trackingToken });
+      if (!live) return;
+      const row = data as { status?: OrderStatus } | null;
+      if (row?.status) {
+        setStatus(row.status);
+        setNotFound(false);
+      } else {
+        setNotFound(true);
+      }
+    };
+    poll();
+    const t = window.setInterval(poll, 3000);
     return () => {
       live = false;
-      supabase.removeChannel(ch);
+      window.clearInterval(t);
     };
-  }, [orderId]);
+  }, [trackingToken]);
 
   const idx = stepIndex(status);
+
+  if (notFound) {
+    return (
+      <Card deep className="relative p-5">
+        {onDismiss && (
+          <button
+            onClick={onDismiss}
+            aria-label="Dismiss"
+            className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full text-[13px] font-bold text-muted hover:bg-soft hover:text-ink"
+          >
+            ✕
+          </button>
+        )}
+        <p className="text-[13.5px] font-bold text-muted">
+          Order tracking unavailable for this order (placed before a security update). Naya order place karo to live tracking milegi.
+        </p>
+      </Card>
+    );
+  }
 
   return (
     <Card deep className="relative p-5">

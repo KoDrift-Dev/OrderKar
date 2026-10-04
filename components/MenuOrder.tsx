@@ -38,7 +38,7 @@ export default function MenuOrder({
   table: DiningTable;
   waiterId?: string;
   customerName?: string;
-  onPlaced: (orderId: string) => void;
+  onPlaced: (orderId: string, trackingToken: string) => void;
 }) {
   const [cats, setCats] = useState<MenuCategory[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
@@ -133,21 +133,24 @@ export default function MenuOrder({
     setError('');
     try {
       const supabase = createClient();
-      const { data: order, error: oErr } = await supabase
-        .from('orders')
-        .insert({
-          restaurant_id: restaurantId,
-          table_id: table.id,
-          waiter_id: waiterId ?? null,
-          customer_name: customerName?.trim() || null,
-          status: 'pending',
-          total_amount: total,
-        })
-        .select('id')
-        .single();
-      if (oErr || !order) throw new Error(oErr?.message ?? 'Could not create order');
+      // id + tracking_token are generated client-side: anon can no longer
+      // SELECT orders back (tracking goes through the track_order RPC), so we
+      // must already know both values after the insert.
+      const orderId = crypto.randomUUID();
+      const trackingToken = crypto.randomUUID();
+      const { error: oErr } = await supabase.from('orders').insert({
+        id: orderId,
+        tracking_token: trackingToken,
+        restaurant_id: restaurantId,
+        table_id: table.id,
+        waiter_id: waiterId ?? null,
+        customer_name: customerName?.trim() || null,
+        status: 'pending',
+        total_amount: total,
+      });
+      if (oErr) throw new Error(oErr.message);
       const lines = cart.map((l) => ({
-        order_id: order.id,
+        order_id: orderId,
         menu_item_id: l.item.id,
         item_name: l.item.name,
         quantity: l.qty,
@@ -158,7 +161,7 @@ export default function MenuOrder({
       if (iErr) throw new Error(iErr.message);
       setCart([]);
       setCartOpen(false);
-      onPlaced(order.id);
+      onPlaced(orderId, trackingToken);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Order failed');

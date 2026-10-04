@@ -17,6 +17,7 @@ import Logo from '@/components/Logo';
 
 interface PlacedOrder {
   id: string;
+  token?: string | null;
   number: number;
   at: number;
 }
@@ -35,19 +36,18 @@ function HistoryRow({
 }) {
   const [status, setStatus] = useState<OrderStatus | null>(null);
   useEffect(() => {
+    if (!order.token) return;
     let live = true;
     createClient()
-      .from('orders')
-      .select('status')
-      .eq('id', order.id)
-      .maybeSingle()
+      .rpc('track_order', { p_token: order.token })
       .then(({ data }) => {
-        if (live && data) setStatus(data.status as OrderStatus);
+        const row = data as { status?: OrderStatus } | null;
+        if (live && row?.status) setStatus(row.status);
       });
     return () => {
       live = false;
     };
-  }, [order.id]);
+  }, [order.id, order.token]);
   return (
     <div className="flex items-center justify-between gap-2 border-b border-line py-2.5 last:border-0">
       <div className="min-w-0">
@@ -151,10 +151,11 @@ export default function TablePage({ params }: { params: { slug: string; id: stri
     })();
   }, [tenant.id, tableNum]);
 
-  const onPlaced = async (orderId: string) => {
+  const onPlaced = async (orderId: string, trackingToken: string) => {
     const supabase = createClient();
-    const { data } = await supabase.from('orders').select('order_number').eq('id', orderId).maybeSingle();
-    setPlaced((p) => [...p, { id: orderId, number: data?.order_number ?? 0, at: Date.now() }]);
+    const { data } = await supabase.rpc('track_order', { p_token: trackingToken });
+    const row = data as { order_number?: number } | null;
+    setPlaced((p) => [...p, { id: orderId, token: trackingToken, number: row?.order_number ?? 0, at: Date.now() }]);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -203,6 +204,7 @@ export default function TablePage({ params }: { params: { slug: string; id: stri
                   <OrderTracker
                     key={o.id}
                     orderId={o.id}
+                    trackingToken={o.token}
                     orderNumber={o.number}
                     tableNumber={tableNum}
                     onDismiss={() => dismiss(o.id)}
