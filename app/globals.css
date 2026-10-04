@@ -1,0 +1,220 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   OrderKar SaaS — Purple glassmorphism design system
+   Light default · dark via [data-theme="dark"] on <html>
+   ========================================================================== */
+
+:root {
+  /* ── Light theme ── */
+  --c-page: #f9fafb;
+  --c-soft: #f3f4f6;
+  --c-surface: rgba(255, 255, 255, 0.72);
+  --c-surface-solid: #ffffff;
+  --c-ink: #1f2937;
+  --c-body: #374151;
+  --c-muted: #6b7280;
+  --c-line: rgba(109, 40, 217, 0.12);
+  --c-line-strong: rgba(109, 40, 217, 0.22);
+
+  --c-brand: #6d28d9;
+  --c-brand-deep: #5b21b6;
+  --c-brand-soft: rgba(109, 40, 217, 0.1);
+  --c-teal: #0d9488;
+  --c-amber: #f59e0b;
+  --c-ok: #059669;
+  --c-warn: #d97706;
+  --c-danger: #dc2626;
+
+  --shadow-glass:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    0 8px 32px rgba(109, 40, 217, 0.1);
+  --shadow-lift:
+    0 2px 4px rgba(109, 40, 217, 0.12),
+    0 12px 32px rgba(109, 40, 217, 0.18);
+  --shadow-glow: 0 0 24px rgba(109, 40, 217, 0.35);
+
+  --input-bg: rgba(255, 255, 255, 0.85);
+  --input-shadow: inset 0 2px 6px rgba(31, 41, 55, 0.07);
+}
+
+[data-theme='dark'] {
+  /* ── Dark theme ── */
+  --c-page: #0f172a;
+  --c-soft: #131f38;
+  --c-surface: rgba(30, 41, 66, 0.62);
+  --c-surface-solid: #1e293b;
+  --c-ink: #f3f4f6;
+  --c-body: #d1d5db;
+  --c-muted: #94a3b8;
+  --c-line: rgba(139, 92, 246, 0.18);
+  --c-line-strong: rgba(139, 92, 246, 0.32);
+
+  --c-brand: #8b5cf6;
+  --c-brand-deep: #7c3aed;
+  --c-brand-soft: rgba(139, 92, 246, 0.14);
+  --c-teal: #06b6d4;
+  --c-amber: #f97316;
+  --c-ok: #10b981;
+  --c-warn: #f59e0b;
+  --c-danger: #ef4444;
+
+  --shadow-glass:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 8px 32px rgba(0, 0, 0, 0.35);
+  --shadow-lift:
+    0 2px 6px rgba(0, 0, 0, 0.35),
+    0 14px 36px rgba(139, 92, 246, 0.22);
+  --shadow-glow: 0 0 28px rgba(139, 92, 246, 0.45);
+
+  --input-bg: rgba(15, 23, 42, 0.6);
+  --input-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-page text-body antialiased;
+  /* Ambient aurora wash behind everything (subtle, premium) */
+  background-image:
+    radial-gradient(900px 480px at 12% -8%, rgba(109, 40, 217, 0.09), transparent 60%),
+    radial-gradient(760px 420px at 88% 4%, rgba(13, 148, 136, 0.08), transparent 60%),
+    radial-gradient(700px 500px at 50% 110%, rgba(245, 158, 11, 0.06), transparent 60%);
+  background-attachment: fixed;
+}
+
+[data-theme='dark'] body {
+  background-image:
+    radial-gradient(900px 480px at 12% -8%, rgba(139, 92, 246, 0.14), transparent 60%),
+    radial-gradient(760px 420px at 88% 4%, rgba(6, 182, 212, 0.1), transparent 60%),
+    radial-gradient(700px 500px at 50% 110%, rgba(249, 115, 22, 0.08), transparent 60%);
+}
+
+::selection {
+  background: var(--c-brand);
+  color: #fff;
+}
+
+/* ── Glass primitives ── */
+.glass {
+  background: var(--c-surface);
+  -webkit-backdrop-filter: blur(18px) saturate(1.3);
+  backdrop-filter: blur(18px) saturate(1.3);
+  border: 1px solid var(--c-line);
+  box-shadow: var(--shadow-glass);
+  border-radius: 20px;
+}
+
+.glass-deep {
+  background: var(--c-surface);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  backdrop-filter: blur(24px) saturate(1.4);
+  border: 1px solid var(--c-line-strong);
+  box-shadow: var(--shadow-lift);
+  border-radius: 24px;
+}
+
+/* Gradient text for hero accents */
+.text-gradient {
+  background: linear-gradient(100deg, var(--c-brand) 10%, var(--c-teal) 90%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Primary 3D button */
+.btn-3d {
+  background: linear-gradient(135deg, var(--c-brand) 0%, var(--c-brand-deep) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 4px 6px rgba(109, 40, 217, 0.25),
+    0 12px 28px rgba(109, 40, 217, 0.28);
+  transition: transform 0.16s ease, box-shadow 0.16s ease, filter 0.16s ease;
+}
+.btn-3d:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.06);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 6px 10px rgba(109, 40, 217, 0.28),
+    0 18px 38px rgba(109, 40, 217, 0.34);
+}
+.btn-3d:active {
+  transform: translateY(1px) scale(0.99);
+  box-shadow:
+    inset 0 2px 8px rgba(0, 0, 0, 0.22),
+    0 2px 6px rgba(109, 40, 217, 0.2);
+}
+
+/* Neumorphic input */
+.input-neu {
+  background: var(--input-bg);
+  box-shadow: var(--input-shadow);
+  border: 1px solid var(--c-line);
+  border-radius: 14px;
+}
+.input-neu:focus {
+  outline: none;
+  border-color: var(--c-brand);
+  box-shadow: var(--input-shadow), 0 0 0 3px var(--c-brand-soft);
+}
+
+/* Slim scrollbars */
+*::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--c-line-strong);
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* New-order flash for KDS */
+@keyframes flash-new {
+  0%,
+  100% {
+    box-shadow: var(--shadow-glass), 0 0 0 0 rgba(109, 40, 217, 0);
+  }
+  50% {
+    box-shadow: var(--shadow-glass), 0 0 0 6px rgba(109, 40, 217, 0.45);
+  }
+}
+.animate-flash-new {
+  animation: flash-new 1.1s ease-in-out 3;
+}
+
+/* Gentle float for hero orbs */
+@keyframes drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(24px, -28px, 0) scale(1.06);
+  }
+}
+.animate-drift {
+  animation: drift 11s ease-in-out infinite;
+}
+
+/* Print: only the QR sheet */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #qr-print-sheet,
+  #qr-print-sheet * {
+    visibility: visible;
+  }
+  #qr-print-sheet {
+    position: absolute;
+    inset: 0;
+  }
+}
