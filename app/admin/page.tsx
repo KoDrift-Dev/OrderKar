@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { createClient, isServerConfigured } from '@/lib/supabase/server';
 import { Card, Empty, PageHeader, Pill } from '@/components/ui';
 import AdminPosToggle from '@/components/AdminPosToggle';
+import AdminLangSelect from '@/components/AdminLangSelect';
 import ThemeToggle from '@/components/ThemeToggle';
 import { fmtPKR } from '@/lib/format';
 import Logo from '@/components/Logo';
@@ -52,10 +53,14 @@ export default async function AdminPage() {
                 <p className="mt-1 font-mono text-[12.5px] text-muted">/{r.slug}</p>
                 <p className="mt-3 text-sm font-bold text-brand">Open dashboard →</p>
               </Link>
-              <div className="mt-4 border-t border-line pt-3">
+              <div className="mt-4 space-y-2.5 border-t border-line pt-3">
                 <AdminPosToggle
                   restaurantId={r.id}
                   initial={(r.theme_config as Record<string, unknown> | null)?.pos_enabled !== false}
+                />
+                <AdminLangSelect
+                  restaurantId={r.id}
+                  initial={(r.theme_config as Record<string, unknown> | null)?.language === 'english' ? 'english' : 'roman'}
                 />
               </div>
             </Card>

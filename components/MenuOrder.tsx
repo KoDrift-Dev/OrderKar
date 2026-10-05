@@ -12,6 +12,7 @@ import type { MenuCategory, MenuItem, DiningTable } from '@/lib/types';
 import { fmtPKR } from '@/lib/format';
 import { categoryEmoji, categoryImage } from '@/lib/food-images';
 import { cdnUrl } from '@/lib/images';
+import { useT } from '@/lib/i18n';
 import { Btn, Card, Empty, Pill, Textarea } from './ui';
 
 // Real uploaded photo first, bundled category photo as fallback.
@@ -46,6 +47,7 @@ function ItemCard({
   onInc: () => void;
   onAdd: () => void;
 }) {
+  const t = useT();
   return (
     <div
       onClick={onOpen}
@@ -67,9 +69,9 @@ function ItemCard({
           <span className="font-mono text-[13px] font-bold text-white">{fmtPKR(item.price)}</span>
           {line ? (
             <div className="flex items-center gap-0.5 rounded-full bg-white/20 p-0.5 backdrop-blur" onClick={(e) => e.stopPropagation()}>
-              <button aria-label="Decrease" onClick={onDec} className="flex h-7 w-7 items-center justify-center rounded-full text-[14px] font-bold text-white">−</button>
+              <button aria-label={t('mnu_decrease')} onClick={onDec} className="flex h-7 w-7 items-center justify-center rounded-full text-[14px] font-bold text-white">−</button>
               <span className="min-w-4 text-center font-mono text-[12px] font-bold text-white">{line.qty}</span>
-              <button aria-label="Increase" onClick={onInc} className="flex h-7 w-7 items-center justify-center rounded-full text-[14px] font-bold text-white">+</button>
+              <button aria-label={t('mnu_increase')} onClick={onInc} className="flex h-7 w-7 items-center justify-center rounded-full text-[14px] font-bold text-white">+</button>
             </div>
           ) : (
             <button
@@ -77,7 +79,7 @@ function ItemCard({
                 e.stopPropagation();
                 onAdd();
               }}
-              aria-label={`Add ${item.name}`}
+              aria-label={t('mnu_add_item', { name: item.name })}
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-[17px] font-bold text-brand shadow-lift transition-transform active:scale-90"
             >
               +
@@ -117,6 +119,7 @@ export default function MenuOrder({
   const [cartOpen, setCartOpen] = useState(false);
   const configured = isSupabaseConfigured();
   const top = stickyTop ?? '0px';
+  const t = useT();
 
   // Scroll-spy plumbing: section elements + pill bar.
   const sectionRefs = useRef(new Map<string, HTMLElement>());
@@ -279,7 +282,7 @@ export default function MenuOrder({
       onPlaced(orderId, trackingToken);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Order failed');
+      setError(e instanceof Error ? e.message : t('mnu_order_failed'));
     } finally {
       setPlacing(false);
     }
@@ -315,7 +318,7 @@ export default function MenuOrder({
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search the menu…"
+          placeholder={t('mnu_search')}
           className="input-neu mb-2 w-full px-4 py-2.5 text-[14px] text-ink placeholder:text-muted"
         />
         <div
@@ -341,7 +344,7 @@ export default function MenuOrder({
       {/* Search mode: flat results across all categories */}
       {searching ? (
         searchResults.length === 0 ? (
-          <Empty title="Kuch nahi mila" sub="Try another search." />
+          <Empty title={t('mnu_no_results')} sub={t('mnu_no_results_sub')} />
         ) : (
           <>
             <p className="mb-2.5 mt-3 text-[12.5px] font-bold text-muted">
@@ -373,7 +376,7 @@ export default function MenuOrder({
               <div className="ml-1 h-px flex-1 bg-line" />
             </div>
             {g.items.length === 0 ? (
-              <p className="mb-6 text-[12.5px] text-muted">No items right now.</p>
+              <p className="mb-6 text-[12.5px] text-muted">{t('mnu_no_items')}</p>
             ) : (
               <div className="mb-2 grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-4">
                 {g.items.map((item) => (
@@ -416,7 +419,7 @@ export default function MenuOrder({
                   placing ? 'pointer-events-none opacity-60' : ''
                 }`}
               >
-                {placing ? 'Placing…' : 'Place order'}
+                {placing ? t('mnu_placing') : t('mnu_place_order')}
               </span>
             </button>
             {error && <p className="mt-2 text-center text-[12.5px] font-bold text-danger">{error}</p>}
@@ -433,9 +436,9 @@ export default function MenuOrder({
               <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line" />
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="font-display text-[16px] font-extrabold text-ink">
-                  Your order · Table {table.table_number}
+                  {t('mnu_your_order', { table: table.table_number })}
                 </h2>
-                <button onClick={() => setCartOpen(false)} className="glass flex h-8 w-8 items-center justify-center !rounded-full text-muted" aria-label="Close">
+                <button onClick={() => setCartOpen(false)} className="glass flex h-8 w-8 items-center justify-center !rounded-full text-muted" aria-label={t('mnu_close')}>
                   ✕
                 </button>
               </div>
@@ -472,7 +475,7 @@ export default function MenuOrder({
               <div className="flex items-center justify-between">
                 <p className="font-mono text-[16px] font-bold text-ink">{fmtPKR(total)}</p>
                 <Btn size="lg" onClick={placeOrder} disabled={placing} className="!rounded-full px-7">
-                  {placing ? 'Placing…' : `Place order · ${count}`}
+                  {placing ? t('mnu_placing') : t('mnu_place_order_count', { n: count })}
                 </Btn>
               </div>
               {error && <p className="mt-2 text-center text-[12.5px] font-bold text-danger">{error}</p>}
@@ -495,7 +498,7 @@ export default function MenuOrder({
                 />
                 <button
                   onClick={() => setDetail(null)}
-                  aria-label="Close"
+                  aria-label={t('mnu_close')}
                   className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-ink/55 text-[15px] font-bold text-white backdrop-blur"
                 >
                   ✕
@@ -520,14 +523,14 @@ export default function MenuOrder({
                     <p className="mt-1 text-[13px] leading-relaxed text-ink">{detail.ingredients}</p>
                   </div>
                 )}
-                <p className="mt-3 text-[12px] font-bold text-muted">⏱ ~{detail.prep_time_minutes} min preparation</p>
+                <p className="mt-3 text-[12px] font-bold text-muted">{t('mnu_prep_time', { n: detail.prep_time_minutes })}</p>
                 <div className="mt-4">
                   <label className="text-[12px] font-extrabold text-ink">Special instructions <span className="font-bold text-muted">(optional)</span></label>
                   <Textarea
                     value={detailNotes}
                     onChange={(e) => setDetailNotes(e.target.value)}
                     rows={2}
-                    placeholder="e.g. less spicy, no onions…"
+                    placeholder={t('mnu_notes_ph')}
                     className="mt-1.5 w-full text-[13.5px]"
                   />
                 </div>
@@ -537,7 +540,7 @@ export default function MenuOrder({
               <div className="flex items-center gap-3">
                 <div className="glass flex items-center gap-1 !rounded-full p-1">
                   <button
-                    aria-label="Decrease"
+                    aria-label={t('mnu_decrease')}
                     onClick={() => setDetailQty((q) => Math.max(1, q - 1))}
                     className="flex h-9 w-9 items-center justify-center rounded-full text-[17px] font-bold text-brand"
                   >
@@ -545,7 +548,7 @@ export default function MenuOrder({
                   </button>
                   <span className="min-w-7 text-center font-mono text-[15px] font-bold text-ink">{detailQty}</span>
                   <button
-                    aria-label="Increase"
+                    aria-label={t('mnu_increase')}
                     onClick={() => setDetailQty((q) => Math.min(20, q + 1))}
                     className="flex h-9 w-9 items-center justify-center rounded-full text-[17px] font-bold text-brand"
                   >

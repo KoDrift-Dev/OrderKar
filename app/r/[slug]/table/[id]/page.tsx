@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useTenant } from '@/components/TenantProvider';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
+import { LangProvider, normalizeLang, useT } from '@/lib/i18n';
 import type { DiningTable, OrderStatus } from '@/lib/types';
 import MenuOrder from '@/components/MenuOrder';
 import OrderTracker from '@/components/OrderTracker';
@@ -34,6 +35,7 @@ function HistoryRow({
   tableNum: number;
   onRetrack: () => void;
 }) {
+  const t = useT();
   const [status, setStatus] = useState<OrderStatus | null>(null);
   useEffect(() => {
     if (!order.token) return;
@@ -57,7 +59,7 @@ function HistoryRow({
       <div className="flex shrink-0 items-center gap-2">
         {status && <StatusPill status={status} size="sm" />}
         <button onClick={onRetrack} className="rounded-full bg-brand-soft px-3 py-1.5 text-[12px] font-bold text-brand">
-          Track again
+          {t('cst_track_again')}
         </button>
       </div>
     </div>
@@ -94,7 +96,8 @@ function TableBadge({ n }: { n: number }) {
   );
 }
 
-export default function TablePage({ params }: { params: { slug: string; id: string } }) {
+function TableContent({ params }: { params: { slug: string; id: string } }) {
+  const t = useT();
   const tenant = useTenant();
   const tableNum = parseInt(params.id, 10);
   const [table, setTable] = useState<DiningTable | null>(null);
@@ -193,9 +196,9 @@ export default function TablePage({ params }: { params: { slug: string; id: stri
 
       <main className="mx-auto max-w-5xl px-4 pt-6 sm:px-6">
         {loading ? (
-          <Empty title="Loading menu…" />
+          <Empty title={t('cst_loading_menu')} />
         ) : !table ? (
-          <Empty title="Table not found" sub="This QR code may be for a table that no longer exists. Ask your waiter for help." />
+          <Empty title={t('cst_table_not_found')} sub={t('cst_table_not_found_sub')} />
         ) : (
           <>
             {placed.length > 0 && (
@@ -215,8 +218,8 @@ export default function TablePage({ params }: { params: { slug: string; id: stri
             {history.length > 0 && (
               <details className="glass mb-6 !rounded-[18px] px-4 py-3">
                 <summary className="cursor-pointer list-none font-display text-[13.5px] font-extrabold text-ink">
-                  🕘 Past orders ({history.length})
-                  <span className="ml-1.5 font-sans text-[11.5px] font-bold text-muted">— tap to expand</span>
+                  {t('cst_past_orders', { count: history.length })}
+                  <span className="ml-1.5 font-sans text-[11.5px] font-bold text-muted">{t('cst_tap_to_expand')}</span>
                 </summary>
                 <div className="mt-1">
                   {history.map((o) => (
@@ -227,7 +230,7 @@ export default function TablePage({ params }: { params: { slug: string; id: stri
             )}
             <Card className="mb-5 p-4">
               <label className="mb-1.5 block text-[13px] font-bold text-body">
-                Your name <span className="font-semibold text-muted">(optional — helps the waiter find you)</span>
+                {t('cst_your_name')} <span className="font-semibold text-muted">({t('cst_your_name_hint')})</span>
               </label>
               <input
                 value={name}
@@ -241,5 +244,15 @@ export default function TablePage({ params }: { params: { slug: string; id: stri
         )}
       </main>
     </div>
+  );
+}
+
+export default function TablePage({ params }: { params: { slug: string; id: string } }) {
+  const tenant = useTenant();
+  const lang = normalizeLang(tenant.theme_config?.language);
+  return (
+    <LangProvider value={lang}>
+      <TableContent params={params} />
+    </LangProvider>
   );
 }

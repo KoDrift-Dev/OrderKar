@@ -5,6 +5,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { LangProvider, normalizeLang, useT, type Lang } from '@/lib/i18n';
 import type { DiningTable, OrderWithItems, WasteLog } from '@/lib/types';
 import { fmtPKR, fmtAgo } from '@/lib/format';
 import StatusPill from './StatusPill';
@@ -28,6 +29,7 @@ export default function ManagerApp({
   slug: string;
   restaurantName: string;
 }) {
+  const t = useT();
   const [orders, setOrders] = useState<OrderWithItems[]>([]);
   const [payFor, setPayFor] = useState<string | null>(null);
   const [payMethod, setPayMethod] = useState('cash');
@@ -52,6 +54,7 @@ export default function ManagerApp({
   const [wBusy, setWBusy] = useState(false);
   const [view, setView] = useState<'dash' | 'pos'>('dash');
   const [posEnabled, setPosEnabled] = useState(true);
+  const [lang, setLang] = useState<Lang>('roman');
   const [bizInfo, setBizInfo] = useState<{ name: string; address?: string; phone?: string; email?: string }>({ name: restaurantName });
 
   const load = async () => {
@@ -75,6 +78,7 @@ export default function ManagerApp({
     if (r) {
       const tc = (r.theme_config ?? {}) as Record<string, unknown>;
       setPosEnabled(tc.pos_enabled !== false);
+      setLang(normalizeLang(tc.language));
       setBizInfo({
         name: r.name ?? restaurantName,
         address: typeof tc.address === 'string' ? tc.address : undefined,
@@ -110,6 +114,13 @@ export default function ManagerApp({
     };
   }, [orders]);
 
+  const orderTypeLabel = (ot: string): string => {
+    if (ot === 'dine_in') return t('mgr_otype_dinein');
+    if (ot === 'takeaway') return t('mgr_otype_takeaway');
+    if (ot === 'delivery') return t('mgr_otype_delivery');
+    return ot;
+  };
+
   const logWaste = async (e: React.FormEvent) => {
     e.preventDefault();
     if (wBusy || !wForm.item.trim()) return;
@@ -128,13 +139,14 @@ export default function ManagerApp({
   };
 
   return (
+    <LangProvider value={lang}>
     <div className="space-y-8">
-      <PageHeader title="Manager dashboard" sub="Today's pulse — live" />
+      <PageHeader title={t('mgr_title')} sub={t('mgr_sub')} />
 
       {posEnabled && (
         <Tabs
           tabs={[
-            { key: 'dash', label: '📊 Dashboard' },
+            { key: 'dash', label: t('mgr_tab_dashboard') },
             { key: 'pos', label: '🧾 POS' },
           ]}
           active={view}
@@ -155,26 +167,26 @@ export default function ManagerApp({
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi label="Revenue today" value={fmtPKR(stats.revenue)} />
-        <Kpi label="Orders today" value={String(stats.orders)} />
-        <Kpi label="Avg order" value={fmtPKR(stats.aov)} />
-        <Kpi label="Active now" value={String(stats.active)} />
+        <Kpi label={t('mgr_kpi_revenue')} value={fmtPKR(stats.revenue)} />
+        <Kpi label={t('mgr_kpi_orders')} value={String(stats.orders)} />
+        <Kpi label={t('mgr_kpi_aov')} value={fmtPKR(stats.aov)} />
+        <Kpi label={t('mgr_kpi_active')} value={String(stats.active)} />
       </div>
 
       {/* Orders feed + tables */}
       <div className="grid gap-6 lg:grid-cols-5">
         <div className="lg:col-span-3">
-          <SectionHead title="Today's orders" sub={`${orders.length} total`} />
+          <SectionHead title={t('mgr_orders_title')} sub={t('mgr_orders_sub', { count: orders.length })} />
           <div className="space-y-2.5">
             {orders.length === 0 ? (
-              <Empty title="No orders yet today" sub="Orders will stream in here live." />
+              <Empty title={t('mgr_orders_empty')} sub={t('mgr_orders_empty_sub')} />
             ) : (
               orders.slice(0, 25).map((o) => (
                 <Card key={o.id} className="p-4">
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <p className="truncate font-mono text-[15px] font-bold text-ink">
-                        #{o.order_number} · {o.tables ? `Table ${o.tables.table_number}` : o.order_type}
+                        #{o.order_number} · {o.tables ? t('mgr_table_no', { num: o.tables.table_number }) : orderTypeLabel(o.order_type)}
                       </p>
                       <p className="text-[12.5px] text-muted">
                         {o.order_items.reduce((s, i) => s + i.quantity, 0)} items · {fmtPKR(o.total_amount)} · {fmtAgo(o.created_at)}
@@ -197,18 +209,18 @@ export default function ManagerApp({
                           <option value="easypaisa">📱 EasyPaisa</option>
                         </select>
                         <button onClick={() => collectPayment(o.id)} className="btn-3d shrink-0 rounded-btn px-4 py-2 text-[13px] font-extrabold text-white">
-                          Paid ✓
+                          {t('mgr_mark_paid')}
                         </button>
                         <button onClick={() => setPayFor(null)} className="shrink-0 rounded-btn border border-line px-3 py-2 text-[13px] font-bold text-muted">✕</button>
                       </div>
                     ) : (
                       <button onClick={() => { setPayFor(o.id); setPayMethod('cash'); }} className="mt-3 w-full rounded-btn bg-ok/10 py-2 text-[12.5px] font-extrabold text-ok hover:bg-ok/20">
-                        Collect payment · {fmtPKR(o.total_amount)}
+                        {t('mgr_collect_payment', { total: fmtPKR(o.total_amount) })}
                       </button>
                     ))}
                   {o.status === 'ready' && o.payment_status === 'paid' && (
                     <button onClick={() => completeOrder(o.id)} className="mt-3 w-full rounded-btn bg-brand/10 py-2 text-[12.5px] font-extrabold text-brand hover:bg-brand/20">
-                      ✓ Complete order (handover done)
+                      {t('mgr_complete_order')}
                     </button>
                   )}
                 </Card>
@@ -218,41 +230,41 @@ export default function ManagerApp({
         </div>
 
         <div className="lg:col-span-2">
-          <SectionHead title="Tables" sub="Free · Seated (teal) · Bill (amber — payment lo)" />
+          <SectionHead title="Tables" sub={t('mgr_tables_legend')} />
           <div className="grid grid-cols-3 gap-2.5">
-            {tables.map((t) => (
-              <TableCard key={t.id} table={t} state={tableState(t.id, orders)} />
+            {tables.map((tb) => (
+              <TableCard key={tb.id} table={tb} state={tableState(tb.id, orders)} />
             ))}
           </div>
 
           <div className="mt-6">
-            <SectionHead title="Log waste" />
+            <SectionHead title={t('mgr_waste_title')} />
             <Card className="p-4">
               <form onSubmit={logWaste} className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
-                  <Label>Item</Label>
-                  <Input value={wForm.item} onChange={(e) => setWForm({ ...wForm, item: e.target.value })} placeholder="e.g. Chicken Karahi" required />
+                  <Label>{t('mgr_waste_item')}</Label>
+                  <Input value={wForm.item} onChange={(e) => setWForm({ ...wForm, item: e.target.value })} placeholder={t('mgr_waste_item_ph')} required />
                 </div>
                 <div>
-                  <Label>Qty</Label>
+                  <Label>{t('mgr_waste_qty')}</Label>
                   <Input type="number" min="0" step="any" value={wForm.qty} onChange={(e) => setWForm({ ...wForm, qty: e.target.value })} />
                 </div>
                 <div>
-                  <Label>Est. cost (Rs)</Label>
+                  <Label>{t('mgr_waste_cost')}</Label>
                   <Input type="number" min="0" value={wForm.cost} onChange={(e) => setWForm({ ...wForm, cost: e.target.value })} placeholder="0" />
                 </div>
                 <div className="col-span-2">
-                  <Label>Reason</Label>
+                  <Label>{t('mgr_waste_reason')}</Label>
                   <Select value={wForm.reason} onChange={(e) => setWForm({ ...wForm, reason: e.target.value })}>
-                    <option value="spoilage">Spoilage</option>
-                    <option value="overprep">Over-prep</option>
-                    <option value="damaged">Damaged</option>
-                    <option value="theft">Theft</option>
-                    <option value="other">Other</option>
+                    <option value="spoilage">{t('mgr_waste_spoilage')}</option>
+                    <option value="overprep">{t('mgr_waste_overprep')}</option>
+                    <option value="damaged">{t('mgr_waste_damaged')}</option>
+                    <option value="theft">{t('mgr_waste_theft')}</option>
+                    <option value="other">{t('mgr_waste_other')}</option>
                   </Select>
                 </div>
                 <Btn type="submit" disabled={wBusy} className="col-span-2">
-                  {wBusy ? 'Logging…' : 'Log waste'}
+                  {wBusy ? t('mgr_waste_logging') : t('mgr_waste_log')}
                 </Btn>
               </form>
               {waste.length > 0 && (
@@ -274,5 +286,6 @@ export default function ManagerApp({
         </>
       )}
     </div>
+    </LangProvider>
   );
 }

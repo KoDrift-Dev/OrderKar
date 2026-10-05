@@ -10,6 +10,7 @@ import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
 import type { Review } from '@/lib/types';
 import { fmtAgo } from '@/lib/format';
 import { Btn, Card, Empty, Input, Textarea, SectionHead } from '@/components/ui';
+import { LangProvider, normalizeLang, useT, type Lang } from '@/lib/i18n';
 import ThemeToggle from '@/components/ThemeToggle';
 import Logo from '@/components/Logo';
 
@@ -34,8 +35,23 @@ function Stars({ value, onPick, size = 34 }: { value: number; onPick?: (n: numbe
   );
 }
 
-export default function FeedbackPage() {
+function useTenantLang(): Lang {
   const tenant = useTenant();
+  const tc = (tenant.theme_config ?? {}) as Record<string, unknown>;
+  return normalizeLang(tc.language);
+}
+
+export default function FeedbackPage() {
+  return (
+    <LangProvider value={useTenantLang()}>
+      <FeedbackInner />
+    </LangProvider>
+  );
+}
+
+function FeedbackInner() {
+  const tenant = useTenant();
+  const t = useT();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
@@ -79,7 +95,7 @@ export default function FeedbackPage() {
       setComment('');
       load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not submit review');
+      setError(err instanceof Error ? err.message : t('fb_err_submit'));
     } finally {
       setBusy(false);
     }
@@ -99,11 +115,11 @@ export default function FeedbackPage() {
 
       <main className="mx-auto max-w-3xl px-4 pb-16 sm:px-6">
         <div className="pt-6 text-center">
-          <h1 className="font-display text-3xl font-extrabold text-ink">How was your meal?</h1>
-          <p className="mt-2 text-muted">Your feedback helps {tenant.name} get better.</p>
+          <h1 className="font-display text-3xl font-extrabold text-ink">{t('fb_title')}</h1>
+          <p className="mt-2 text-muted">{t('fb_sub', { name: tenant.name })}</p>
           {reviews.length > 0 && (
             <p className="mt-3 font-mono text-lg font-bold text-ink">
-              ★ {avg.toFixed(1)} <span className="text-sm font-sans font-semibold text-muted">({reviews.length} reviews)</span>
+              ★ {avg.toFixed(1)} <span className="text-sm font-sans font-semibold text-muted">{t('fb_reviews_count', { n: reviews.length })}</span>
             </p>
           )}
         </div>
@@ -112,38 +128,38 @@ export default function FeedbackPage() {
           {done ? (
             <div className="py-6 text-center">
               <p className="text-5xl">🙏</p>
-              <h2 className="mt-4 font-display text-2xl font-extrabold text-ink">Shukriya!</h2>
-              <p className="mt-2 text-muted">Your review has been recorded.</p>
+              <h2 className="mt-4 font-display text-2xl font-extrabold text-ink">{t('fb_thanks')}</h2>
+              <p className="mt-2 text-muted">{t('fb_recorded')}</p>
               <Btn variant="secondary" className="mt-5" onClick={() => setDone(false)}>
-                Leave another
+                {t('fb_another')}
               </Btn>
             </div>
           ) : (
             <form onSubmit={submit} className="space-y-5">
               <div>
-                <p className="mb-2 text-[13px] font-bold text-body">Your rating</p>
+                <p className="mb-2 text-[13px] font-bold text-body">{t('fb_rating')}</p>
                 <Stars value={rating} onPick={setRating} />
               </div>
               <div>
-                <p className="mb-1.5 text-[13px] font-bold text-body">Name (optional)</p>
+                <p className="mb-1.5 text-[13px] font-bold text-body">{t('fb_name')}</p>
                 <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Ahmed" />
               </div>
               <div>
-                <p className="mb-1.5 text-[13px] font-bold text-body">Comment (optional)</p>
-                <Textarea rows={3} value={comment} onChange={(e) => setComment(e.target.value)} placeholder="What did you love? What could be better?" />
+                <p className="mb-1.5 text-[13px] font-bold text-body">{t('fb_comment')}</p>
+                <Textarea rows={3} value={comment} onChange={(e) => setComment(e.target.value)} placeholder={t('fb_comment_ph')} />
               </div>
               {error && <p className="text-sm font-bold text-danger">{error}</p>}
               <Btn type="submit" size="lg" className="w-full" disabled={busy}>
-                {busy ? 'Submitting…' : 'Submit review'}
+                {busy ? t('fb_submitting') : t('fb_submit')}
               </Btn>
             </form>
           )}
         </Card>
 
         <div className="mt-10">
-          <SectionHead title="Recent reviews" sub={`${reviews.length} shown`} />
+          <SectionHead title={t('fb_recent')} sub={t('fb_shown', { n: reviews.length })} />
           {reviews.length === 0 ? (
-            <Empty title="No reviews yet" sub="Be the first to review!" />
+            <Empty title={t('fb_no_reviews')} sub={t('fb_no_reviews_sub')} />
           ) : (
             <div className="space-y-3">
               {reviews.map((r) => (

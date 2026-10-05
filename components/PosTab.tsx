@@ -5,6 +5,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useT, useLang } from '@/lib/i18n';
 import { categoryEmoji } from '@/lib/food-images';
 import { fmtPKR } from '@/lib/format';
 import { Btn, Card, SectionHead, Input, Label, Empty } from './ui';
@@ -14,12 +15,6 @@ import { tableState } from './TableCard';
 import type { DiningTable, MenuCategory, MenuItem, Order } from '@/lib/types';
 
 type PosOrderType = 'dine_in' | 'takeaway' | 'delivery';
-
-const TYPE_TABS: { id: PosOrderType; label: string }[] = [
-  { id: 'dine_in', label: '🍽️ Dine-in' },
-  { id: 'takeaway', label: '🛍️ Takeaway' },
-  { id: 'delivery', label: '🛵 Delivery' },
-];
 
 const PAY_METHODS = [
   { id: 'cash', label: '💵 Cash' },
@@ -46,6 +41,8 @@ export default function PosTab({
   orders: Order[];
   onOrderPlaced: () => void;
 }) {
+  const t = useT();
+  const lang = useLang();
   const [cats, setCats] = useState<MenuCategory[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
   const [query, setQuery] = useState('');
@@ -65,6 +62,12 @@ export default function PosTab({
   const [error, setError] = useState('');
   const [receipt, setReceipt] = useState<ReceiptData | null>(null);
   const guard = useGuard();
+
+  const typeTabs: { id: PosOrderType; label: string }[] = [
+    { id: 'dine_in', label: t('pos_type_dinein') },
+    { id: 'takeaway', label: t('pos_type_takeaway') },
+    { id: 'delivery', label: t('pos_type_delivery') },
+  ];
 
   useEffect(() => {
     const supabase = createClient();
@@ -123,19 +126,19 @@ export default function PosTab({
     guard(async () => {
       setError('');
       if (cart.length === 0) {
-        setError('Cart khaali hai — pehle items add karo.');
+        setError(t('pos_err_cart_empty'));
         return;
       }
       if (orderType === 'dine_in' && !tableId) {
-        setError('Table select karo.');
+        setError(t('pos_err_no_table'));
         return;
       }
       if (orderType === 'delivery' && (!customerPhone.trim() || !address.trim())) {
-        setError('Delivery ke liye phone aur address zaroori hai.');
+        setError(t('pos_err_delivery_info'));
         return;
       }
       if (payMethod === 'cash' && (isNaN(tenderedNum) || tenderedNum < total)) {
-        setError(`Cash kam hai — kam az kam ${fmtPKR(total)} lo.`);
+        setError(t('pos_err_cash_short', { total: fmtPKR(total) }));
         return;
       }
       setPlacing(true);
@@ -170,6 +173,7 @@ export default function PosTab({
 
         const table = tables.find((t) => t.id === tableId);
         setReceipt({
+          lang,
           restaurant,
           orderNo: ord?.order_number ?? 0,
           date: ord?.created_at ? new Date(ord.created_at) : new Date(),
@@ -185,7 +189,7 @@ export default function PosTab({
         });
         onOrderPlaced();
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Order failed.');
+        setError(e instanceof Error ? e.message : t('pos_err_failed'));
       } finally {
         setPlacing(false);
       }
@@ -195,22 +199,22 @@ export default function PosTab({
 
   return (
     <div>
-      <SectionHead title="POS" sub="Counter sale — tez billing, foran receipt." />
+      <SectionHead title="POS" sub={t('pos_subtitle')} />
 
       <div className="grid gap-5 lg:grid-cols-3">
         {/* ── left: menu ── */}
         <div className="lg:col-span-2">
           {/* order type */}
           <div className="mb-3 flex gap-1.5">
-            {TYPE_TABS.map((t) => (
+            {typeTabs.map((tb) => (
               <button
-                key={t.id}
-                onClick={() => setOrderType(t.id)}
+                key={tb.id}
+                onClick={() => setOrderType(tb.id)}
                 className={`flex-1 rounded-btn px-3 py-2.5 text-[13px] font-extrabold transition-all ${
-                  orderType === t.id ? 'btn-3d text-white' : 'glass !rounded-btn text-muted hover:text-ink'
+                  orderType === tb.id ? 'btn-3d text-white' : 'glass !rounded-btn text-muted hover:text-ink'
                 }`}
               >
-                {t.label}
+                {tb.label}
               </button>
             ))}
           </div>
@@ -218,40 +222,40 @@ export default function PosTab({
           {/* table select / customer fields */}
           {orderType === 'dine_in' ? (
             <div className="mb-3 flex flex-wrap gap-1.5">
-              {activeTables.map((t) => {
-                const st = tableState(t.id, orders);
+              {activeTables.map((tb) => {
+                const st = tableState(tb.id, orders);
                 return (
                   <button
-                    key={t.id}
-                    onClick={() => setTableId(t.id)}
+                    key={tb.id}
+                    onClick={() => setTableId(tb.id)}
                     className={`rounded-btn px-3.5 py-2 text-[13px] font-extrabold transition-all ${
-                      tableId === t.id
+                      tableId === tb.id
                         ? 'btn-3d text-white'
                         : st === 'free'
                           ? 'glass !rounded-btn text-ink'
                           : 'cursor-not-allowed rounded-btn bg-soft px-3.5 py-2 text-[13px] font-extrabold text-muted opacity-60'
                     }`}
                     disabled={st !== 'free'}
-                    title={st !== 'free' ? `${st} — koi free table lo` : `Table ${t.table_number}`}
+                    title={st !== 'free' ? t('pos_table_busy', { status: st }) : t('pos_table_no', { num: tb.table_number })}
                   >
-                    T{t.table_number}
+                    T{tb.table_number}
                   </button>
                 );
               })}
-              {activeTables.length === 0 && <p className="text-[13px] text-muted">Koi active table nahi.</p>}
+              {activeTables.length === 0 && <p className="text-[13px] text-muted">{t('pos_no_tables')}</p>}
             </div>
           ) : (
             <div className="mb-3 grid gap-2 sm:grid-cols-2">
-              <Input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Customer name" maxLength={60} />
-              <Input value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder="Phone (delivery ke liye zaroori)" maxLength={20} />
+              <Input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder={t('pos_ph_name')} maxLength={60} />
+              <Input value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder={t('pos_ph_phone')} maxLength={20} />
               {orderType === 'delivery' && (
-                <Input className="sm:col-span-2" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Delivery address" maxLength={160} />
+                <Input className="sm:col-span-2" value={address} onChange={(e) => setAddress(e.target.value)} placeholder={t('pos_ph_address')} maxLength={160} />
               )}
             </div>
           )}
 
           {/* search + categories */}
-          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search items…" className="mb-2" />
+          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('pos_ph_search')} className="mb-2" />
           <div className="mb-3 flex gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {cats.map((c) => (
               <button
@@ -269,7 +273,7 @@ export default function PosTab({
 
           {/* fast item tiles */}
           {visibleItems.length === 0 ? (
-            <Empty title="Koi item nahi" sub="Search ya category badlo." />
+            <Empty title={t('pos_empty_title')} sub={t('pos_empty_sub')} />
           ) : (
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
               {visibleItems.map((item) => {
@@ -302,7 +306,7 @@ export default function PosTab({
             <h3 className="font-display text-[16px] font-extrabold text-ink">🧾 Current sale</h3>
             <div className="mt-3 max-h-[38vh] space-y-2 overflow-y-auto">
               {cart.length === 0 ? (
-                <p className="py-6 text-center text-[13px] text-muted">Items tap karo — yahan ayenge.</p>
+                <p className="py-6 text-center text-[13px] text-muted">{t('pos_cart_empty')}</p>
               ) : (
                 cart.map((l) => (
                   <div key={l.item.id} className="flex items-center gap-2">
@@ -349,8 +353,8 @@ export default function PosTab({
                 <Input type="number" min={0} value={tendered} onChange={(e) => setTendered(e.target.value)} placeholder={String(Math.ceil(total))} />
                 {change != null && (
                   <p className={`mt-1.5 text-[13px] font-extrabold ${change >= 0 ? 'text-ok' : 'text-danger'}`}>
-                    Change: {fmtPKR(Math.max(0, change))}
-                    {change < 0 && ' — cash kam hai!'}
+                    {t('pos_change', { amount: fmtPKR(Math.max(0, change)) })}
+                    {change < 0 && t('pos_cash_short')}
                   </p>
                 )}
               </div>
@@ -359,7 +363,7 @@ export default function PosTab({
             {error && <p className="mt-3 rounded-btn bg-danger/10 p-2.5 text-[12.5px] font-bold text-danger">{error}</p>}
 
             <Btn className="mt-4 w-full" size="lg" onClick={charge} disabled={placing || cart.length === 0}>
-              {placing ? 'Processing…' : `Charge ${fmtPKR(total)}`}
+              {placing ? t('pos_processing') : t('pos_charge', { total: fmtPKR(total) })}
             </Btn>
           </Card>
         </div>
@@ -370,7 +374,7 @@ export default function PosTab({
         <div className="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
           <div className="absolute inset-0 bg-ink/45 backdrop-blur-[2px]" />
           <div className="relative mx-auto my-6 w-[calc(100%-2rem)] max-w-md rounded-[24px] bg-[var(--c-surface-solid)] p-5 shadow-2xl">
-            <h2 className="mb-4 text-center font-display text-[17px] font-extrabold text-ink">✅ Payment done!</h2>
+            <h2 className="mb-4 text-center font-display text-[17px] font-extrabold text-ink">{t('pos_receipt_done')}</h2>
             <ReceiptPreview data={receipt} />
             <div className="mt-4 grid grid-cols-2 gap-2">
               <Btn variant="secondary" onClick={() => printReceipt(receipt, 'browser')}>
@@ -381,7 +385,7 @@ export default function PosTab({
               </Btn>
             </div>
             <Btn className="mt-2 w-full" onClick={reset}>
-              New sale
+              {t('pos_new_sale')}
             </Btn>
           </div>
         </div>

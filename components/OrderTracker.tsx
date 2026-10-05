@@ -6,19 +6,16 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useT } from '@/lib/i18n';
 import type { OrderStatus } from '@/lib/types';
 import { Card } from './ui';
 import StatusPill from './StatusPill';
 
-const STEPS: { key: OrderStatus; label: string; icon: string }[] = [
-  { key: 'pending', label: 'Received', icon: '🧾' },
-  { key: 'preparing', label: 'Preparing', icon: '👨‍🍳' },
-  { key: 'ready', label: 'Ready', icon: '🔔' },
-];
+const STEP_KEYS: OrderStatus[] = ['pending', 'preparing', 'ready'];
 
 function stepIndex(s: OrderStatus): number {
   if (s === 'completed') return 3;
-  return STEPS.findIndex((x) => x.key === s);
+  return STEP_KEYS.indexOf(s);
 }
 
 export default function OrderTracker({
@@ -34,8 +31,15 @@ export default function OrderTracker({
   tableNumber?: number;
   onDismiss?: () => void;
 }) {
+  const t = useT();
   const [status, setStatus] = useState<OrderStatus>('pending');
   const [notFound, setNotFound] = useState(false);
+
+  const steps: { key: OrderStatus; label: string; icon: string }[] = [
+    { key: 'pending', label: t('trk_step_pending'), icon: '🧾' },
+    { key: 'preparing', label: t('trk_step_preparing'), icon: '👨‍🍳' },
+    { key: 'ready', label: t('trk_step_ready'), icon: '🔔' },
+  ];
 
   useEffect(() => {
     if (!trackingToken) {
@@ -77,9 +81,7 @@ export default function OrderTracker({
             ✕
           </button>
         )}
-        <p className="text-[13.5px] font-bold text-muted">
-          Order tracking unavailable for this order (placed before a security update). Naya order place karo to live tracking milegi.
-        </p>
+        <p className="text-[13.5px] font-bold text-muted">{t('trk_unavailable')}</p>
       </Card>
     );
   }
@@ -107,8 +109,8 @@ export default function OrderTracker({
       </div>
       <div className="mt-5">
         <div className="flex items-center">
-          {STEPS.map((s, i) => (
-            <div key={s.key} className={`flex items-center ${i < STEPS.length - 1 ? 'flex-1' : ''}`}>
+          {steps.map((s, i) => (
+            <div key={s.key} className={`flex items-center ${i < steps.length - 1 ? 'flex-1' : ''}`}>
               <div className="flex flex-col items-center gap-1.5">
                 <div
                   className={`flex h-10 w-10 items-center justify-center rounded-full border-2 text-[19px] transition-all ${
@@ -123,7 +125,7 @@ export default function OrderTracker({
                 </div>
                 <span className={`text-[12px] font-bold ${i <= idx ? 'text-ink' : 'text-muted'}`}>{s.label}</span>
               </div>
-              {i < STEPS.length - 1 && (
+              {i < steps.length - 1 && (
                 <div className={`mx-2 mb-6 h-1 flex-1 rounded-full ${i < idx ? 'bg-ok' : 'bg-soft'}`} />
               )}
             </div>
@@ -131,12 +133,12 @@ export default function OrderTracker({
         </div>
         {status === 'ready' && (
           <p className="mt-4 rounded-btn bg-ok/10 p-3 text-center text-sm font-bold text-ok">
-            Your order is ready — it&apos;s on its way to your table! 🎉
+            {t('trk_ready_msg')}
           </p>
         )}
         {status === 'completed' && (
           <p className="mt-4 rounded-btn bg-teal/10 p-3 text-center text-sm font-bold text-teal">
-            Enjoy your meal! Don&apos;t forget to leave a review. ⭐
+            {t('trk_completed_msg')}
           </p>
         )}
       </div>

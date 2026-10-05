@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { OrderStatus, OrderWithItems } from '@/lib/types';
 import { fmtElapsed, fmtPKR } from '@/lib/format';
+import { LangProvider, normalizeLang, useT, type Lang } from '@/lib/i18n';
 import StatusPill from './StatusPill';
 import { Card, Empty, PageHeader, Tabs } from './ui';
 
@@ -57,11 +58,18 @@ async function cancelOrder(orderId: string, reason: string) {
   await supabase.from('orders').update({ status: 'cancelled', cancel_reason: reason }).eq('id', orderId);
 }
 
-const CANCEL_REASONS = ['customer request', 'kitchen error', 'long wait', 'item unavailable', 'duplicate order'];
-
 function OrderCard({ order, flash }: { order: OrderWithItems; flash: boolean }) {
+  const t = useT();
   const [cancelling, setCancelling] = useState(false);
-  const [reason, setReason] = useState(CANCEL_REASONS[0]);
+  // DB stores the raw english value (cancel_reason); only the label is localized.
+  const reasonOpts = [
+    { value: 'customer request', label: t('ktn_reason_customer') },
+    { value: 'kitchen error', label: t('ktn_reason_kitchen') },
+    { value: 'long wait', label: t('ktn_reason_wait') },
+    { value: 'item unavailable', label: t('ktn_reason_unavailable') },
+    { value: 'duplicate order', label: t('ktn_reason_duplicate') },
+  ];
+  const [reason, setReason] = useState(reasonOpts[0].value);
   const now = useClock();
   const elapsedMs = now.getTime() - new Date(order.created_at).getTime();
   const late = elapsedMs > 20 * 60000 && order.status !== 'ready';
@@ -80,7 +88,7 @@ function OrderCard({ order, flash }: { order: OrderWithItems; flash: boolean }) 
           <p className={`mt-1.5 font-mono text-xl font-bold ${late ? 'animate-pulse text-danger' : 'text-body'}`}>
             {fmtElapsed(elapsedMs)}
           </p>
-          {late && <p className="text-[11px] font-bold uppercase tracking-wide text-danger">Running late</p>}
+          {late && <p className="text-[11px] font-bold uppercase tracking-wide text-danger">{t('ktn_late')}</p>}
         </div>
       </div>
 
@@ -109,17 +117,17 @@ function OrderCard({ order, flash }: { order: OrderWithItems; flash: boolean }) 
       <div className="mt-4 flex gap-2">
         {order.status === 'pending' && (
           <button onClick={() => setStatus(order.id, 'preparing')} className="btn-3d flex-1 rounded-btn py-3 font-display text-[15px] font-bold text-white">
-            Start preparing
+            {t('ktn_start_preparing')}
           </button>
         )}
         {order.status === 'preparing' && (
           <button onClick={() => setStatus(order.id, 'ready')} className="flex-1 rounded-btn bg-gradient-to-br from-teal to-emerald-600 py-3 font-display text-[15px] font-bold text-white shadow-lift transition-all hover:-translate-y-px active:translate-y-0">
-            Mark ready
+            {t('ktn_mark_ready')}
           </button>
         )}
         {order.status === 'ready' && (
           <p className="flex-1 rounded-btn bg-ok/10 py-3 text-center font-display text-[15px] font-bold text-ok">
-            Waiting for pickup
+            {t('ktn_waiting_pickup')}
           </p>
         )}
       </div>
@@ -127,12 +135,12 @@ function OrderCard({ order, flash }: { order: OrderWithItems; flash: boolean }) 
         (cancelling ? (
           <div className="mt-2 flex gap-2">
             <select value={reason} onChange={(e) => setReason(e.target.value)} className="min-w-0 flex-1 rounded-btn border border-line bg-[var(--c-surface-solid)] px-3 py-2 text-[13px] font-bold text-ink">
-              {CANCEL_REASONS.map((r) => (
-                <option key={r} value={r}>{r}</option>
+              {reasonOpts.map((r) => (
+                <option key={r.value} value={r.value}>{r.label}</option>
               ))}
             </select>
             <button onClick={() => cancelOrder(order.id, reason)} className="shrink-0 rounded-btn bg-danger px-4 py-2 text-[13px] font-extrabold text-white">
-              Confirm
+              {t('ktn_confirm')}
             </button>
             <button onClick={() => setCancelling(false)} className="shrink-0 rounded-btn border border-line px-3 py-2 text-[13px] font-bold text-muted">
               ✕
@@ -140,14 +148,15 @@ function OrderCard({ order, flash }: { order: OrderWithItems; flash: boolean }) 
           </div>
         ) : (
           <button onClick={() => setCancelling(true)} className="mt-2 w-full rounded-btn py-2 text-[12.5px] font-bold text-danger/80 hover:bg-danger/10 hover:text-danger">
-            Cancel order
+            {t('ktn_cancel_order')}
           </button>
         ))}
     </Card>
   );
 }
 
-export default function KitchenApp({ restaurantId }: { restaurantId: string }) {
+function KitchenAppInner({ restaurantId }: { restaurantId: string }) {
+  const t = useT();
   const [orders, setOrders] = useState<OrderWithItems[]>([]);
   const [filter, setFilter] = useState<Filter>('all');
   const [flashIds, setFlashIds] = useState<Set<string>>(new Set());
@@ -215,7 +224,7 @@ export default function KitchenApp({ restaurantId }: { restaurantId: string }) {
     <div>
       <PageHeader
         title="Kitchen display"
-        sub="Live order queue — updates in realtime"
+        sub={t('ktn_sub')}
         right={
           <p className="font-mono text-xl font-bold text-ink">
             {now.toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
@@ -227,15 +236,15 @@ export default function KitchenApp({ restaurantId }: { restaurantId: string }) {
           active={filter}
           onChange={setFilter}
           tabs={[
-            { key: 'all', label: `All (${counts.all})` },
-            { key: 'pending', label: `New (${counts.pending})` },
-            { key: 'preparing', label: `Preparing (${counts.preparing})` },
-            { key: 'ready', label: `Ready (${counts.ready})` },
+            { key: 'all', label: t('ktn_tab_all', { n: counts.all }) },
+            { key: 'pending', label: t('ktn_tab_new', { n: counts.pending }) },
+            { key: 'preparing', label: t('ktn_tab_preparing', { n: counts.preparing }) },
+            { key: 'ready', label: t('ktn_tab_ready', { n: counts.ready }) },
           ]}
         />
       </div>
       {visible.length === 0 ? (
-        <Empty title="All clear 🎉" sub="New orders will appear here automatically." />
+        <Empty title={t('ktn_empty_title')} sub={t('ktn_empty_sub')} />
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {visible.map((o) => (
@@ -244,5 +253,33 @@ export default function KitchenApp({ restaurantId }: { restaurantId: string }) {
         </div>
       )}
     </div>
+  );
+}
+
+export default function KitchenApp({ restaurantId }: { restaurantId: string }) {
+  const [lang, setLang] = useState<Lang>('roman');
+
+  useEffect(() => {
+    let live = true;
+    (async () => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from('restaurants')
+        .select('theme_config')
+        .eq('id', restaurantId)
+        .single();
+      if (live && data) {
+        setLang(normalizeLang((data.theme_config as { language?: unknown } | null)?.language));
+      }
+    })();
+    return () => {
+      live = false;
+    };
+  }, [restaurantId]);
+
+  return (
+    <LangProvider value={lang}>
+      <KitchenAppInner restaurantId={restaurantId} />
+    </LangProvider>
   );
 }

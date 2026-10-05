@@ -5,6 +5,8 @@
 //  - "thermal": 80mm thermal-printer layout (monospace)
 // Printing opens a standalone window so page print-CSS can't interfere.
 
+import { tr, useT, type Lang } from '@/lib/i18n';
+
 export interface ReceiptItem {
   name: string;
   qty: number;
@@ -12,6 +14,7 @@ export interface ReceiptItem {
 }
 
 export interface ReceiptData {
+  lang: Lang;
   restaurant: { name: string; address?: string; phone?: string; email?: string };
   orderNo: number;
   date: Date;
@@ -27,11 +30,11 @@ export interface ReceiptData {
   fbrInvoiceNo?: string | null; // Phase 2 — FBR integration
 }
 
-const TYPE_LABEL: Record<ReceiptData['orderType'], string> = {
-  dine_in: 'Dine-in',
-  takeaway: 'Takeaway',
-  delivery: 'Delivery',
-};
+function typeLabel(lang: Lang, orderType: ReceiptData['orderType']): string {
+  if (orderType === 'dine_in') return tr(lang, 'rct_type_dinein');
+  if (orderType === 'takeaway') return tr(lang, 'rct_type_takeaway');
+  return tr(lang, 'rct_type_delivery');
+}
 
 const PAY_LABEL: Record<string, string> = {
   cash: 'Cash',
@@ -62,6 +65,7 @@ function dots(left: string, right: string, width: number): string {
 }
 
 function buildThermal(d: ReceiptData): string {
+  const lang = d.lang;
   const W = 42;
   const L: string[] = [];
   const c = (t: string) => L.push(t.padStart(Math.floor((W + t.length) / 2)).slice(0, W));
@@ -74,35 +78,37 @@ function buildThermal(d: ReceiptData): string {
   if (d.restaurant.address) c(d.restaurant.address);
   if (d.restaurant.phone) c(d.restaurant.phone);
   sep();
-  line(dots(`Order #${d.orderNo}`, fmtDate(d.date), W));
+  line(dots(`${tr(lang, 'rct_order')} #${d.orderNo}`, fmtDate(d.date), W));
   line(
     dots(
-      d.orderType === 'dine_in' ? `Dine-in${d.tableLabel ? ' · ' + d.tableLabel : ''}` : TYPE_LABEL[d.orderType],
-      d.cashier ? `Cashier: ${d.cashier}` : '',
+      d.orderType === 'dine_in' && d.tableLabel
+        ? `${typeLabel(lang, d.orderType)} · ${d.tableLabel}`
+        : typeLabel(lang, d.orderType),
+      d.cashier ? tr(lang, 'rct_cashier', { name: d.cashier }) : '',
       W,
     ),
   );
-  if (d.customerName) line(`Customer: ${d.customerName}`);
-  if (d.customerPhone) line(`Phone: ${d.customerPhone}`);
-  if (d.deliveryAddress) line(`Addr: ${d.deliveryAddress}`);
+  if (d.customerName) line(tr(lang, 'rct_customer', { name: d.customerName }));
+  if (d.customerPhone) line(tr(lang, 'rct_phone', { phone: d.customerPhone }));
+  if (d.deliveryAddress) line(tr(lang, 'rct_address', { addr: d.deliveryAddress }));
   sep();
   for (const i of d.items) {
     line(`${i.qty}x ${i.name}`.slice(0, W));
     line(dots('', pkr(i.qty * i.price), W));
   }
   sep();
-  line(dots('TOTAL', pkr(total), W));
-  line(dots('Payment', PAY_LABEL[d.paymentMethod] ?? d.paymentMethod, W));
+  line(dots(tr(lang, 'rct_total'), pkr(total), W));
+  line(dots(tr(lang, 'rct_payment'), PAY_LABEL[d.paymentMethod] ?? d.paymentMethod, W));
   if (d.tendered != null) {
-    line(dots('Tendered', pkr(d.tendered), W));
-    line(dots('Change', pkr(change ?? 0), W));
+    line(dots(tr(lang, 'rct_tendered'), pkr(d.tendered), W));
+    line(dots(tr(lang, 'rct_change'), pkr(change ?? 0), W));
   }
   if (d.fbrInvoiceNo) {
     sep();
-    line(dots('FBR Invoice', d.fbrInvoiceNo, W));
+    line(dots(tr(lang, 'rct_fbr_invoice'), d.fbrInvoiceNo, W));
   }
   sep();
-  c('Thank you! Visit again.');
+  c(tr(lang, 'rct_thanks'));
 
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Receipt #${d.orderNo}</title>
 <style>
@@ -115,6 +121,7 @@ pre { margin: 0; white-space: pre-wrap; word-wrap: break-word; }
 }
 
 function buildBrowser(d: ReceiptData): string {
+  const lang = d.lang;
   const total = d.items.reduce((s, i) => s + i.qty * i.price, 0);
   const change = d.tendered != null ? d.tendered - total : null;
   const rows = d.items
@@ -122,6 +129,10 @@ function buildBrowser(d: ReceiptData): string {
       (i) => `<tr><td>${esc(i.name)}<span class="qty">× ${i.qty}</span></td><td class="r">${pkr(i.qty * i.price)}</td></tr>`,
     )
     .join('');
+  const typeLine =
+    d.orderType === 'dine_in' && d.tableLabel
+      ? `${esc(typeLabel(lang, d.orderType))} · ${esc(d.tableLabel)}`
+      : esc(typeLabel(lang, d.orderType));
 
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Receipt #${d.orderNo}</title>
 <style>
@@ -145,20 +156,20 @@ td.r { text-align: right; white-space: nowrap; font-variant-numeric: tabular-num
 ${d.restaurant.address ? `<p class="addr">${esc(d.restaurant.address)}</p>` : ''}
 ${d.restaurant.phone ? `<p class="addr">${esc(d.restaurant.phone)}</p>` : ''}
 <hr>
-<div class="meta"><span>Order <b>#${d.orderNo}</b></span><span>${fmtDate(d.date)}</span></div>
-<div class="meta"><span>${d.orderType === 'dine_in' ? `Dine-in${d.tableLabel ? ' · ' + esc(d.tableLabel) : ''}` : TYPE_LABEL[d.orderType]}</span>${d.cashier ? `<span>Cashier: ${esc(d.cashier)}</span>` : ''}</div>
-${d.customerName ? `<div class="meta"><span>Customer: ${esc(d.customerName)}</span></div>` : ''}
-${d.customerPhone ? `<div class="meta"><span>Phone: ${esc(d.customerPhone)}</span></div>` : ''}
-${d.deliveryAddress ? `<div class="meta"><span>Address: ${esc(d.deliveryAddress)}</span></div>` : ''}
+<div class="meta"><span>${esc(tr(lang, 'rct_order'))} <b>#${d.orderNo}</b></span><span>${fmtDate(d.date)}</span></div>
+<div class="meta"><span>${typeLine}</span>${d.cashier ? `<span>${esc(tr(lang, 'rct_cashier', { name: d.cashier }))}</span>` : ''}</div>
+${d.customerName ? `<div class="meta"><span>${esc(tr(lang, 'rct_customer', { name: d.customerName }))}</span></div>` : ''}
+${d.customerPhone ? `<div class="meta"><span>${esc(tr(lang, 'rct_phone', { phone: d.customerPhone }))}</span></div>` : ''}
+${d.deliveryAddress ? `<div class="meta"><span>${esc(tr(lang, 'rct_address', { addr: d.deliveryAddress }))}</span></div>` : ''}
 <hr>
 <table>${rows}</table>
 <hr>
-<div class="total"><span>TOTAL</span><span>${pkr(total)}</span></div>
-<div class="pay"><span>Payment</span><span>${esc(PAY_LABEL[d.paymentMethod] ?? d.paymentMethod)}</span></div>
-${d.tendered != null ? `<div class="pay"><span>Tendered</span><span>${pkr(d.tendered)}</span></div><div class="pay"><span>Change</span><span>${pkr(change ?? 0)}</span></div>` : ''}
-${d.fbrInvoiceNo ? `<div class="fbr">FBR Invoice: <b>${esc(d.fbrInvoiceNo)}</b></div>` : ''}
+<div class="total"><span>${esc(tr(lang, 'rct_total'))}</span><span>${pkr(total)}</span></div>
+<div class="pay"><span>${esc(tr(lang, 'rct_payment'))}</span><span>${esc(PAY_LABEL[d.paymentMethod] ?? d.paymentMethod)}</span></div>
+${d.tendered != null ? `<div class="pay"><span>${esc(tr(lang, 'rct_tendered'))}</span><span>${pkr(d.tendered)}</span></div><div class="pay"><span>${esc(tr(lang, 'rct_change'))}</span><span>${pkr(change ?? 0)}</span></div>` : ''}
+${d.fbrInvoiceNo ? `<div class="fbr">${esc(tr(lang, 'rct_fbr_invoice'))}: <b>${esc(d.fbrInvoiceNo)}</b></div>` : ''}
 <hr>
-<p class="thanks">Thank you! Visit again.</p>
+<p class="thanks">${esc(tr(lang, 'rct_thanks'))}</p>
 </div>
 <script>window.onload = function(){ setTimeout(function(){ window.print(); }, 350); };</script>
 </body></html>`;
@@ -176,6 +187,7 @@ export function printReceipt(data: ReceiptData, format: 'browser' | 'thermal'): 
 
 /** On-screen receipt preview (modal body). */
 export function ReceiptPreview({ data }: { data: ReceiptData }) {
+  const t = useT();
   const total = data.items.reduce((s, i) => s + i.qty * i.price, 0);
   const change = data.tendered != null ? data.tendered - total : null;
   return (
@@ -186,15 +198,19 @@ export function ReceiptPreview({ data }: { data: ReceiptData }) {
       <div className="my-3 border-t border-dashed border-line" />
       <div className="flex justify-between text-[12.5px] text-muted">
         <span>
-          Order <b className="text-ink">#{data.orderNo}</b>
+          {t('rct_order')} <b className="text-ink">#{data.orderNo}</b>
         </span>
         <span>{fmtDate(data.date)}</span>
       </div>
       <div className="mt-1 flex justify-between text-[12.5px] text-muted">
-        <span>{data.orderType === 'dine_in' ? `Dine-in${data.tableLabel ? ' · ' + data.tableLabel : ''}` : TYPE_LABEL[data.orderType]}</span>
-        {data.cashier && <span>Cashier: {data.cashier}</span>}
+        <span>
+          {data.orderType === 'dine_in' && data.tableLabel
+            ? `${typeLabel(data.lang, data.orderType)} · ${data.tableLabel}`
+            : typeLabel(data.lang, data.orderType)}
+        </span>
+        {data.cashier && <span>{t('rct_cashier', { name: data.cashier })}</span>}
       </div>
-      {data.customerName && <p className="mt-1 text-[12.5px] text-muted">Customer: {data.customerName}</p>}
+      {data.customerName && <p className="mt-1 text-[12.5px] text-muted">{t('rct_customer', { name: data.customerName })}</p>}
       <div className="my-3 border-t border-dashed border-line" />
       <div className="space-y-1.5">
         {data.items.map((i, k) => (
@@ -208,22 +224,22 @@ export function ReceiptPreview({ data }: { data: ReceiptData }) {
       </div>
       <div className="my-3 border-t border-dashed border-line" />
       <div className="flex justify-between font-display text-[17px] font-extrabold">
-        <span>TOTAL</span>
+        <span>{t('rct_total')}</span>
         <span className="font-mono">{pkr(total)}</span>
       </div>
       <div className="mt-1.5 space-y-1 text-[13px] text-muted">
         <div className="flex justify-between">
-          <span>Payment</span>
+          <span>{t('rct_payment')}</span>
           <span className="font-bold text-ink">{PAY_LABEL[data.paymentMethod] ?? data.paymentMethod}</span>
         </div>
         {data.tendered != null && (
           <>
             <div className="flex justify-between">
-              <span>Tendered</span>
+              <span>{t('rct_tendered')}</span>
               <span>{pkr(data.tendered)}</span>
             </div>
             <div className="flex justify-between">
-              <span>Change</span>
+              <span>{t('rct_change')}</span>
               <span className="font-bold text-ink">{pkr(change ?? 0)}</span>
             </div>
           </>
@@ -231,10 +247,10 @@ export function ReceiptPreview({ data }: { data: ReceiptData }) {
       </div>
       {data.fbrInvoiceNo && (
         <p className="mt-3 rounded-[10px] bg-soft p-2 text-center text-[12px] font-bold">
-          FBR Invoice: {data.fbrInvoiceNo}
+          {t('rct_fbr_invoice')}: {data.fbrInvoiceNo}
         </p>
       )}
-      <p className="mt-3 text-center text-[12px] text-muted">Thank you! Visit again.</p>
+      <p className="mt-3 text-center text-[12px] text-muted">{t('rct_thanks')}</p>
     </div>
   );
 }
