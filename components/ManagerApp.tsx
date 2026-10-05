@@ -171,7 +171,7 @@ export default function ManagerApp({
         </div>
 
         <div className="lg:col-span-2">
-          <SectionHead title="Tables" sub="Free · Seated (purple) · Bill (amber — payment lo)" />
+          <SectionHead title="Tables" sub="Free · Seated (teal) · Bill (amber — payment lo)" />
           <div className="grid grid-cols-3 gap-2.5">
             {tables.map((t) => (
               <TableCard key={t.id} table={t} state={tableState(t.id, orders)} />

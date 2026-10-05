@@ -7,9 +7,9 @@
 //   4 seats · Indoor
 //   [ Free | Seated | Bill ]
 //
-// Free   → neutral/default      (no active orders)
-// Seated → solid purple         (order in kitchen: pending/preparing)
-// Bill   → solid amber          (food ready — payment/bill pending)
+// Free   → default card                 (no active orders)
+// Seated → FULL solid teal              (order in kitchen: pending/preparing)
+// Bill   → FULL solid amber             (food ready — payment/bill pending)
 
 import type { DiningTable, Order } from '@/lib/types';
 import { Card } from './ui';
@@ -28,10 +28,44 @@ export function tableState(tableId: string, orders: OrderLike[]): TableState {
   return seated ? 'seated' : 'free';
 }
 
-const STATE_STYLE: Record<TableState, { card: string; pill: string; label: string }> = {
-  free: { card: '', pill: 'bg-soft text-muted', label: 'Free' },
-  seated: { card: '!border-brand/40 bg-brand/[0.07]', pill: 'bg-brand text-white shadow', label: 'Seated' },
-  bill: { card: '!border-amber/40 bg-amber/[0.08]', pill: 'bg-amber text-white shadow', label: 'Bill' },
+interface StateStyle {
+  card: string;
+  pill: string;
+  label: string;
+  title: string;
+  sub: string;
+  metaWrap: string;
+  metaText: string;
+}
+
+const STATE_STYLE: Record<TableState, StateStyle> = {
+  free: {
+    card: '',
+    pill: 'bg-soft text-muted',
+    label: 'Free',
+    title: 'text-ink',
+    sub: 'text-muted',
+    metaWrap: 'border-line',
+    metaText: 'text-ink',
+  },
+  seated: {
+    card: '!border-transparent bg-gradient-to-br from-[#0D9488] to-[#0b7c72] shadow-[0_10px_28px_-10px_rgba(13,148,136,0.55)]',
+    pill: 'bg-white/25 text-white',
+    label: 'Seated',
+    title: 'text-white',
+    sub: 'text-white/85',
+    metaWrap: 'border-white/25',
+    metaText: 'text-white',
+  },
+  bill: {
+    card: '!border-transparent bg-gradient-to-br from-[#F59E0B] to-[#d97706] shadow-[0_10px_28px_-10px_rgba(245,158,11,0.55)]',
+    pill: 'bg-white/25 text-white',
+    label: 'Bill',
+    title: 'text-white',
+    sub: 'text-white/85',
+    metaWrap: 'border-white/25',
+    metaText: 'text-white',
+  },
 };
 
 function sectionName(t: DiningTable): string {
@@ -57,14 +91,14 @@ export default function TableCard({
         onClick ? 'cursor-pointer hover:-translate-y-0.5' : ''
       }`}
     >
-      <p className="font-display text-[22px] font-extrabold leading-none text-ink">T{table.table_number}</p>
-      <p className="mt-1.5 text-[11.5px] font-semibold text-muted">
+      <p className={`font-display text-[22px] font-extrabold leading-none ${st.title}`}>T{table.table_number}</p>
+      <p className={`mt-1.5 text-[11.5px] font-semibold ${st.sub}`}>
         {table.capacity} seats · {sectionName(table)}
       </p>
       <div className="mt-2.5 flex justify-center">
         <span className={`rounded-full px-3.5 py-1 text-[11.5px] font-extrabold ${st.pill}`}>{st.label}</span>
       </div>
-      {meta && <div className="mt-2.5 border-t border-line pt-2.5">{meta}</div>}
+      {meta && <div className={`mt-2.5 border-t pt-2.5 ${st.metaWrap} ${st.metaText}`}>{meta}</div>}
     </Card>
   );
   return onClick ? (

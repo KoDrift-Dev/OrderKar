@@ -31,7 +31,7 @@ function TablePerformance({ orders, tables }: { orders: Order[]; tables: DiningT
 
   return (
     <div>
-      <SectionHead title="Table performance" sub="Free = default · Seated = purple · Bill = amber (payment lo)" />
+      <SectionHead title="Table performance" sub="Free = default · Seated = teal · Bill = amber (payment lo)" />
       {stats.length === 0 ? (
         <Empty title="No tables" />
       ) : (
@@ -43,8 +43,8 @@ function TablePerformance({ orders, tables }: { orders: Order[]; tables: DiningT
               state={s.state}
               meta={
                 <>
-                  <p className="font-mono text-[15px] font-extrabold text-ink">{fmtPKR(s.revenue)}</p>
-                  <p className="text-[12px] font-bold text-muted">{fmtNum(s.orders)} orders</p>
+                  <p className="font-mono text-[15px] font-extrabold">{fmtPKR(s.revenue)}</p>
+                  <p className="text-[12px] font-bold opacity-75">{fmtNum(s.orders)} orders</p>
                 </>
               }
             />
