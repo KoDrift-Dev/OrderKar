@@ -197,7 +197,7 @@ function LoginForm({ lang, onLang }: { lang: Lang; onLang: (l: Lang) => void }) 
 }
 
 export default function LoginPage() {
-  const [lang, setLang] = useState<Lang>('roman');
+  const [lang, setLang] = useState<Lang>('english');
 
   useEffect(() => {
     setLang(normalizeLang(localStorage.getItem(LANG_KEY)));

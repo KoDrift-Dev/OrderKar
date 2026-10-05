@@ -16,6 +16,29 @@ import { Card, Empty, PageHeader, Tabs } from './ui';
 type View = 'tables' | 'myorders';
 
 export default function WaiterApp({ restaurantId, waiterId }: { restaurantId: string; waiterId: string }) {
+  const [lang, setLang] = useState<Lang>('english');
+  useEffect(() => {
+    let live = true;
+    createClient()
+      .from('restaurants')
+      .select('theme_config')
+      .eq('id', restaurantId)
+      .single()
+      .then(({ data }) => {
+        if (live) setLang(normalizeLang((data?.theme_config as Record<string, unknown> | undefined)?.language));
+      });
+    return () => {
+      live = false;
+    };
+  }, [restaurantId]);
+  return (
+    <LangProvider value={lang}>
+      <WaiterAppInner restaurantId={restaurantId} waiterId={waiterId} />
+    </LangProvider>
+  );
+}
+
+function WaiterAppInner({ restaurantId, waiterId }: { restaurantId: string; waiterId: string }) {
   const t = useT();
   const [tables, setTables] = useState<DiningTable[]>([]);
   const [orders, setOrders] = useState<OrderWithItems[]>([]);
@@ -24,7 +47,6 @@ export default function WaiterApp({ restaurantId, waiterId }: { restaurantId: st
   const [placedTick, setPlacedTick] = useState(0);
   const [payFor, setPayFor] = useState<string | null>(null);
   const [payMethod, setPayMethod] = useState('cash');
-  const [lang, setLang] = useState<Lang>('roman');
 
   const collectPayment = async (orderId: string) => {
     const supabase = createClient();
@@ -59,14 +81,6 @@ export default function WaiterApp({ restaurantId, waiterId }: { restaurantId: st
   useEffect(() => {
     load();
     const supabase = createClient();
-    supabase
-      .from('restaurants')
-      .select('theme_config')
-      .eq('id', restaurantId)
-      .single()
-      .then(({ data }) =>
-        setLang(normalizeLang((data?.theme_config as Record<string, unknown> | undefined)?.language)),
-      );
     const ch = supabase
       .channel(`waiter-${restaurantId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `restaurant_id=eq.${restaurantId}` }, load)
@@ -82,7 +96,6 @@ export default function WaiterApp({ restaurantId, waiterId }: { restaurantId: st
   const mine = orders.filter((o) => o.waiter_id === waiterId);
 
   return (
-    <LangProvider value={lang}>
       <div className="pb-24">
         <PageHeader title="Waiter" sub={t('wtr_sub')} />
         <div className="mb-5">
@@ -173,6 +186,5 @@ export default function WaiterApp({ restaurantId, waiterId }: { restaurantId: st
           </div>
         )}
       </div>
-    </LangProvider>
   );
 }

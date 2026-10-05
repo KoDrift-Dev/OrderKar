@@ -150,7 +150,7 @@ export default function OwnerApp({
   slug: string;
   restaurantName: string;
 }) {
-  const [lang, setLang] = useState<Lang>('roman');
+  const [lang, setLang] = useState<Lang>('english');
 
   // Per-restaurant language from super-admin (theme_config.language).
   useEffect(() => {

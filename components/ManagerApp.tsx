@@ -20,7 +20,34 @@ function startOfToday(): Date {
   return d;
 }
 
-export default function ManagerApp({
+export default function ManagerApp(props: {
+  restaurantId: string;
+  slug: string;
+  restaurantName: string;
+}) {
+  const [lang, setLang] = useState<Lang>('english');
+  useEffect(() => {
+    let live = true;
+    createClient()
+      .from('restaurants')
+      .select('theme_config')
+      .eq('id', props.restaurantId)
+      .single()
+      .then(({ data }) => {
+        if (live) setLang(normalizeLang((data?.theme_config as Record<string, unknown> | null)?.language));
+      });
+    return () => {
+      live = false;
+    };
+  }, [props.restaurantId]);
+  return (
+    <LangProvider value={lang}>
+      <ManagerAppInner {...props} />
+    </LangProvider>
+  );
+}
+
+function ManagerAppInner({
   restaurantId,
   slug,
   restaurantName,
@@ -54,7 +81,6 @@ export default function ManagerApp({
   const [wBusy, setWBusy] = useState(false);
   const [view, setView] = useState<'dash' | 'pos'>('dash');
   const [posEnabled, setPosEnabled] = useState(true);
-  const [lang, setLang] = useState<Lang>('roman');
   const [bizInfo, setBizInfo] = useState<{ name: string; address?: string; phone?: string; email?: string }>({ name: restaurantName });
 
   const load = async () => {
@@ -78,7 +104,6 @@ export default function ManagerApp({
     if (r) {
       const tc = (r.theme_config ?? {}) as Record<string, unknown>;
       setPosEnabled(tc.pos_enabled !== false);
-      setLang(normalizeLang(tc.language));
       setBizInfo({
         name: r.name ?? restaurantName,
         address: typeof tc.address === 'string' ? tc.address : undefined,
@@ -139,7 +164,6 @@ export default function ManagerApp({
   };
 
   return (
-    <LangProvider value={lang}>
     <div className="space-y-8">
       <PageHeader title={t('mgr_title')} sub={t('mgr_sub')} />
 
@@ -286,6 +310,5 @@ export default function ManagerApp({
         </>
       )}
     </div>
-    </LangProvider>
   );
 }

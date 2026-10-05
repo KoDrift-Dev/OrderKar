@@ -60,7 +60,7 @@ export default async function AdminPage() {
                 />
                 <AdminLangSelect
                   restaurantId={r.id}
-                  initial={(r.theme_config as Record<string, unknown> | null)?.language === 'english' ? 'english' : 'roman'}
+                  initial={(r.theme_config as Record<string, unknown> | null)?.language === 'roman' ? 'roman' : 'english'}
                 />
               </div>
             </Card>

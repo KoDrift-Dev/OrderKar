@@ -1,6 +1,6 @@
 'use client';
 
-// Per-restaurant language: 'roman' (Roman Urdu, default) or 'english'.
+// Per-restaurant language: 'english' (default) or 'roman' (Roman Urdu).
 // Super-admin sets it per restaurant (theme_config.language); each app root
 // wraps its tree in <LangProvider value={lang}> and components use useT().
 
@@ -9,7 +9,7 @@ import { createContext, useContext } from 'react';
 export type Lang = 'roman' | 'english';
 
 export function normalizeLang(v: unknown): Lang {
-  return v === 'english' ? 'english' : 'roman';
+  return v === 'roman' ? 'roman' : 'english';
 }
 
 // ── Dictionary ─────────────────────────────────────────────────────────────
@@ -376,7 +376,7 @@ const D = {
 
 export type TKey = keyof typeof D;
 
-const LangCtx = createContext<Lang>('roman');
+const LangCtx = createContext<Lang>('english');
 export const LangProvider = LangCtx.Provider;
 
 export function useLang(): Lang {

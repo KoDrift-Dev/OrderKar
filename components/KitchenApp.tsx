@@ -257,7 +257,7 @@ function KitchenAppInner({ restaurantId }: { restaurantId: string }) {
 }
 
 export default function KitchenApp({ restaurantId }: { restaurantId: string }) {
-  const [lang, setLang] = useState<Lang>('roman');
+  const [lang, setLang] = useState<Lang>('english');
 
   useEffect(() => {
     let live = true;
