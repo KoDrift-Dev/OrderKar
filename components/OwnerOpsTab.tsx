@@ -5,6 +5,7 @@
 
 import { useMemo } from 'react';
 import type { DiningTable, Order } from '@/lib/types';
+import TableCard, { tableState } from './TableCard';
 import { fmtPKR, fmtNum } from '@/lib/format';
 import OwnerKitchenView from './OwnerKitchenView';
 import { Card, Empty, SectionHead } from './ui';
@@ -19,33 +20,34 @@ function TablePerformance({ orders, tables }: { orders: Order[]; tables: DiningT
       e.revenue += Number(o.total_amount);
       m.set(o.table_id, e);
     }
-    const maxRev = Math.max(1, ...[...m.values()].map((e) => e.revenue));
     return tables
       .filter((t) => t.is_active)
       .map((t) => {
         const e = m.get(t.id) ?? { orders: 0, revenue: 0 };
-        return { table: t, ...e, heat: e.revenue / maxRev };
+        return { table: t, ...e, state: tableState(t.id, orders) };
       })
       .sort((a, b) => b.revenue - a.revenue);
   }, [orders, tables]);
 
-  const heatBg = (h: number) =>
-    h >= 0.66 ? 'bg-ok/15 border-ok/30' : h >= 0.33 ? 'bg-amber/10 border-amber/30' : 'bg-danger/10 border-danger/30';
-
   return (
     <div>
-      <SectionHead title="Table performance" sub="Kaunsi table kitna kama rahi — green = top, red = slow" />
+      <SectionHead title="Table performance" sub="Free = default · Seated = purple · Bill = amber (payment lo)" />
       {stats.length === 0 ? (
         <Empty title="No tables" />
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {stats.map((s) => (
-            <Card key={s.table.id} className={`border p-4 ${heatBg(s.heat)}`}>
-              <p className="font-display text-xl font-extrabold text-ink">T{s.table.table_number}</p>
-              <p className="text-[11.5px] font-semibold text-muted">{s.table.floor_section} · {s.table.capacity} seats</p>
-              <p className="mt-2 font-mono text-[15px] font-extrabold text-ink">{fmtPKR(s.revenue)}</p>
-              <p className="text-[12px] font-bold text-muted">{fmtNum(s.orders)} orders</p>
-            </Card>
+            <TableCard
+              key={s.table.id}
+              table={s.table}
+              state={s.state}
+              meta={
+                <>
+                  <p className="font-mono text-[15px] font-extrabold text-ink">{fmtPKR(s.revenue)}</p>
+                  <p className="text-[12px] font-bold text-muted">{fmtNum(s.orders)} orders</p>
+                </>
+              }
+            />
           ))}
         </div>
       )}

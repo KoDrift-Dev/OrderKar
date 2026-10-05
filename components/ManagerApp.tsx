@@ -9,6 +9,7 @@ import type { DiningTable, OrderWithItems, WasteLog } from '@/lib/types';
 import { fmtPKR, fmtAgo } from '@/lib/format';
 import StatusPill from './StatusPill';
 import QrSection from './QrSection';
+import TableCard, { tableState } from './TableCard';
 import { Btn, Card, Empty, Input, Kpi, Label, PageHeader, SectionHead, Select } from './ui';
 
 function startOfToday(): Date {
@@ -87,12 +88,6 @@ export default function ManagerApp({
       aov: done.length ? revenue / done.length : 0,
       active: orders.filter((o) => ['pending', 'preparing', 'ready'].includes(o.status)).length,
     };
-  }, [orders]);
-
-  const busyTables = useMemo(() => {
-    const s = new Set<string>();
-    for (const o of orders) if (['pending', 'preparing', 'ready'].includes(o.status) && o.table_id) s.add(o.table_id);
-    return s;
   }, [orders]);
 
   const logWaste = async (e: React.FormEvent) => {
@@ -176,15 +171,10 @@ export default function ManagerApp({
         </div>
 
         <div className="lg:col-span-2">
-          <SectionHead title="Tables" sub={`${busyTables.size}/${tables.length} busy`} />
+          <SectionHead title="Tables" sub="Free · Seated (purple) · Bill (amber — payment lo)" />
           <div className="grid grid-cols-3 gap-2.5">
             {tables.map((t) => (
-              <Card key={t.id} className={`p-3.5 text-center ${busyTables.has(t.id) ? 'ring-2 ring-amber' : ''}`}>
-                <p className="font-display text-lg font-extrabold text-ink">T{t.table_number}</p>
-                <p className={`mt-1 text-[11.5px] font-bold ${busyTables.has(t.id) ? 'text-amber' : 'text-ok'}`}>
-                  {busyTables.has(t.id) ? 'Busy' : 'Free'}
-                </p>
-              </Card>
+              <TableCard key={t.id} table={t} state={tableState(t.id, orders)} />
             ))}
           </div>
 

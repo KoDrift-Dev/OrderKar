@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 import type { DiningTable, OrderWithItems } from '@/lib/types';
 import { fmtPKR, fmtAgo } from '@/lib/format';
 import MenuOrder from './MenuOrder';
+import TableCard, { tableState } from './TableCard';
 import StatusPill from './StatusPill';
 import { Card, Empty, PageHeader, Tabs } from './ui';
 
@@ -62,14 +63,6 @@ export default function WaiterApp({ restaurantId, waiterId }: { restaurantId: st
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restaurantId, placedTick]);
 
-  const tableStatus = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const o of orders) {
-      if (o.table_id) m.set(o.table_id, (m.get(o.table_id) ?? 0) + 1);
-    }
-    return m;
-  }, [orders]);
-
   const mine = orders.filter((o) => o.waiter_id === waiterId);
 
   return (
@@ -88,31 +81,9 @@ export default function WaiterApp({ restaurantId, waiterId }: { restaurantId: st
 
       {view === 'tables' && !activeTable && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {tables.map((t) => {
-            const n = tableStatus.get(t.id) ?? 0;
-            return (
-              <button key={t.id} onClick={() => setActiveTable(t)} className="text-left">
-                <Card className="p-5 transition-transform hover:-translate-y-1">
-                  <p className="font-display text-2xl font-extrabold text-ink">T{t.table_number}</p>
-                  <p className="mt-0.5 text-[12.5px] font-semibold text-muted">
-                    {t.floor_section} · {t.capacity} seats
-                  </p>
-                  <div className="mt-3">
-                    {n > 0 ? (
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-amber/15 px-3 py-1 text-[12.5px] font-bold text-amber">
-                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-current" />
-                        {n} active
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center rounded-full bg-ok/10 px-3 py-1 text-[12.5px] font-bold text-ok">
-                        Free
-                      </span>
-                    )}
-                  </div>
-                </Card>
-              </button>
-            );
-          })}
+          {tables.map((t) => (
+            <TableCard key={t.id} table={t} state={tableState(t.id, orders)} onClick={() => setActiveTable(t)} />
+          ))}
         </div>
       )}
 
