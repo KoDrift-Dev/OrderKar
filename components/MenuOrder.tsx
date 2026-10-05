@@ -6,11 +6,11 @@
 // (ingredients, instructions), sticky safe-area cart bar.
 // Writes orders through the anon-safe RLS policies.
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
 import type { MenuCategory, MenuItem, DiningTable } from '@/lib/types';
 import { fmtPKR } from '@/lib/format';
-import { categoryImage } from '@/lib/food-images';
+import { categoryEmoji, categoryImage } from '@/lib/food-images';
 import { cdnUrl } from '@/lib/images';
 import { Btn, Card, Empty, Pill, Textarea } from './ui';
 
@@ -27,18 +27,82 @@ export interface CartLine {
 }
 
 
+
+// Single menu item card — photo, name, price, add/stepper.
+function ItemCard({
+  item,
+  line,
+  img,
+  onOpen,
+  onDec,
+  onInc,
+  onAdd,
+}: {
+  item: MenuItem;
+  line: CartLine | undefined;
+  img: string;
+  onOpen: () => void;
+  onDec: () => void;
+  onInc: () => void;
+  onAdd: () => void;
+}) {
+  return (
+    <div
+      onClick={onOpen}
+      className="group relative cursor-pointer overflow-hidden rounded-[18px] shadow-lift transition-transform active:scale-[0.98]"
+    >
+      <img src={img} alt={item.name} loading="lazy" className="aspect-[4/3] w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[rgba(8,10,18,0.92)] via-[rgba(8,10,18,0.30)] to-transparent" />
+      <div className="absolute left-2 top-2 flex gap-1">
+        {item.tags.includes('bestseller') && (
+          <span className="rounded-full bg-amber px-2 py-0.5 text-[9.5px] font-extrabold text-white shadow">★</span>
+        )}
+        {item.tags.includes('spicy') && (
+          <span className="rounded-full bg-danger px-2 py-0.5 text-[9.5px] font-extrabold text-white shadow">🌶</span>
+        )}
+      </div>
+      <div className="absolute inset-x-0 bottom-0 p-2.5">
+        <h3 className="truncate font-display text-[12.5px] font-extrabold leading-tight text-white">{item.name}</h3>
+        <div className="mt-1 flex items-center justify-between gap-1">
+          <span className="font-mono text-[13px] font-bold text-white">{fmtPKR(item.price)}</span>
+          {line ? (
+            <div className="flex items-center gap-0.5 rounded-full bg-white/20 p-0.5 backdrop-blur" onClick={(e) => e.stopPropagation()}>
+              <button aria-label="Decrease" onClick={onDec} className="flex h-7 w-7 items-center justify-center rounded-full text-[14px] font-bold text-white">−</button>
+              <span className="min-w-4 text-center font-mono text-[12px] font-bold text-white">{line.qty}</span>
+              <button aria-label="Increase" onClick={onInc} className="flex h-7 w-7 items-center justify-center rounded-full text-[14px] font-bold text-white">+</button>
+            </div>
+          ) : (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onAdd();
+              }}
+              aria-label={`Add ${item.name}`}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-[17px] font-bold text-brand shadow-lift transition-transform active:scale-90"
+            >
+              +
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function MenuOrder({
   restaurantId,
   table,
   waiterId,
   customerName,
   onPlaced,
+  stickyTop,
 }: {
   restaurantId: string;
   table: DiningTable;
   waiterId?: string;
   customerName?: string;
   onPlaced: (orderId: string, trackingToken: string) => void;
+  stickyTop?: string;
 }) {
   const [cats, setCats] = useState<MenuCategory[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
@@ -52,6 +116,12 @@ export default function MenuOrder({
   const [detailNotes, setDetailNotes] = useState('');
   const [cartOpen, setCartOpen] = useState(false);
   const configured = isSupabaseConfigured();
+  const top = stickyTop ?? '0px';
+
+  // Scroll-spy plumbing: section elements + pill bar.
+  const sectionRefs = useRef(new Map<string, HTMLElement>());
+  const pillsRef = useRef<HTMLDivElement>(null);
+  const jumpLock = useRef<string | null>(null);
 
   useEffect(() => {
     if (!configured) return;
@@ -74,14 +144,59 @@ export default function MenuOrder({
     return m;
   }, [cats]);
 
-  const visible = useMemo(() => {
+  // Categories in display_order, each with its available items —
+  // the whole menu renders as one scrolling page.
+  const grouped = useMemo(
+    () => cats.map((c) => ({ cat: c, items: items.filter((i) => i.category_id === c.id) })),
+    [cats, items],
+  );
+
+  const searching = query.trim().length > 0;
+  const searchResults = useMemo(() => {
     const q = query.trim().toLowerCase();
+    if (!q) return [];
     return items.filter(
-      (i) =>
-        (!activeCat || i.category_id === activeCat) &&
-        (!q || i.name.toLowerCase().includes(q) || (i.description ?? '').toLowerCase().includes(q)),
+      (i) => i.name.toLowerCase().includes(q) || (i.description ?? '').toLowerCase().includes(q),
     );
-  }, [items, activeCat, query]);
+  }, [items, query]);
+
+  // Scroll-spy: the pill of the section sitting in the middle of the
+  // screen lights up, and the pill bar follows it.
+  useEffect(() => {
+    if (searching) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting) continue;
+          const id = e.target.getAttribute('data-cat');
+          if (!id || jumpLock.current === id) continue;
+          setActiveCat(id);
+          pillsRef.current
+            ?.querySelector(`[data-pill="${id}"]`)
+            ?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+        }
+      },
+      { rootMargin: '-35% 0px -55% 0px' },
+    );
+    const els = [...sectionRefs.current.values()];
+    els.forEach((el) => obs.observe(el));
+    return () => obs.disconnect();
+  }, [grouped, searching]);
+
+  const jumpTo = (id: string) => {
+    setActiveCat(id);
+    jumpLock.current = id;
+    window.setTimeout(() => {
+      jumpLock.current = null;
+    }, 900);
+    const go = () => sectionRefs.current.get(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (searching) {
+      setQuery('');
+      window.setTimeout(go, 80); // let sections render first
+    } else {
+      go();
+    }
+  };
 
   // Lock body scroll when a sheet is open; close on Escape.
   useEffect(() => {
@@ -181,82 +296,93 @@ export default function MenuOrder({
 
   const lineFor = (id: string) => cart.find((l) => l.item.id === id);
 
+  const cardProps = (item: MenuItem) => ({
+    line: lineFor(item.id),
+    img: itemPhoto(item, catName),
+    onOpen: () => openDetail(item),
+    onDec: () => setQty(item.id, (lineFor(item.id)?.qty ?? 1) - 1),
+    onInc: () => setQty(item.id, (lineFor(item.id)?.qty ?? 0) + 1),
+    onAdd: () => addToCart(item, 1, ''),
+  });
+
   return (
     <div>
-      {/* Search */}
-      <input
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder="Search the menu…"
-        className="input-neu mb-2.5 w-full px-4 py-2.5 text-[14px] text-ink placeholder:text-muted"
-      />
-      {/* Category pills — small, horizontally scrollable, display_order sorted */}
-      <div className="-mx-4 mb-3 flex gap-1.5 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6">
-        {cats.map((c) => (
-          <button
-            key={c.id}
-            onClick={() => setActiveCat(c.id)}
-            className={`shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-[12px] font-bold transition-all ${
-              activeCat === c.id ? 'btn-3d text-white' : 'glass !rounded-full text-muted hover:text-ink'
-            }`}
-          >
-            {c.name}
-          </button>
-        ))}
+      {/* Sticky search + emoji category pills */}
+      <div
+        style={{ top }}
+        className="sticky z-30 -mx-4 bg-[var(--c-surface)] px-4 pb-2 pt-2 backdrop-blur-xl sm:-mx-6 sm:px-6"
+      >
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search the menu…"
+          className="input-neu mb-2 w-full px-4 py-2.5 text-[14px] text-ink placeholder:text-muted"
+        />
+        <div
+          ref={pillsRef}
+          className="flex gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          {cats.map((c) => (
+            <button
+              key={c.id}
+              data-pill={c.id}
+              onClick={() => jumpTo(c.id)}
+              className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-[12px] font-bold transition-all ${
+                activeCat === c.id ? 'btn-3d text-white' : 'glass !rounded-full text-muted hover:text-ink'
+              }`}
+            >
+              <span className="text-[14px] leading-none">{categoryEmoji(c.name)}</span>
+              {c.name}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Photo menu cards — compact 2-col, fixed dark scrim so text always reads */}
-      {visible.length === 0 ? (
-        <Empty title="Nothing here yet" sub="Try another category or search." />
+      {/* Search mode: flat results across all categories */}
+      {searching ? (
+        searchResults.length === 0 ? (
+          <Empty title="Kuch nahi mila" sub="Try another search." />
+        ) : (
+          <>
+            <p className="mb-2.5 mt-3 text-[12.5px] font-bold text-muted">
+              {searchResults.length} result{searchResults.length > 1 ? 's' : ''}
+            </p>
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-4">
+              {searchResults.map((item) => (
+                <ItemCard key={item.id} item={item} {...cardProps(item)} />
+              ))}
+            </div>
+          </>
+        )
       ) : (
-        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-4">
-          {visible.map((item) => {
-            const line = lineFor(item.id);
-            const img = itemPhoto(item, catName);
-            return (
-              <div
-                key={item.id}
-                onClick={() => openDetail(item)}
-                className="group relative cursor-pointer overflow-hidden rounded-[18px] shadow-lift transition-transform active:scale-[0.98]"
-              >
-                <img src={img} alt={item.name} loading="lazy" className="aspect-[4/3] w-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[rgba(8,10,18,0.92)] via-[rgba(8,10,18,0.30)] to-transparent" />
-                <div className="absolute left-2 top-2 flex gap-1">
-                  {item.tags.includes('bestseller') && (
-                    <span className="rounded-full bg-amber px-2 py-0.5 text-[9.5px] font-extrabold text-white shadow">★</span>
-                  )}
-                  {item.tags.includes('spicy') && (
-                    <span className="rounded-full bg-danger px-2 py-0.5 text-[9.5px] font-extrabold text-white shadow">🌶</span>
-                  )}
-                </div>
-                <div className="absolute inset-x-0 bottom-0 p-2.5">
-                  <h3 className="truncate font-display text-[12.5px] font-extrabold leading-tight text-white">{item.name}</h3>
-                  <div className="mt-1 flex items-center justify-between gap-1">
-                    <span className="font-mono text-[13px] font-bold text-white">{fmtPKR(item.price)}</span>
-                    {line ? (
-                      <div className="flex items-center gap-0.5 rounded-full bg-white/20 p-0.5 backdrop-blur" onClick={(e) => e.stopPropagation()}>
-                        <button aria-label="Decrease" onClick={() => setQty(item.id, line.qty - 1)} className="flex h-7 w-7 items-center justify-center rounded-full text-[14px] font-bold text-white">−</button>
-                        <span className="min-w-4 text-center font-mono text-[12px] font-bold text-white">{line.qty}</span>
-                        <button aria-label="Increase" onClick={() => setQty(item.id, line.qty + 1)} className="flex h-7 w-7 items-center justify-center rounded-full text-[14px] font-bold text-white">+</button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          addToCart(item, 1, '');
-                        }}
-                        aria-label={`Add ${item.name}`}
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-[17px] font-bold text-brand shadow-lift transition-transform active:scale-90"
-                      >
-                        +
-                      </button>
-                    )}
-                  </div>
-                </div>
+        /* Whole menu, one scrolling page — sections per category */
+        grouped.map((g) => (
+          <section
+            key={g.cat.id}
+            data-cat={g.cat.id}
+            ref={(el) => {
+              if (el) sectionRefs.current.set(g.cat.id, el);
+              else sectionRefs.current.delete(g.cat.id);
+            }}
+            style={{ scrollMarginTop: `calc(${top} + 112px)` }}
+          >
+            <div className="mb-2.5 mt-6 flex items-center gap-2">
+              <span className="text-[22px] leading-none">{categoryEmoji(g.cat.name)}</span>
+              <h2 className="font-display text-[17px] font-extrabold text-ink">{g.cat.name}</h2>
+              <span className="rounded-full bg-soft px-2 py-0.5 text-[11px] font-bold text-muted">{g.items.length}</span>
+              <div className="ml-1 h-px flex-1 bg-line" />
+            </div>
+            {g.items.length === 0 ? (
+              <p className="mb-6 text-[12.5px] text-muted">No items right now.</p>
+            ) : (
+              <div className="mb-2 grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-4">
+                {g.items.map((item) => (
+                  <ItemCard key={item.id} item={item} {...cardProps(item)} />
+                ))}
               </div>
-            );
-          })}
-        </div>
+            )}
+          </section>
+        ))
       )}
 
       {/* Sticky cart bar — compact, safe-area aware */}

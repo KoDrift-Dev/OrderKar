@@ -11,3 +11,34 @@ export const CATEGORY_IMAGES: Record<string, string> = Object.assign({}, P1, P2,
 export function categoryImage(name: string): string {
   return CATEGORY_IMAGES[name] ?? CATEGORY_IMAGES['BBQ & Grill'];
 }
+
+// Emoji per category — keyword-matched on the category name so pills and
+// section headers get an icon with zero DB changes.
+const EMOJI_RULES: [RegExp, string][] = [
+  [/biryani|pulao|fried rice/i, '🍚'],
+  [/bbq|barbecue|grill/i, '🍖'],
+  [/tikka|kabab|kebab|seekh|malai boti/i, '🍢'],
+  [/karahi|curry|handi|daal|dal/i, '🍛'],
+  [/burger/i, '🍔'],
+  [/pizza/i, '🍕'],
+  [/shawarma|wrap|roll/i, '🌯'],
+  [/chinese|noodle|chow mein|manchurian/i, '🍜'],
+  [/fish|seafood|prawn|finger fish/i, '🐟'],
+  [/chicken/i, '🍗'],
+  [/mutton|beef|steak/i, '🥩'],
+  [/breakfast|nashta|halwa|puri|omelet/i, '🍳'],
+  [/soup/i, '🍲'],
+  [/salad|raita/i, '🥗'],
+  [/naan|roti|paratha|bread|kulcha/i, '🫓'],
+  [/fries|snack|samosa|pakora|nuggets|wings/i, '🍟'],
+  [/dessert|sweet|ice ?cream|kulfi|cake|brownie|shahi tukra/i, '🍰'],
+  [/tea|chai|coffee|doodh patti/i, '☕'],
+  [/lassi|shake|juice|smoothie|mojito/i, '🥤'],
+  [/drink|beverage|soda|soft drink|water/i, '🥤'],
+];
+
+export function categoryEmoji(name: string): string {
+  const n = (name || '').trim();
+  for (const [re, emoji] of EMOJI_RULES) if (re.test(n)) return emoji;
+  return '🍽️';
+}

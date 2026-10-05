@@ -236,7 +236,7 @@ export default function TablePage({ params }: { params: { slug: string; id: stri
                 className="input-neu max-w-xs px-4 py-2.5 text-[15px] text-ink placeholder:text-muted"
               />
             </Card>
-            <MenuOrder restaurantId={tenant.id} table={table} customerName={name} onPlaced={onPlaced} />
+            <MenuOrder restaurantId={tenant.id} table={table} customerName={name} onPlaced={onPlaced} stickyTop="60px" />
           </>
         )}
       </main>
