@@ -3,7 +3,7 @@
 // Owner dashboard: tabbed analytics — Dashboard, Sales, Operations, Staff,
 // Customers. All data scoped to this restaurant.
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { DiningTable, MenuCategory, MenuItem, Order, OrderItem, Profile, Review } from '@/lib/types';
 import { CategoryDonut, HourlyHeatmap, RevenueTrend, TopItems, WeekdayBars } from './charts';
@@ -14,10 +14,11 @@ import OwnerStaffTab from './OwnerStaffTab';
 import OwnerCustomersTab from './OwnerCustomersTab';
 import OwnerGuide from './OwnerGuide';
 import TableManager from './TableManager';
+import OwnerSettings from './OwnerSettings';
 import { Empty, PageHeader, Tabs } from './ui';
 
 type Range = 'today' | '7d' | '30d' | '12m' | 'custom';
-type TabKey = 'dashboard' | 'sales' | 'operations' | 'staff' | 'customers' | 'tables';
+type TabKey = 'dashboard' | 'sales' | 'operations' | 'staff' | 'customers' | 'tables' | 'settings';
 
 function isoDay(d: Date): string {
   return d.toLocaleDateString('en-CA'); // YYYY-MM-DD
@@ -159,33 +160,20 @@ export default function OwnerApp({
   const [tables, setTables] = useState<DiningTable[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [displayName, setDisplayName] = useState(restaurantName);
+  const firstDone = useRef(false);
 
   const { start, end } = rangeBounds(range, custom);
 
-  const load = async () => {
+  // Only the columns owner analytics actually read — keeps payloads small.
+  const ORDER_COLS =
+    'id,order_number,table_id,waiter_id,order_type,status,total_amount,payment_method,cancel_reason,created_at,updated_at';
+  const ITEM_COLS = 'id,order_id,menu_item_id,item_name,quantity,unit_price';
+
+  // Static data — loads once per restaurant, never depends on the date range.
+  const loadStatic = async () => {
     const supabase = createClient();
-    setLoading(true);
-    const iso = start.toISOString();
-    const { data: o } = await supabase
-      .from('orders')
-      .select('*')
-      .eq('restaurant_id', restaurantId)
-      .gte('created_at', iso)
-      .order('created_at', { ascending: true })
-      .limit(2000);
-    const orderList = (o ?? []) as Order[];
-    setOrders(orderList);
-
-    let itemList: OrderItem[] = [];
-    if (orderList.length > 0) {
-      const ids = orderList.map((x) => x.id);
-      for (let i = 0; i < ids.length; i += 500) {
-        const { data: it } = await supabase.from('order_items').select('*').in('order_id', ids.slice(i, i + 500));
-        itemList = itemList.concat((it ?? []) as OrderItem[]);
-      }
-    }
-    setItems(itemList);
-
     const [{ data: s }, { data: c }, { data: m }, { data: t }, { data: rv }] = await Promise.all([
       supabase.from('profiles').select('*').eq('restaurant_id', restaurantId).order('created_at'),
       supabase.from('menu_categories').select('*').eq('restaurant_id', restaurantId).order('display_order'),
@@ -198,13 +186,63 @@ export default function OwnerApp({
     if (c) setCats(c as MenuCategory[]);
     if (m) setMenu(m as MenuItem[]);
     if (rv) setReviews(rv as Review[]);
-    setLoading(false);
+  };
+
+  // Orders + items — the ONLY thing that depends on the date range.
+  const loadOrders = async (isFirst: boolean) => {
+    const supabase = createClient();
+    if (!isFirst) setOrdersLoading(true);
+    try {
+      const iso = start.toISOString();
+      const { data: o } = await supabase
+        .from('orders')
+        .select(ORDER_COLS)
+        .eq('restaurant_id', restaurantId)
+        .gte('created_at', iso)
+        .order('created_at', { ascending: true })
+        .limit(2000);
+      const orderList = (o ?? []) as Order[];
+      setOrders(orderList);
+
+      let itemList: OrderItem[] = [];
+      if (orderList.length > 0) {
+        const ids = orderList.map((x) => x.id);
+        const chunks: string[][] = [];
+        for (let i = 0; i < ids.length; i += 500) chunks.push(ids.slice(i, i + 500));
+        const results = await Promise.all(
+          chunks.map((ch) => supabase.from('order_items').select(ITEM_COLS).in('order_id', ch)),
+        );
+        for (const r of results) itemList = itemList.concat((r.data ?? []) as OrderItem[]);
+      }
+      setItems(itemList);
+    } finally {
+      if (!isFirst) setOrdersLoading(false);
+    }
   };
 
   useEffect(() => {
-    load();
+    let live = true;
+    setLoading(true);
+    firstDone.current = false;
+    (async () => {
+      await Promise.all([loadStatic(), loadOrders(true)]);
+      if (live) {
+        setLoading(false);
+        firstDone.current = true;
+      }
+    })();
+    return () => {
+      live = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [restaurantId, range, custom.from, custom.to]);
+  }, [restaurantId]);
+
+  // Range change → only orders reload (static data is untouched).
+  useEffect(() => {
+    if (!firstDone.current) return;
+    loadOrders(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [range, custom.from, custom.to]);
 
   const catName = useMemo(() => {
     const map = new Map<string, string>();
@@ -239,7 +277,7 @@ export default function OwnerApp({
     <div className="space-y-6">
       <PageHeader
         title="Owner dashboard"
-        sub={`${restaurantName} · full analytics`}
+        sub={`${displayName} · full analytics`}
         right={
           <div className="flex flex-wrap items-center gap-2">
             <OwnerGuide />
@@ -254,6 +292,15 @@ export default function OwnerApp({
                 { key: 'custom', label: '📅 Custom' },
               ]}
             />
+            {ordersLoading && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-brand/10 px-3 py-1.5 text-[12px] font-bold text-brand">
+                <svg className="animate-spin" width="13" height="13" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeOpacity="0.25" strokeWidth="3" />
+                  <path d="M22 12a10 10 0 00-10-10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                </svg>
+                Updating…
+              </span>
+            )}
             {range === 'custom' && (
               <div className="glass flex items-center gap-1.5 !rounded-[16px] p-1.5 text-[12.5px] font-bold">
                 <input type="date" value={custom.from} max={custom.to} onChange={(e) => setCustom((c) => ({ ...c, from: e.target.value }))} className="rounded-[10px] border border-line bg-[var(--c-surface-solid)] px-2 py-1.5 text-ink" />
@@ -275,6 +322,7 @@ export default function OwnerApp({
           { key: 'staff', label: '👥 Staff' },
           { key: 'customers', label: '⭐ Customers' },
           { key: 'tables', label: '🪑 Tables' },
+          { key: 'settings', label: '⚙️ Settings' },
         ]}
       />
 
@@ -282,7 +330,7 @@ export default function OwnerApp({
         <Empty title="Crunching numbers…" />
       ) : (
         <>
-          {tab === 'dashboard' && (
+          <div className={tab === 'dashboard' ? '' : 'hidden'}>
             <OwnerDashTab
               agg={agg}
               orders={orders}
@@ -291,10 +339,10 @@ export default function OwnerApp({
               itemOrderDate={itemOrderDate}
               slug={slug}
               tables={tables}
-              restaurantName={restaurantName}
+              restaurantName={displayName}
             />
-          )}
-          {tab === 'sales' && (
+          </div>
+          <div className={tab === 'sales' ? '' : 'hidden'}>
             <OwnerSalesTab
               orders={orders}
               items={items}
@@ -303,13 +351,22 @@ export default function OwnerApp({
               topItems={agg.topItems}
               rangeLabel={RANGE_LABEL[range]}
             />
-          )}
-          {tab === 'operations' && <OwnerOpsTab restaurantId={restaurantId} orders={orders} tables={tables} />}
-          {tab === 'staff' && <OwnerStaffTab orders={orders} staff={staff} />}
-          {tab === 'customers' && <OwnerCustomersTab reviews={reviews} />}
-          {tab === 'tables' && (
+          </div>
+          <div className={tab === 'operations' ? '' : 'hidden'}>
+            <OwnerOpsTab restaurantId={restaurantId} orders={orders} tables={tables} />
+          </div>
+          <div className={tab === 'staff' ? '' : 'hidden'}>
+            <OwnerStaffTab orders={orders} staff={staff} />
+          </div>
+          <div className={tab === 'customers' ? '' : 'hidden'}>
+            <OwnerCustomersTab reviews={reviews} />
+          </div>
+          <div className={tab === 'tables' ? '' : 'hidden'}>
             <TableManager restaurantId={restaurantId} slug={slug} tables={tables} onChange={setTables} />
-          )}
+          </div>
+          <div className={tab === 'settings' ? '' : 'hidden'}>
+            <OwnerSettings restaurantId={restaurantId} slug={slug} onNameChange={setDisplayName} />
+          </div>
         </>
       )}
     </div>
