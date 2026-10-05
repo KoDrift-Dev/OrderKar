@@ -33,6 +33,11 @@ export default function WaiterApp({ restaurantId, waiterId }: { restaurantId: st
     load();
   };
 
+  const completeOrder = async (orderId: string) => {
+    await createClient().from('orders').update({ status: 'completed' }).eq('id', orderId);
+    load();
+  };
+
   const load = async () => {
     const supabase = createClient();
     const [{ data: t }, { data: o }] = await Promise.all([
@@ -145,6 +150,11 @@ export default function WaiterApp({ restaurantId, waiterId }: { restaurantId: st
                       Collect payment · {fmtPKR(o.total_amount)}
                     </button>
                   ))}
+                {o.status === 'ready' && o.payment_status === 'paid' && (
+                  <button onClick={() => completeOrder(o.id)} className="mt-3 w-full rounded-btn bg-brand/10 py-2.5 text-[13.5px] font-extrabold text-brand hover:bg-brand/20">
+                    ✓ Complete order (handover done)
+                  </button>
+                )}
               </Card>
             ))
           )}

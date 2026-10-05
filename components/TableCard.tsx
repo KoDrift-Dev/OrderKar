@@ -16,14 +16,16 @@ import { Card } from './ui';
 
 export type TableState = 'free' | 'seated' | 'bill';
 
-type OrderLike = Pick<Order, 'table_id' | 'status'>;
+type OrderLike = Pick<Order, 'table_id' | 'status' | 'payment_status'>;
 
 export function tableState(tableId: string, orders: OrderLike[]): TableState {
   let seated = false;
   for (const o of orders) {
     if (o.table_id !== tableId) continue;
-    if (o.status === 'ready') return 'bill';
-    if (o.status === 'pending' || o.status === 'preparing') seated = true;
+    if (o.status === 'cancelled' || o.status === 'completed') continue;
+    // Ready + unpaid = bill pending. Ready + paid = still seated (handover pending).
+    if (o.status === 'ready' && o.payment_status !== 'paid') return 'bill';
+    seated = true;
   }
   return seated ? 'seated' : 'free';
 }

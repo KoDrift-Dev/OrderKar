@@ -10,7 +10,8 @@ import { fmtPKR, fmtAgo } from '@/lib/format';
 import StatusPill from './StatusPill';
 import QrSection from './QrSection';
 import TableCard, { tableState } from './TableCard';
-import { Btn, Card, Empty, Input, Kpi, Label, PageHeader, SectionHead, Select } from './ui';
+import PosTab from './PosTab';
+import { Btn, Card, Empty, Input, Kpi, Label, PageHeader, SectionHead, Select, Tabs } from './ui';
 
 function startOfToday(): Date {
   const d = new Date();
@@ -40,15 +41,23 @@ export default function ManagerApp({
     setPayFor(null);
     load();
   };
+
+  const completeOrder = async (orderId: string) => {
+    await createClient().from('orders').update({ status: 'completed' }).eq('id', orderId);
+    load();
+  };
   const [tables, setTables] = useState<DiningTable[]>([]);
   const [waste, setWaste] = useState<WasteLog[]>([]);
   const [wForm, setWForm] = useState({ item: '', qty: '1', reason: 'spoilage', cost: '' });
   const [wBusy, setWBusy] = useState(false);
+  const [view, setView] = useState<'dash' | 'pos'>('dash');
+  const [posEnabled, setPosEnabled] = useState(true);
+  const [bizInfo, setBizInfo] = useState<{ name: string; address?: string; phone?: string; email?: string }>({ name: restaurantName });
 
   const load = async () => {
     const supabase = createClient();
     const iso = startOfToday().toISOString();
-    const [{ data: o }, { data: t }, { data: w }] = await Promise.all([
+    const [{ data: o }, { data: t }, { data: w }, { data: r }] = await Promise.all([
       supabase
         .from('orders')
         .select('*, order_items(*), tables(table_number)')
@@ -58,10 +67,21 @@ export default function ManagerApp({
         .limit(100),
       supabase.from('tables').select('*').eq('restaurant_id', restaurantId).eq('is_active', true).order('table_number'),
       supabase.from('waste_logs').select('*').eq('restaurant_id', restaurantId).order('logged_at', { ascending: false }).limit(20),
+      supabase.from('restaurants').select('name, theme_config').eq('id', restaurantId).single(),
     ]);
     if (o) setOrders(o as OrderWithItems[]);
     if (t) setTables(t as DiningTable[]);
     if (w) setWaste(w as WasteLog[]);
+    if (r) {
+      const tc = (r.theme_config ?? {}) as Record<string, unknown>;
+      setPosEnabled(tc.pos_enabled !== false);
+      setBizInfo({
+        name: r.name ?? restaurantName,
+        address: typeof tc.address === 'string' ? tc.address : undefined,
+        phone: typeof tc.phone === 'string' ? tc.phone : undefined,
+        email: typeof tc.email === 'string' ? tc.email : undefined,
+      });
+    }
   };
 
   useEffect(() => {
@@ -110,6 +130,28 @@ export default function ManagerApp({
   return (
     <div className="space-y-8">
       <PageHeader title="Manager dashboard" sub="Today's pulse — live" />
+
+      {posEnabled && (
+        <Tabs
+          tabs={[
+            { key: 'dash', label: '📊 Dashboard' },
+            { key: 'pos', label: '🧾 POS' },
+          ]}
+          active={view}
+          onChange={setView}
+        />
+      )}
+
+      {view === 'pos' && posEnabled ? (
+        <PosTab
+          restaurantId={restaurantId}
+          restaurant={bizInfo}
+          tables={tables}
+          orders={orders}
+          onOrderPlaced={load}
+        />
+      ) : (
+        <>
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -164,6 +206,11 @@ export default function ManagerApp({
                         Collect payment · {fmtPKR(o.total_amount)}
                       </button>
                     ))}
+                  {o.status === 'ready' && o.payment_status === 'paid' && (
+                    <button onClick={() => completeOrder(o.id)} className="mt-3 w-full rounded-btn bg-brand/10 py-2 text-[12.5px] font-extrabold text-brand hover:bg-brand/20">
+                      ✓ Complete order (handover done)
+                    </button>
+                  )}
                 </Card>
               ))
             )}
@@ -224,6 +271,8 @@ export default function ManagerApp({
       </div>
 
       <QrSection slug={slug} tables={tables} restaurantName={restaurantName} />
+        </>
+      )}
     </div>
   );
 }
