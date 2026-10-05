@@ -8,6 +8,11 @@
    ========================================================================== */
 
 :root {
+  /* ── Fonts (loaded via <link> in layout — no build-time fetch) ── */
+  --font-display: 'Poppins', system-ui, sans-serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'Space Grotesk', ui-monospace, monospace;
+
   /* ── Light theme ── */
   --c-page: #e9e4f7; /* soft lavender — white cards pop */
   --c-soft: #f3f4f6;
