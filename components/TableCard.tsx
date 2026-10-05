@@ -49,7 +49,7 @@ const STATE_STYLE: Record<TableState, StateStyle> = {
     metaText: 'text-ink',
   },
   seated: {
-    card: '!border-transparent bg-gradient-to-br from-[#0D9488] to-[#0b7c72] shadow-[0_10px_28px_-10px_rgba(13,148,136,0.55)]',
+    card: '!border-transparent !bg-gradient-to-br from-[#0D9488] to-[#0b7c72]',
     pill: 'bg-white/25 text-white',
     label: 'Seated',
     title: 'text-white',
@@ -58,7 +58,7 @@ const STATE_STYLE: Record<TableState, StateStyle> = {
     metaText: 'text-white',
   },
   bill: {
-    card: '!border-transparent bg-gradient-to-br from-[#F59E0B] to-[#d97706] shadow-[0_10px_28px_-10px_rgba(245,158,11,0.55)]',
+    card: '!border-transparent !bg-gradient-to-br from-[#F59E0B] to-[#d97706]',
     pill: 'bg-white/25 text-white',
     label: 'Bill',
     title: 'text-white',
