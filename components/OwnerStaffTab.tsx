@@ -6,10 +6,12 @@ import { useMemo } from 'react';
 import type { Order, Profile } from '@/lib/types';
 import { fmtPKR, fmtNum } from '@/lib/format';
 import { Card, Empty, SectionHead } from './ui';
+import { useT, type TKey } from '@/lib/i18n';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
 function Leaderboard({ orders, staff }: { orders: Order[]; staff: Profile[] }) {
+  const t = useT();
   const rows = useMemo(() => {
     const nameOf = new Map(staff.map((s) => [s.id, s.name]));
     const m = new Map<string, { orders: number; revenue: number }>();
@@ -27,9 +29,9 @@ function Leaderboard({ orders, staff }: { orders: Order[]; staff: Profile[] }) {
 
   return (
     <div>
-      <SectionHead title="Waiter leaderboard" sub="Sales ke hisaab se ranking" />
+      <SectionHead title="Waiter leaderboard" sub={t('own_stf_sub' as TKey)} />
       {rows.length === 0 ? (
-        <Empty title="No waiter sales yet" sub="Waiter orders yahan rank honge." />
+        <Empty title={t('own_stf_no_sales' as TKey)} sub={t('own_stf_no_sales_sub' as TKey)} />
       ) : (
         <Card className="overflow-x-auto p-0">
           <table className="w-full min-w-[560px] text-left text-[13px]">
@@ -61,6 +63,7 @@ function Leaderboard({ orders, staff }: { orders: Order[]; staff: Profile[] }) {
 }
 
 export default function OwnerStaffTab({ orders, staff }: { orders: Order[]; staff: Profile[] }) {
+  const t = useT();
   return (
     <div className="space-y-8">
       <Leaderboard orders={orders} staff={staff} />
@@ -75,7 +78,7 @@ export default function OwnerStaffTab({ orders, staff }: { orders: Order[]; staf
               {!s.is_active && <p className="mt-1 text-[12px] font-bold text-danger">Inactive</p>}
             </Card>
           ))}
-          {staff.length === 0 && <Empty title="No staff yet" sub="Team page se staff add karo." />}
+          {staff.length === 0 && <Empty title={t('own_stf_no_staff' as TKey)} sub={t('own_stf_no_staff_sub' as TKey)} />}
         </div>
       </div>
     </div>

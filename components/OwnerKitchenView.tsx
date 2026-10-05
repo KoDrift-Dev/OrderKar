@@ -10,6 +10,7 @@ import type { OrderStatus, OrderWithItems } from '@/lib/types';
 import { fmtElapsed, fmtPKR } from '@/lib/format';
 import StatusPill from './StatusPill';
 import { Card, Empty, SectionHead, Tabs } from './ui';
+import { useT, type TKey } from '@/lib/i18n';
 
 type View = 'kanban' | 'list';
 
@@ -29,6 +30,7 @@ function useClock(): Date {
 }
 
 function KanbanCard({ order, now }: { order: OrderWithItems; now: Date }) {
+  const t = useT();
   const elapsedMs = now.getTime() - new Date(order.created_at).getTime();
   const late = elapsedMs > 20 * 60000 && order.status !== 'ready';
   const itemCount = order.order_items.reduce((s, i) => s + i.quantity, 0);
@@ -41,7 +43,7 @@ function KanbanCard({ order, now }: { order: OrderWithItems; now: Date }) {
       <p className="mt-0.5 text-[12.5px] font-bold text-brand">
         {order.tables ? `Table ${order.tables.table_number}` : order.order_type} · {itemCount} items
       </p>
-      {late && <p className="mt-1 text-[11px] font-extrabold uppercase tracking-wide text-danger">⏰ Running late</p>}
+      {late && <p className="mt-1 text-[11px] font-extrabold uppercase tracking-wide text-danger">{t('own_ktn_late' as TKey)}</p>}
       <ul className="mt-2 space-y-1 border-t border-line pt-2">
         {order.order_items.slice(0, 4).map((it) => (
           <li key={it.id} className="flex justify-between gap-2 text-[12.5px]">
@@ -52,7 +54,7 @@ function KanbanCard({ order, now }: { order: OrderWithItems; now: Date }) {
           </li>
         ))}
         {order.order_items.length > 4 && (
-          <li className="text-[11.5px] font-bold text-muted">+{order.order_items.length - 4} more</li>
+          <li className="text-[11.5px] font-bold text-muted">{t('own_ktn_more' as TKey, { n: order.order_items.length - 4 })}</li>
         )}
       </ul>
       <p className="mt-2 text-right font-mono text-[12.5px] font-bold text-ink">{fmtPKR(order.total_amount)}</p>
@@ -61,6 +63,7 @@ function KanbanCard({ order, now }: { order: OrderWithItems; now: Date }) {
 }
 
 export default function OwnerKitchenView({ restaurantId }: { restaurantId: string }) {
+  const t = useT();
   const [orders, setOrders] = useState<OrderWithItems[]>([]);
   const [view, setView] = useState<View>('kanban');
   const [flashIds, setFlashIds] = useState<Set<string>>(new Set());
@@ -119,7 +122,7 @@ export default function OwnerKitchenView({ restaurantId }: { restaurantId: strin
     <div>
       <SectionHead
         title="Live kitchen"
-        sub={`${orders.length} active orders · view only — status kitchen se change hoga`}
+        sub={t('own_ktn_sub' as TKey, { n: orders.length })}
         action={
           <Tabs<View>
             active={view}
@@ -132,7 +135,7 @@ export default function OwnerKitchenView({ restaurantId }: { restaurantId: strin
         }
       />
       {orders.length === 0 ? (
-        <Empty title="No active orders" sub="New orders will appear here live." />
+        <Empty title={t('own_ktn_no_orders' as TKey)} sub={t('own_ktn_no_orders_sub' as TKey)} />
       ) : view === 'kanban' ? (
         <div className="grid gap-4 md:grid-cols-3">
           {COLUMNS.map((col) => {
@@ -165,7 +168,7 @@ export default function OwnerKitchenView({ restaurantId }: { restaurantId: strin
                 <th className="px-4 py-3">Items</th>
                 <th className="px-4 py-3">Total</th>
                 <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Elapsed</th>
+                <th className="px-4 py-3">{t('own_ktn_col_elapsed' as TKey)}</th>
               </tr>
             </thead>
             <tbody>

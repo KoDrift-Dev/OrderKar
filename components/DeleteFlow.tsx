@@ -8,6 +8,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Btn } from './ui';
+import { useT } from '@/lib/i18n';
 
 // ── 1-click guard ────────────────────────────────────────────────────────────
 export function useGuard() {
@@ -95,6 +96,7 @@ export function DeleteConfirm({
   onConfirm: () => void;
   busy?: boolean;
 }) {
+  const t = useT();
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" role="alertdialog" aria-modal="true">
       <div className="absolute inset-0 bg-ink/50 backdrop-blur-[2px]" onClick={() => !busy && onCancel()} />
@@ -117,7 +119,7 @@ export function DeleteConfirm({
             disabled={busy}
             className="rounded-btn bg-danger px-4 py-2.5 text-[13.5px] font-extrabold text-white shadow-lg transition-transform active:scale-95 disabled:opacity-60"
           >
-            {busy ? 'Deleting…' : 'Yes, delete'}
+            {busy ? t('del_deleting') : 'Yes, delete'}
           </button>
         </div>
       </div>
@@ -127,6 +129,7 @@ export function DeleteConfirm({
 
 // ── undo toast ───────────────────────────────────────────────────────────────
 export function UndoToast({ label, seconds, onUndo }: { label: string; seconds: number; onUndo: () => void }) {
+  const t = useT();
   const [left, setLeft] = useState(seconds);
   useEffect(() => {
     setLeft(seconds);
@@ -137,7 +140,7 @@ export function UndoToast({ label, seconds, onUndo }: { label: string; seconds: 
     <div className="fixed bottom-6 left-1/2 z-[60] -translate-x-1/2">
       <div className="glass flex items-center gap-3 !rounded-full py-2.5 pl-5 pr-2.5 shadow-2xl">
         <p className="max-w-[220px] truncate text-[13px] font-bold text-ink">
-          “{label}” deleted
+          {t('del_toast_deleted', { label })}
         </p>
         <span className="font-mono text-[12px] font-bold text-muted">{left}s</span>
         <Btn size="sm" onClick={onUndo} className="!rounded-full">
@@ -147,4 +150,3 @@ export function UndoToast({ label, seconds, onUndo }: { label: string; seconds: 
     </div>
   );
 }
-

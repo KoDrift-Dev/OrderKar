@@ -7,6 +7,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { tableQr } from '@/lib/qr';
+import { useT } from '@/lib/i18n';
 import { qrSvg, downloadPng } from './QrSection';
 import { Btn, Card, SectionHead, Input, Label, Empty } from './ui';
 import { useGuard, useUndoDelete, DeleteConfirm, UndoToast } from './DeleteFlow';
@@ -24,12 +25,23 @@ interface FormState {
 
 const EMPTY_FORM: FormState = { number: '', section: 'Indoor', customSection: '', capacity: '4', isActive: true };
 
-function sectionLabel(t: DiningTable): string {
-  const s = (t.floor_section || '').trim();
-  return s ? s.charAt(0).toUpperCase() + s.slice(1) : 'Indoor';
+type TFn = ReturnType<typeof useT>;
+
+/** Raw section string → display label (presets translated, custom kept as-is). */
+function sectionName(raw: string | undefined, tt: TFn): string {
+  const s = (raw || '').trim().toLowerCase();
+  if (s === 'outdoor') return tt('tbl_sec_outdoor');
+  if (s === 'rooftop') return tt('tbl_sec_rooftop');
+  if (s === 'indoor' || !s) return tt('tbl_sec_indoor');
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+function sectionLabel(t: DiningTable, tt: TFn): string {
+  return sectionName(t.floor_section, tt);
 }
 
 function QrModal({ table, slug, onClose }: { table: DiningTable; slug: string; onClose: () => void }) {
+  const t = useT();
   const [svg, setSvg] = useState('');
   const [busy, setBusy] = useState(false);
   const qr = tableQr(slug, table.table_number, typeof window !== 'undefined' ? window.location.origin : '');
@@ -50,19 +62,19 @@ function QrModal({ table, slug, onClose }: { table: DiningTable; slug: string; o
       <div className="absolute inset-0 bg-ink/45 backdrop-blur-[2px]" onClick={onClose} />
       <div className="absolute inset-0 m-auto flex h-fit max-h-[92dvh] w-[calc(100%-2rem)] max-w-sm flex-col items-center rounded-[24px] bg-[var(--c-surface-solid)] p-6 text-center shadow-2xl">
         <h2 className="font-display text-[18px] font-extrabold text-ink">
-          Table {table.table_number} · {sectionLabel(table)}
+          Table {table.table_number} · {sectionLabel(table, t)}
         </h2>
-        <p className="mt-1 text-[12px] text-muted">Scan karke is table ka menu khulega</p>
+        <p className="mt-1 text-[12px] text-muted">{t('tbl_qr_hint')}</p>
         {svg ? (
           <div
             className="mt-4 h-56 w-56 overflow-hidden rounded-[16px] border border-line bg-white p-2 [&>svg]:h-full [&>svg]:w-full"
             dangerouslySetInnerHTML={{ __html: svg }}
             role="img"
-            aria-label={`QR code for table ${table.table_number}`}
+            aria-label={t('tbl_qr_aria', { n: table.table_number })}
           />
         ) : (
           <div className="mt-4 flex h-56 w-56 items-center justify-center rounded-[16px] border border-line bg-white">
-            <span className="text-xs font-semibold text-muted">Loading…</span>
+            <span className="text-xs font-semibold text-muted">{t('tbl_loading')}</span>
           </div>
         )}
         <p className="mt-3 max-w-full truncate px-2 font-mono text-[11px] text-muted">{qr.url}</p>
@@ -82,7 +94,7 @@ function QrModal({ table, slug, onClose }: { table: DiningTable; slug: string; o
             {busy ? '…' : '⬇ PNG'}
           </Btn>
           <Btn variant="secondary" onClick={onClose}>
-            Close
+            {t('tbl_close')}
           </Btn>
         </div>
       </div>
@@ -101,6 +113,7 @@ export default function TableManager({
   tables: DiningTable[];
   onChange: (tables: DiningTable[]) => void;
 }) {
+  const t = useT();
   const [editing, setEditing] = useState<DiningTable | 'new' | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [formError, setFormError] = useState('');
@@ -108,12 +121,12 @@ export default function TableManager({
   const [confirmDel, setConfirmDel] = useState<DiningTable | null>(null);
   const [qrTable, setQrTable] = useState<DiningTable | null>(null);
   const guard = useGuard();
-  const del = useUndoDelete<DiningTable>(async (t) => {
-    await createClient().from('tables').delete().eq('id', t.id);
+  const del = useUndoDelete<DiningTable>(async (tb) => {
+    await createClient().from('tables').delete().eq('id', tb.id);
   });
 
   const sorted = useMemo(() => [...tables].sort((a, b) => a.table_number - b.table_number), [tables]);
-  const usedNumbers = useMemo(() => new Set(tables.map((t) => t.table_number)), [tables]);
+  const usedNumbers = useMemo(() => new Set(tables.map((tb) => tb.table_number)), [tables]);
 
   const nextFree = useMemo(() => {
     let n = 1;
@@ -127,17 +140,17 @@ export default function TableManager({
     setEditing('new');
   };
 
-  const openEdit = (t: DiningTable) => {
-    const preset = PRESET_SECTIONS.find((p) => p.toLowerCase() === (t.floor_section || '').toLowerCase());
+  const openEdit = (tb: DiningTable) => {
+    const preset = PRESET_SECTIONS.find((p) => p.toLowerCase() === (tb.floor_section || '').toLowerCase());
     setForm({
-      number: String(t.table_number),
+      number: String(tb.table_number),
       section: preset ?? 'Custom',
-      customSection: preset ? '' : t.floor_section,
-      capacity: String(t.capacity),
-      isActive: t.is_active,
+      customSection: preset ? '' : tb.floor_section,
+      capacity: String(tb.capacity),
+      isActive: tb.is_active,
     });
     setFormError('');
-    setEditing(t);
+    setEditing(tb);
   };
 
   const save = () =>
@@ -145,22 +158,22 @@ export default function TableManager({
       setFormError('');
       const num = parseInt(form.number, 10);
       if (!Number.isInteger(num) || num < 1 || num > 999) {
-        setFormError('Table number 1–999 ke darmiyan hona chahiye.');
+        setFormError(t('tbl_val_number'));
         return;
       }
       const editingId = editing !== 'new' && editing ? editing.id : null;
-      if (tables.some((t) => t.table_number === num && t.id !== editingId)) {
-        setFormError(`Table ${num} pehle se maujood hai — koi aur number chuno.`);
+      if (tables.some((tb) => tb.table_number === num && tb.id !== editingId)) {
+        setFormError(t('tbl_val_dup', { n: num }));
         return;
       }
       const section = form.section === 'Custom' ? form.customSection.trim() : form.section;
       if (!section) {
-        setFormError('Section ka naam likho (jaise "Family Hall").');
+        setFormError(t('tbl_val_section'));
         return;
       }
       const cap = parseInt(form.capacity, 10);
       if (!Number.isInteger(cap) || cap < 1 || cap > 50) {
-        setFormError('Capacity 1–50 ke darmiyan honi chahiye.');
+        setFormError(t('tbl_val_capacity'));
         return;
       }
       setSaving(true);
@@ -181,35 +194,35 @@ export default function TableManager({
         } else if (editing) {
           const { data, error } = await supabase.from('tables').update(payload).eq('id', editing.id).select().single();
           if (error) throw error;
-          onChange(tables.map((t) => (t.id === editing.id ? (data as DiningTable) : t)));
+          onChange(tables.map((tb) => (tb.id === editing.id ? (data as DiningTable) : tb)));
         }
         setEditing(null);
       } catch (err) {
-        setFormError(err instanceof Error ? err.message : 'Save nahi ho saka.');
+        setFormError(err instanceof Error ? err.message : t('tbl_err_save'));
       } finally {
         setSaving(false);
       }
     });
 
-  const toggleActive = (t: DiningTable) =>
+  const toggleActive = (tb: DiningTable) =>
     guard(async () => {
       const { data, error } = await createClient()
         .from('tables')
-        .update({ is_active: !t.is_active })
-        .eq('id', t.id)
+        .update({ is_active: !tb.is_active })
+        .eq('id', tb.id)
         .select()
         .single();
-      if (!error && data) onChange(tables.map((x) => (x.id === t.id ? (data as DiningTable) : x)));
+      if (!error && data) onChange(tables.map((x) => (x.id === tb.id ? (data as DiningTable) : x)));
     });
 
-  const askDelete = (t: DiningTable) => setConfirmDel(t);
+  const askDelete = (tb: DiningTable) => setConfirmDel(tb);
   const doDelete = () =>
     guard(async () => {
       if (!confirmDel) return;
       const gone = confirmDel;
       setConfirmDel(null);
-      del.schedule(gone, `Table ${gone.table_number} deleted`, () =>
-        onChange(tables.filter((t) => t.id !== gone.id)),
+      del.schedule(gone, t('tbl_undo_label', { n: gone.table_number }), () =>
+        onChange(tables.filter((x) => x.id !== gone.id)),
       );
     });
 
@@ -217,7 +230,7 @@ export default function TableManager({
     <div>
       <SectionHead
         title="Tables"
-        sub={`${tables.length} tables · ${tables.filter((t) => t.is_active).length} active — har table ka apna QR code`}
+        sub={t('tbl_sub', { n: tables.length, active: tables.filter((x) => x.is_active).length })}
         action={
           <Btn size="sm" onClick={openNew}>
             ＋ Add table
@@ -226,54 +239,54 @@ export default function TableManager({
       />
 
       {tables.length === 0 ? (
-        <Empty title="Koi table nahi" sub="Add table dabaa ke pehli table banao." />
+        <Empty title={t('tbl_empty_title')} sub={t('tbl_empty_sub')} />
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {sorted.map((t) => (
-            <Card key={t.id} className={`p-4 ${t.is_active ? '' : 'opacity-60'}`}>
+          {sorted.map((tb) => (
+            <Card key={tb.id} className={`p-4 ${tb.is_active ? '' : 'opacity-60'}`}>
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="font-display text-[20px] font-extrabold text-ink">Table {t.table_number}</p>
+                  <p className="font-display text-[20px] font-extrabold text-ink">Table {tb.table_number}</p>
                   <p className="mt-0.5 text-[12px] font-bold text-muted">
-                    {sectionLabel(t)} · {t.capacity} seats
+                    {sectionLabel(tb, t)} · {tb.capacity} seats
                   </p>
                 </div>
                 <button
                   type="button"
-                  onClick={() => toggleActive(t)}
-                  title={t.is_active ? 'Deactivate' : 'Activate'}
-                  className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${t.is_active ? 'bg-brand' : 'bg-line'}`}
+                  onClick={() => toggleActive(tb)}
+                  title={tb.is_active ? 'Deactivate' : 'Activate'}
+                  className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${tb.is_active ? 'bg-brand' : 'bg-line'}`}
                 >
                   <span
-                    className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${t.is_active ? 'left-[22px]' : 'left-0.5'}`}
+                    className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${tb.is_active ? 'left-[22px]' : 'left-0.5'}`}
                   />
                 </button>
               </div>
               <div className="mt-3 flex items-center gap-1.5">
                 <button
                   type="button"
-                  onClick={() => setQrTable(t)}
+                  onClick={() => setQrTable(tb)}
                   className="flex-1 rounded-btn border border-line bg-[var(--c-surface-solid)] px-2 py-1.5 text-[12px] font-bold text-ink hover:bg-soft"
                 >
                   📷 QR
                 </button>
                 <button
                   type="button"
-                  onClick={() => openEdit(t)}
+                  onClick={() => openEdit(tb)}
                   className="flex-1 rounded-btn border border-line bg-[var(--c-surface-solid)] px-2 py-1.5 text-[12px] font-bold text-ink hover:bg-soft"
                 >
                   ✏️ Edit
                 </button>
                 <button
                   type="button"
-                  onClick={() => askDelete(t)}
+                  onClick={() => askDelete(tb)}
                   className="flex-1 rounded-btn border border-line bg-[var(--c-surface-solid)] px-2 py-1.5 text-[12px] font-bold text-danger hover:bg-danger/10"
                 >
                   🗑
                 </button>
               </div>
-              {!t.is_active && (
-                <p className="mt-2 text-center text-[11px] font-bold text-muted">Inactive — QR kaam nahi karega</p>
+              {!tb.is_active && (
+                <p className="mt-2 text-center text-[11px] font-bold text-muted">{t('tbl_inactive_note')}</p>
               )}
             </Card>
           ))}
@@ -287,7 +300,7 @@ export default function TableManager({
           <div className="absolute inset-0 m-auto flex h-fit max-h-[92dvh] w-[calc(100%-2rem)] max-w-md flex-col rounded-[24px] bg-[var(--c-surface-solid)] shadow-2xl">
             <div className="flex items-center justify-between border-b border-line p-4 sm:px-6">
               <h2 className="font-display text-[17px] font-extrabold text-ink">
-                {editing === 'new' ? 'Add table' : `Edit table ${editing.table_number}`}
+                {editing === 'new' ? 'Add table' : t('tbl_modal_edit', { n: editing.table_number })}
               </h2>
               <button type="button" onClick={() => !saving && setEditing(null)} className="text-[20px] text-muted hover:text-ink">
                 ×
@@ -317,7 +330,7 @@ export default function TableManager({
                         form.section === s ? 'bg-brand text-white shadow' : 'border border-line text-muted hover:text-ink'
                       }`}
                     >
-                      {s}
+                      {s === 'Custom' ? t('tbl_sec_custom') : sectionName(s, t)}
                     </button>
                   ))}
                 </div>
@@ -326,7 +339,7 @@ export default function TableManager({
                     className="mt-2"
                     value={form.customSection}
                     onChange={(e) => setForm((f) => ({ ...f, customSection: e.target.value }))}
-                    placeholder="Jaise: Family Hall, Basement…"
+                    placeholder={t('tbl_ph_section')}
                     maxLength={40}
                   />
                 )}
@@ -357,7 +370,7 @@ export default function TableManager({
                 Cancel
               </Btn>
               <Btn onClick={save} disabled={saving}>
-                {saving ? 'Saving…' : editing === 'new' ? 'Add table' : 'Save'}
+                {saving ? t('tbl_saving') : editing === 'new' ? 'Add table' : 'Save'}
               </Btn>
             </div>
           </div>
@@ -366,14 +379,14 @@ export default function TableManager({
 
       {confirmDel && (
         <DeleteConfirm
-          title={`Delete table ${confirmDel.table_number}?`}
-          message="Is table ka QR code kaam karna band kar dega. Purane orders pe koi asar nahi parega."
+          title={t('tbl_del_title', { n: confirmDel.table_number })}
+          message={t('tbl_del_msg')}
           onCancel={() => setConfirmDel(null)}
           onConfirm={doDelete}
         />
       )}
       {del.pending && (
-        <UndoToast label={del.pending.label} seconds={del.seconds} onUndo={() => del.undo((t) => onChange([...tables, t]))} />
+        <UndoToast label={del.pending.label} seconds={del.seconds} onUndo={() => del.undo((tb) => onChange([...tables, tb]))} />
       )}
       {qrTable && <QrModal table={qrTable} slug={slug} onClose={() => setQrTable(null)} />}
     </div>

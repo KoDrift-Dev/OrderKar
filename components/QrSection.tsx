@@ -8,6 +8,7 @@
 import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import { allQrs, tableQr, reviewsQr, type QrDef } from '@/lib/qr';
+import { useT, useLang } from '@/lib/i18n';
 import { Btn, Card, SectionHead } from './ui';
 import type { DiningTable } from '@/lib/types';
 
@@ -52,6 +53,7 @@ export async function downloadPng(svg: string, filename: string): Promise<void> 
 }
 
 function QrCard({ qr, svg, restaurantName }: { qr: QrDef; svg?: string; restaurantName: string }) {
+  const t = useT();
   const [busy, setBusy] = useState(false);
   return (
     <Card className="flex flex-col items-center p-4 text-center">
@@ -60,11 +62,11 @@ function QrCard({ qr, svg, restaurantName }: { qr: QrDef; svg?: string; restaura
           className="h-36 w-36 overflow-hidden rounded-[12px] border border-line bg-white p-1.5 [&>svg]:h-full [&>svg]:w-full"
           dangerouslySetInnerHTML={{ __html: svg }}
           role="img"
-          aria-label={`QR code for ${qr.label}`}
+          aria-label={t('qr_aria', { label: qr.label })}
         />
       ) : (
         <div className="flex h-36 w-36 items-center justify-center rounded-[12px] border border-line bg-white">
-          <span className="text-xs font-semibold text-muted">Loading…</span>
+          <span className="text-xs font-semibold text-muted">{t('qr_loading')}</span>
         </div>
       )}
       <p className="mt-3 font-display text-[15px] font-extrabold text-ink">{qr.label}</p>
@@ -101,19 +103,27 @@ export default function QrSection({
   tables: DiningTable[];
   restaurantName: string;
 }) {
+  const t = useT();
+  const lang = useLang();
   const [svgs, setSvgs] = useState<Record<string, string>>({});
   const [qrs, setQrs] = useState<QrDef[]>([]);
 
   useEffect(() => {
+    const sectionName = (raw: string): string => {
+      if (raw === 'outdoor') return t('qr_sec_outdoor');
+      if (raw === 'rooftop') return t('qr_sec_rooftop');
+      if (raw === 'indoor') return t('qr_sec_indoor');
+      return raw.charAt(0).toUpperCase() + raw.slice(1);
+    };
     const origin = window.location.origin;
     const active = [...tables]
-      .filter((t) => t.is_active)
+      .filter((tb) => tb.is_active)
       .sort((a, b) => a.table_number - b.table_number);
-    const defs: QrDef[] = active.map((t) => {
-      const raw = (t.floor_section || '').trim().toLowerCase();
-      const section = raw ? raw.charAt(0).toUpperCase() + raw.slice(1) : '';
-      const label = section && section !== 'Indoor' ? `Table ${t.table_number} · ${section}` : `Table ${t.table_number}`;
-      const qr = tableQr(slug, t.table_number, origin);
+    const defs: QrDef[] = active.map((tb) => {
+      const raw = (tb.floor_section || '').trim().toLowerCase();
+      const section = raw ? sectionName(raw) : '';
+      const label = raw && raw !== 'indoor' ? `Table ${tb.table_number} · ${section}` : `Table ${tb.table_number}`;
+      const qr = tableQr(slug, tb.table_number, origin);
       return { ...qr, label, sub: section ? `${section} · ${qr.url}` : qr.url };
     });
     defs.push(reviewsQr(slug, origin));
@@ -128,19 +138,19 @@ export default function QrSection({
     return () => {
       live = false;
     };
-  }, [slug, tables]);
+  }, [slug, tables, lang]);
 
   return (
     <section>
       <SectionHead
         title="QR codes"
-        sub="Print and place on tables — scanning opens that table's menu. The reviews QR opens the feedback page."
+        sub={t('qr_sub')}
         action={
           <Btn size="sm" variant="secondary" onClick={() => window.print()}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M6 9V3h12v6M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2m-12-3h12v6H6z" />
             </svg>
-            Print all
+            {t('qr_print_all')}
           </Btn>
         }
       />
@@ -154,7 +164,7 @@ export default function QrSection({
         <h1 style={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 28, color: '#1F2937' }}>
           OrderKar — Table QR codes
         </h1>
-        <p style={{ color: '#6B7280', marginBottom: 24 }}>Scan to open the menu for that table · {restaurantName}</p>
+        <p style={{ color: '#6B7280', marginBottom: 24 }}>{t('qr_print_sub', { name: restaurantName })}</p>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>
           {qrs.map((qr) => (
             <div key={qr.id} style={{ textAlign: 'center', breakInside: 'avoid' }}>

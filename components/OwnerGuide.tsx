@@ -5,58 +5,60 @@
 
 import { useState } from 'react';
 import { Btn } from './ui';
+import { useT, type TKey } from '@/lib/i18n';
 
-const SECTIONS: { title: string; rows: { metric: string; what: string; how: string }[] }[] = [
+const SECTIONS: { title: string; rows: { metric: string; w: TKey; h: TKey }[] }[] = [
   {
     title: '📊 Dashboard',
     rows: [
-      { metric: 'Revenue', what: 'Is period mein kamaye gaye paise (cancelled orders ke baghair).', how: 'Sab non-cancelled orders ke total_amount ka sum.' },
-      { metric: 'Orders', what: 'Kitne orders aaye (cancelled ke baghair).', how: 'Non-cancelled orders ki ginti.' },
-      { metric: 'Avg order value', what: 'Ek order pe average kharcha.', how: 'Revenue ÷ Orders.' },
-      { metric: 'Items sold', what: 'Kitni dishes biki.', how: 'Sab order_items ki quantity ka sum.' },
-      { metric: 'Void rate', what: 'Kitne % orders cancel hue. 2% se zyada = problem.', how: 'Cancelled orders ÷ Total orders × 100.' },
-      { metric: 'Smart summary', what: 'Aaj ki auto-highlights.', how: 'Rules se banta hai: aaj vs kal revenue, top item, void alerts, avg prep time, best waiter. AI nahi — fixed formulas.' },
-      { metric: 'Revenue trend', what: 'Time ke saath revenue ka graph.', how: 'Har din (ya month) ke orders ka sum. Khaali din 0 dikhte hain.' },
+      { metric: 'Revenue', w: 'gde_revenue_w', h: 'gde_revenue_h' },
+      { metric: 'Orders', w: 'gde_orders_w', h: 'gde_orders_h' },
+      { metric: 'Avg order value', w: 'gde_aov_w', h: 'gde_aov_h' },
+      { metric: 'Items sold', w: 'gde_items_w', h: 'gde_items_h' },
+      { metric: 'Void rate', w: 'gde_void_w', h: 'gde_void_h' },
+      { metric: 'Smart summary', w: 'gde_smart_w', h: 'gde_smart_h' },
+      { metric: 'Revenue trend', w: 'gde_trend_w', h: 'gde_trend_h' },
     ],
   },
   {
     title: '💰 Sales',
     rows: [
-      { metric: 'Rush-hour heatmap', what: 'Din ke kis hour mein sab se zyada orders.', how: 'Har order ke created_at hour ki ginti (24 boxes).' },
-      { metric: 'Weekday bars', what: 'Hafte ke kis din kitne orders.', how: 'Orders ki weekday-wise ginti (Mon–Sun).' },
-      { metric: 'Top items', what: 'Sab se zyada bikne wali dishes.', how: 'Quantity ke hisaab se ranking + unki revenue.' },
-      { metric: 'Payment methods', what: 'Cash / Card / JazzCash / EasyPaisa ka share.', how: 'Har method ki revenue ka total revenue se %. "Not recorded" = waiter ne payment record nahi ki.' },
-      { metric: 'Order types', what: 'Dine-in vs takeaway vs delivery.', how: 'Orders ki order_type wise ginti.' },
-      { metric: 'Cancellations', what: 'Cancel hue orders, unki value aur reasons.', how: 'Status=cancelled wale orders. Reason kitchen se cancel karte waqt select hota hai.' },
+      { metric: 'Rush-hour heatmap', w: 'gde_rush_w', h: 'gde_rush_h' },
+      { metric: 'Weekday bars', w: 'gde_weekday_w', h: 'gde_weekday_h' },
+      { metric: 'Top items', w: 'gde_top_w', h: 'gde_top_h' },
+      { metric: 'Payment methods', w: 'gde_pay_w', h: 'gde_pay_h' },
+      { metric: 'Order types', w: 'gde_otypes_w', h: 'gde_otypes_h' },
+      { metric: 'Cancellations', w: 'gde_cancels_w', h: 'gde_cancels_h' },
     ],
   },
   {
     title: '⚙️ Operations',
     rows: [
-      { metric: 'Live kitchen', what: 'Is waqt kitchen mein kya chal raha — sirf dekhne ke liye.', how: 'Realtime: pending / preparing / ready orders. Status sirf kitchen staff change kar sakta hai.' },
-      { metric: 'Table performance', what: 'Kaunsi table kitna kamati hai.', how: 'Har table ke orders ka sum. Green = top third, red = bottom third.' },
-      { metric: 'Avg order-to-ready', what: 'Order lagne se ready hone tak average time.', how: 'Ready/completed orders ka (updated_at − created_at) ka average. Estimate hai — beech wali status changes ka exact time record nahi hota.' },
+      { metric: 'Live kitchen', w: 'gde_live_w', h: 'gde_live_h' },
+      { metric: 'Table performance', w: 'gde_tableperf_w', h: 'gde_tableperf_h' },
+      { metric: 'Avg order-to-ready', w: 'gde_avgready_w', h: 'gde_avgready_h' },
     ],
   },
   {
     title: '👥 Staff',
     rows: [
-      { metric: 'Waiter leaderboard', what: 'Waiters ki sales ranking.', how: 'Har waiter ke orders (waiter_id se) → orders count, sales sum, avg = sales ÷ orders.' },
-      { metric: 'Waiter activity', what: 'Aaj kaun waiter kitna laya.', how: 'Aaj ke orders waiter-wise: count + revenue.' },
+      { metric: 'Waiter leaderboard', w: 'gde_leader_w', h: 'gde_leader_h' },
+      { metric: 'Waiter activity', w: 'gde_activity_w', h: 'gde_activity_h' },
     ],
   },
   {
     title: '⭐ Customers',
     rows: [
-      { metric: 'Avg rating', what: 'Sab reviews ki average rating.', how: 'Ratings ka sum ÷ reviews ki ginti (1–5 stars).' },
-      { metric: 'Rating distribution', what: 'Kitne 5★, kitne 1★…', how: 'Har star level ki ginti.' },
-      { metric: 'Low ratings', what: '2★ ya kam wale reviews — foran action lo.', how: 'Rating ≤ 2 wale reviews ki ginti.' },
+      { metric: 'Avg rating', w: 'gde_avgrating_w', h: 'gde_avgrating_h' },
+      { metric: 'Rating distribution', w: 'gde_dist_w', h: 'gde_dist_h' },
+      { metric: 'Low ratings', w: 'gde_low_w', h: 'gde_low_h' },
     ],
   },
 ];
 
 export default function OwnerGuide() {
   const [open, setOpen] = useState(false);
+  const t = useT();
   return (
     <>
       <Btn size="sm" onClick={() => setOpen(true)} className="!rounded-full">
@@ -69,7 +71,7 @@ export default function OwnerGuide() {
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
                 <h2 className="font-display text-xl font-extrabold text-ink">Analytics guide</h2>
-                <p className="mt-0.5 text-[13px] text-muted">Har metric ka matlab aur uska formula — simple zubaan mein.</p>
+                <p className="mt-0.5 text-[13px] text-muted">{t('gde_sub')}</p>
               </div>
               <button onClick={() => setOpen(false)} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted hover:bg-soft hover:text-ink" aria-label="Close">
                 ✕
@@ -83,15 +85,15 @@ export default function OwnerGuide() {
                     {s.rows.map((r) => (
                       <div key={r.metric} className="rounded-[14px] border border-line p-3.5">
                         <p className="text-[13.5px] font-extrabold text-brand">{r.metric}</p>
-                        <p className="mt-1 text-[13px] leading-relaxed text-body">{r.what}</p>
-                        <p className="mt-1 font-mono text-[12px] leading-relaxed text-muted">🧮 {r.how}</p>
+                        <p className="mt-1 text-[13px] leading-relaxed text-body">{t(r.w)}</p>
+                        <p className="mt-1 font-mono text-[12px] leading-relaxed text-muted">🧮 {t(r.h)}</p>
                       </div>
                     ))}
                   </div>
                 </div>
               ))}
             </div>
-            <Btn className="mt-6 w-full" onClick={() => setOpen(false)}>Samajh gaya ✓</Btn>
+            <Btn className="mt-6 w-full" onClick={() => setOpen(false)}>{t('gde_gotit')}</Btn>
           </div>
         </div>
       )}

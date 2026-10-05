@@ -16,6 +16,7 @@ import OwnerGuide from './OwnerGuide';
 import TableManager from './TableManager';
 import OwnerSettings from './OwnerSettings';
 import { Empty, PageHeader, Tabs } from './ui';
+import { LangProvider, normalizeLang, useT, type Lang, type TKey } from '@/lib/i18n';
 
 type Range = 'today' | '7d' | '30d' | '12m' | 'custom';
 type TabKey = 'dashboard' | 'sales' | 'operations' | 'staff' | 'customers' | 'tables' | 'settings';
@@ -132,12 +133,12 @@ function aggregate(orders: Order[], items: OrderItem[], range: Range, start: Dat
   return { revenue, orders: done.length, itemsSold, trend, hours, weekdays, topItems, cats: [] };
 }
 
-const RANGE_LABEL: Record<Range, string> = {
-  today: 'Today',
-  '7d': 'Last 7 days',
-  '30d': 'Last 30 days',
-  '12m': 'Last 12 months',
-  custom: 'Custom range',
+const RANGE_KEYS: Record<Range, TKey> = {
+  today: 'own_rnglbl_today',
+  '7d': 'own_rnglbl_7d',
+  '30d': 'own_rnglbl_30d',
+  '12m': 'own_rnglbl_12m',
+  custom: 'own_rnglbl_custom',
 };
 
 export default function OwnerApp({
@@ -149,6 +150,41 @@ export default function OwnerApp({
   slug: string;
   restaurantName: string;
 }) {
+  const [lang, setLang] = useState<Lang>('roman');
+
+  // Per-restaurant language from super-admin (theme_config.language).
+  useEffect(() => {
+    let live = true;
+    (async () => {
+      const { data } = await createClient()
+        .from('restaurants')
+        .select('theme_config')
+        .eq('id', restaurantId)
+        .single();
+      if (live) setLang(normalizeLang((data?.theme_config as Record<string, unknown> | null)?.language));
+    })();
+    return () => {
+      live = false;
+    };
+  }, [restaurantId]);
+
+  return (
+    <LangProvider value={lang}>
+      <OwnerAppInner restaurantId={restaurantId} slug={slug} restaurantName={restaurantName} />
+    </LangProvider>
+  );
+}
+
+function OwnerAppInner({
+  restaurantId,
+  slug,
+  restaurantName,
+}: {
+  restaurantId: string;
+  slug: string;
+  restaurantName: string;
+}) {
+  const t = useT();
   const [range, setRange] = useState<Range>('30d');
   const [custom, setCustom] = useState(defaultCustom);
   const [tab, setTab] = useState<TabKey>('dashboard');
@@ -285,10 +321,10 @@ export default function OwnerApp({
               active={range}
               onChange={setRange}
               tabs={[
-                { key: 'today', label: 'Today' },
-                { key: '7d', label: '7 days' },
-                { key: '30d', label: '30 days' },
-                { key: '12m', label: '12 months' },
+                { key: 'today', label: t('own_range_today') },
+                { key: '7d', label: t('own_range_7d') },
+                { key: '30d', label: t('own_range_30d') },
+                { key: '12m', label: t('own_range_12m') },
                 { key: 'custom', label: '📅 Custom' },
               ]}
             />
@@ -298,7 +334,7 @@ export default function OwnerApp({
                   <circle cx="12" cy="12" r="10" stroke="currentColor" strokeOpacity="0.25" strokeWidth="3" />
                   <path d="M22 12a10 10 0 00-10-10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
                 </svg>
-                Updating…
+                {t('own_updating')}
               </span>
             )}
             {range === 'custom' && (
@@ -327,7 +363,7 @@ export default function OwnerApp({
       />
 
       {loading ? (
-        <Empty title="Crunching numbers…" />
+        <Empty title={t('own_crunching')} />
       ) : (
         <>
           <div className={tab === 'dashboard' ? '' : 'hidden'}>
@@ -349,7 +385,7 @@ export default function OwnerApp({
               hours={agg.hours}
               weekdays={agg.weekdays}
               topItems={agg.topItems}
-              rangeLabel={RANGE_LABEL[range]}
+              rangeLabel={t(RANGE_KEYS[range])}
             />
           </div>
           <div className={tab === 'operations' ? '' : 'hidden'}>

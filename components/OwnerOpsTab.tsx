@@ -9,8 +9,10 @@ import TableCard, { tableState } from './TableCard';
 import { fmtPKR, fmtNum } from '@/lib/format';
 import OwnerKitchenView from './OwnerKitchenView';
 import { Card, Empty, SectionHead } from './ui';
+import { useT, type TKey } from '@/lib/i18n';
 
 function TablePerformance({ orders, tables }: { orders: Order[]; tables: DiningTable[] }) {
+  const t = useT();
   const stats = useMemo(() => {
     const m = new Map<string, { orders: number; revenue: number }>();
     for (const o of orders) {
@@ -31,7 +33,7 @@ function TablePerformance({ orders, tables }: { orders: Order[]; tables: DiningT
 
   return (
     <div>
-      <SectionHead title="Table performance" sub="Free = default · Seated = teal · Bill = amber (payment lo)" />
+      <SectionHead title="Table performance" sub={t('own_ops_table_sub' as TKey)} />
       {stats.length === 0 ? (
         <Empty title="No tables" />
       ) : (
@@ -56,6 +58,7 @@ function TablePerformance({ orders, tables }: { orders: Order[]; tables: DiningT
 }
 
 function Fulfillment({ orders }: { orders: Order[] }) {
+  const t = useT();
   const data = useMemo(() => {
     const done = orders.filter((o) => (o.status === 'ready' || o.status === 'completed') && o.updated_at);
     if (done.length === 0) return null;
@@ -81,18 +84,18 @@ function Fulfillment({ orders }: { orders: Order[] }) {
     <div>
       <SectionHead title="Fulfillment times" sub="Order placed → ready (estimate)" />
       {!data ? (
-        <Empty title="No completed orders yet" />
+        <Empty title={t('own_ops_no_done' as TKey)} />
       ) : (
         <div className="grid gap-3 sm:grid-cols-3">
           <Card className="p-5">
-            <p className="text-[12.5px] font-bold uppercase tracking-wide text-muted">Avg order-to-ready</p>
+            <p className="text-[12.5px] font-bold uppercase tracking-wide text-muted">{t('own_ops_avg_ready' as TKey)}</p>
             <p className={`mt-1 font-display text-3xl font-extrabold ${data.avg > 25 ? 'text-danger' : 'text-ink'}`}>
               {Math.round(data.avg)} <span className="text-base">min</span>
             </p>
             <p className="mt-1 text-[12px] text-muted">Target &lt; 25 min · {fmtNum(data.count)} orders</p>
           </Card>
           <Card className="p-5 sm:col-span-2">
-            <p className="text-[12.5px] font-bold uppercase tracking-wide text-muted">Slowest hours (bottlenecks)</p>
+            <p className="text-[12.5px] font-bold uppercase tracking-wide text-muted">{t('own_ops_slowest' as TKey)}</p>
             {data.slowestHours.length === 0 ? (
               <p className="mt-2 text-[13px] text-muted">—</p>
             ) : (

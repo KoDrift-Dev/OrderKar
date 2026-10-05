@@ -12,6 +12,7 @@
 // Bill   → FULL solid amber             (food ready — payment/bill pending)
 
 import type { DiningTable, Order } from '@/lib/types';
+import { useT } from '@/lib/i18n';
 import { Card } from './ui';
 
 export type TableState = 'free' | 'seated' | 'bill';
@@ -33,7 +34,6 @@ export function tableState(tableId: string, orders: OrderLike[]): TableState {
 interface StateStyle {
   card: string;
   pill: string;
-  label: string;
   title: string;
   sub: string;
   metaWrap: string;
@@ -44,7 +44,6 @@ const STATE_STYLE: Record<TableState, StateStyle> = {
   free: {
     card: '',
     pill: 'bg-soft text-muted',
-    label: 'Free',
     title: 'text-ink',
     sub: 'text-muted',
     metaWrap: 'border-line',
@@ -53,7 +52,6 @@ const STATE_STYLE: Record<TableState, StateStyle> = {
   seated: {
     card: '!border-transparent !bg-gradient-to-br from-[#0D9488] to-[#0b7c72]',
     pill: 'bg-white/25 text-white',
-    label: 'Seated',
     title: 'text-white',
     sub: 'text-white/85',
     metaWrap: 'border-white/25',
@@ -62,7 +60,6 @@ const STATE_STYLE: Record<TableState, StateStyle> = {
   bill: {
     card: '!border-transparent !bg-gradient-to-br from-[#F59E0B] to-[#d97706]',
     pill: 'bg-white/25 text-white',
-    label: 'Bill',
     title: 'text-white',
     sub: 'text-white/85',
     metaWrap: 'border-white/25',
@@ -86,7 +83,9 @@ export default function TableCard({
   meta?: React.ReactNode;
   onClick?: () => void;
 }) {
+  const t = useT();
   const st = STATE_STYLE[state];
+  const label = state === 'free' ? t('tblc_free') : state === 'seated' ? 'Seated' : 'Bill';
   const card = (
     <Card
       className={`border p-4 text-center transition-all ${st.card} ${
@@ -98,7 +97,7 @@ export default function TableCard({
         {table.capacity} seats · {sectionName(table)}
       </p>
       <div className="mt-2.5 flex justify-center">
-        <span className={`rounded-full px-3.5 py-1 text-[11.5px] font-extrabold ${st.pill}`}>{st.label}</span>
+        <span className={`rounded-full px-3.5 py-1 text-[11.5px] font-extrabold ${st.pill}`}>{label}</span>
       </div>
       {meta && <div className={`mt-2.5 border-t pt-2.5 ${st.metaWrap} ${st.metaText}`}>{meta}</div>}
     </Card>

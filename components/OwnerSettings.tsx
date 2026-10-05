@@ -5,6 +5,7 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useT } from '@/lib/i18n';
 import { Btn, Card, SectionHead, Input, Label } from './ui';
 import { useGuard } from './DeleteFlow';
 
@@ -25,6 +26,7 @@ export default function OwnerSettings({
   slug: string;
   onNameChange: (name: string) => void;
 }) {
+  const t = useT();
   const [loading, setLoading] = useState(true);
   const guard = useGuard();
   const [saving, setSaving] = useState<string | null>(null);
@@ -91,11 +93,11 @@ export default function OwnerSettings({
     guard(async () => {
       setRMsg(null);
       if (!name.trim()) {
-        setRMsg({ text: 'Restaurant ka naam zaroori hai.', ok: false });
+        setRMsg({ text: t('set_val_name'), ok: false });
         return;
       }
       if (contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail.trim())) {
-        setRMsg({ text: 'Contact email ka format theek nahi.', ok: false });
+        setRMsg({ text: t('set_val_email'), ok: false });
         return;
       }
       setSaving('rest');
@@ -109,9 +111,9 @@ export default function OwnerSettings({
           .eq('id', restaurantId);
         if (error) throw error;
         onNameChange(name.trim());
-        setRMsg({ text: '✅ Restaurant details save ho gayi.', ok: true });
+        setRMsg({ text: t('set_saved_rest'), ok: true });
       } catch (err) {
-        setRMsg({ text: `❌ ${err instanceof Error ? err.message : 'Save nahi ho saka.'}`, ok: false });
+        setRMsg({ text: `❌ ${err instanceof Error ? err.message : t('set_err_default')}`, ok: false });
       } finally {
         setSaving(null);
       }
@@ -121,7 +123,7 @@ export default function OwnerSettings({
     guard(async () => {
       setAMsg(null);
       if (!fullName.trim()) {
-        setAMsg({ text: 'Apna naam likho.', ok: false });
+        setAMsg({ text: t('set_val_fullname'), ok: false });
         return;
       }
       setSaving('acct');
@@ -130,12 +132,12 @@ export default function OwnerSettings({
         const {
           data: { user },
         } = await supabase.auth.getUser();
-        if (!user) throw new Error('Session nahi mili — dobara login karo.');
+        if (!user) throw new Error(t('set_err_session'));
         const { error } = await supabase.from('profiles').update({ name: fullName.trim(), phone: myPhone.trim() || null }).eq('id', user.id);
         if (error) throw error;
-        setAMsg({ text: '✅ Account details save ho gayi.', ok: true });
+        setAMsg({ text: t('set_saved_acct'), ok: true });
       } catch (err) {
-        setAMsg({ text: `❌ ${err instanceof Error ? err.message : 'Save nahi ho saka.'}`, ok: false });
+        setAMsg({ text: `❌ ${err instanceof Error ? err.message : t('set_err_default')}`, ok: false });
       } finally {
         setSaving(null);
       }
@@ -145,17 +147,17 @@ export default function OwnerSettings({
     guard(async () => {
       setSMsg(null);
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail.trim())) {
-        setSMsg({ text: 'Naya email sahi format mein likho.', ok: false });
+        setSMsg({ text: t('set_val_newemail'), ok: false });
         return;
       }
       setSaving('email');
       try {
         const { error } = await createClient().auth.updateUser({ email: newEmail.trim() });
         if (error) throw error;
-        setSMsg({ text: '📧 Confirmation link naye email pe bheja gaya hai — wahan se confirm karo.', ok: true });
+        setSMsg({ text: t('set_email_sent'), ok: true });
         setNewEmail('');
       } catch (err) {
-        setSMsg({ text: `❌ ${err instanceof Error ? err.message : 'Email change nahi ho saka.'}`, ok: false });
+        setSMsg({ text: `❌ ${err instanceof Error ? err.message : t('set_err_email')}`, ok: false });
       } finally {
         setSaving(null);
       }
@@ -165,22 +167,22 @@ export default function OwnerSettings({
     guard(async () => {
       setSMsg(null);
       if (newPass.length < 6) {
-        setSMsg({ text: 'Password kam az kam 6 characters ka ho.', ok: false });
+        setSMsg({ text: t('set_val_passlen'), ok: false });
         return;
       }
       if (newPass !== confirmPass) {
-        setSMsg({ text: 'Dono passwords match nahi kar rahe.', ok: false });
+        setSMsg({ text: t('set_val_passmatch'), ok: false });
         return;
       }
       setSaving('pass');
       try {
         const { error } = await createClient().auth.updateUser({ password: newPass });
         if (error) throw error;
-        setSMsg({ text: '✅ Password change ho gaya.', ok: true });
+        setSMsg({ text: t('set_pass_changed'), ok: true });
         setNewPass('');
         setConfirmPass('');
       } catch (err) {
-        setSMsg({ text: `❌ ${err instanceof Error ? err.message : 'Password change nahi ho saka.'}`, ok: false });
+        setSMsg({ text: `❌ ${err instanceof Error ? err.message : t('set_err_pass')}`, ok: false });
       } finally {
         setSaving(null);
       }
@@ -189,19 +191,19 @@ export default function OwnerSettings({
   if (loading) {
     return (
       <Card className="p-8 text-center">
-        <p className="text-sm font-bold text-muted">Loading settings…</p>
+        <p className="text-sm font-bold text-muted">{t('set_loading')}</p>
       </Card>
     );
   }
 
   return (
     <div className="space-y-5">
-      <SectionHead title="Settings" sub="Restaurant details, tumhara account aur login security." />
+      <SectionHead title="Settings" sub={t('set_sub')} />
 
       {/* ── restaurant ── */}
       <Card className="p-5 sm:p-6">
         <h3 className="font-display text-[16px] font-extrabold text-ink">🏪 Restaurant details</h3>
-        <p className="mt-0.5 text-[12.5px] text-muted">Yeh info customer pages aur receipts pe nazar aayegi.</p>
+        <p className="mt-0.5 text-[12.5px] text-muted">{t('set_rest_info')}</p>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <div>
             <Label>Restaurant name</Label>
@@ -224,11 +226,11 @@ export default function OwnerSettings({
           <span className="rounded-full bg-soft px-3 py-1 text-[12px] font-bold text-muted">slug: {slug}</span>
           {tier && <span className="rounded-full bg-brand/10 px-3 py-1 text-[12px] font-bold text-brand">Plan: {tier}</span>}
         </div>
-        <p className="mt-2 text-[11.5px] text-muted">Slug change nahi ho sakta — printed QR codes isi pe bane hain.</p>
+        <p className="mt-2 text-[11.5px] text-muted">{t('set_slug_note')}</p>
         {rMsg && <div className="mt-3">{msg(rMsg.text, rMsg.ok)}</div>}
         <div className="mt-4">
           <Btn onClick={saveRestaurant} disabled={saving === 'rest'}>
-            {saving === 'rest' ? 'Saving…' : 'Save restaurant details'}
+            {saving === 'rest' ? t('set_saving') : 'Save restaurant details'}
           </Btn>
         </div>
       </Card>
@@ -236,7 +238,7 @@ export default function OwnerSettings({
       {/* ── my account ── */}
       <Card className="p-5 sm:p-6">
         <h3 className="font-display text-[16px] font-extrabold text-ink">👤 My account</h3>
-        <p className="mt-0.5 text-[12.5px] text-muted">Tumhara naam aur phone — staff list mein nazar aayega.</p>
+        <p className="mt-0.5 text-[12.5px] text-muted">{t('set_acct_info')}</p>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <div>
             <Label>Full name</Label>
@@ -250,12 +252,12 @@ export default function OwnerSettings({
         <div className="mt-3">
           <Label>Login email</Label>
           <Input value={loginEmail} disabled className="opacity-60" />
-          <p className="mt-1 text-[11.5px] text-muted">Email change neeche Security section se hota hai.</p>
+          <p className="mt-1 text-[11.5px] text-muted">{t('set_email_note')}</p>
         </div>
         {aMsg && <div className="mt-3">{msg(aMsg.text, aMsg.ok)}</div>}
         <div className="mt-4">
           <Btn onClick={saveAccount} disabled={saving === 'acct'}>
-            {saving === 'acct' ? 'Saving…' : 'Save my details'}
+            {saving === 'acct' ? t('set_saving') : 'Save my details'}
           </Btn>
         </div>
       </Card>
@@ -265,7 +267,7 @@ export default function OwnerSettings({
         <h3 className="font-display text-[16px] font-extrabold text-ink">🔐 Login & security</h3>
         <div className="mt-4 grid gap-6 lg:grid-cols-2">
           <div>
-            <Label>Naya login email</Label>
+            <Label>{t('set_new_email')}</Label>
             <div className="flex gap-2">
               <Input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="new@email.pk" className="flex-1" maxLength={120} />
               <Btn variant="secondary" onClick={changeEmail} disabled={saving === 'email'}>
@@ -274,10 +276,10 @@ export default function OwnerSettings({
             </div>
           </div>
           <div>
-            <Label>Naya password</Label>
-            <Input type="password" value={newPass} onChange={(e) => setNewPass(e.target.value)} placeholder="Kam az kam 6 characters" maxLength={72} />
+            <Label>{t('set_new_pass')}</Label>
+            <Input type="password" value={newPass} onChange={(e) => setNewPass(e.target.value)} placeholder={t('set_ph_pass')} maxLength={72} />
             <div className="mt-2">
-              <Label>Password dobara likho</Label>
+              <Label>{t('set_pass_confirm')}</Label>
               <div className="flex gap-2">
                 <Input type="password" value={confirmPass} onChange={(e) => setConfirmPass(e.target.value)} placeholder="••••••••" className="flex-1" maxLength={72} />
                 <Btn variant="secondary" onClick={changePassword} disabled={saving === 'pass'}>

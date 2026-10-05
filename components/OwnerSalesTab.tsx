@@ -9,6 +9,7 @@ import { fmtPKR, fmtNum } from '@/lib/format';
 import { downloadCsv } from '@/lib/csv';
 import { HourlyHeatmap, TopItems, WeekdayBars } from './charts';
 import { Btn, Card, Empty, SectionHead } from './ui';
+import { useT } from '@/lib/i18n';
 
 const PAY_LABELS: Record<string, string> = {
   cash: '💵 Cash',
@@ -18,6 +19,7 @@ const PAY_LABELS: Record<string, string> = {
 };
 
 function MiniDonut({ title, sub, data }: { title: string; sub: string; data: { name: string; revenue: number }[] }) {
+  const t = useT();
   const total = data.reduce((s, d) => s + d.revenue, 0) || 1;
   let acc = 0;
   const R = 54;
@@ -28,7 +30,7 @@ function MiniDonut({ title, sub, data }: { title: string; sub: string; data: { n
       <p className="font-display text-[15px] font-extrabold text-ink">{title}</p>
       <p className="mb-3 text-[12.5px] text-muted">{sub}</p>
       {data.length === 0 ? (
-        <p className="py-6 text-center text-[13px] text-muted">No data yet</p>
+        <p className="py-6 text-center text-[13px] text-muted">{t('own_no_data')}</p>
       ) : (
         <div className="flex items-center gap-5">
           <svg viewBox="0 0 140 140" className="h-32 w-32 shrink-0 -rotate-90">
@@ -74,6 +76,7 @@ export default function OwnerSalesTab({
   topItems: { name: string; qty: number; revenue: number }[];
   rangeLabel: string;
 }) {
+  const t = useT();
   const payments = useMemo(() => {
     const m = new Map<string, number>();
     for (const o of orders) {
@@ -82,9 +85,9 @@ export default function OwnerSalesTab({
       m.set(k, (m.get(k) ?? 0) + Number(o.total_amount));
     }
     return [...m.entries()]
-      .map(([k, revenue]) => ({ name: PAY_LABELS[k] ?? '❓ Not recorded', revenue }))
+      .map(([k, revenue]) => ({ name: PAY_LABELS[k] ?? t('own_pay_unknown'), revenue }))
       .sort((a, b) => b.revenue - a.revenue);
-  }, [orders]);
+  }, [orders, t]);
 
   const orderTypes = useMemo(() => {
     const m = new Map<string, number>();
@@ -101,9 +104,9 @@ export default function OwnerSalesTab({
     const list = orders.filter((o) => o.status === 'cancelled');
     const value = list.reduce((s, o) => s + Number(o.total_amount), 0);
     const reasons = new Map<string, number>();
-    for (const o of list) reasons.set(o.cancel_reason ?? 'no reason given', (reasons.get(o.cancel_reason ?? 'no reason given') ?? 0) + 1);
+    for (const o of list) reasons.set(o.cancel_reason ?? t('own_cancel_no_reason'), (reasons.get(o.cancel_reason ?? t('own_cancel_no_reason')) ?? 0) + 1);
     return { list, value, reasons: [...reasons.entries()].sort((a, b) => b[1] - a[1]) };
-  }, [orders]);
+  }, [orders, t]);
 
   const exportSales = () => {
     const byDay = new Map<string, { orders: number; revenue: number; cancelled: number }>();
@@ -137,7 +140,7 @@ export default function OwnerSalesTab({
       <div>
         <SectionHead title="Sales analytics" sub={rangeLabel} action={
           <div className="flex gap-2">
-            <Btn size="sm" onClick={exportSales}>⬇ Daily sales CSV</Btn>
+            <Btn size="sm" onClick={exportSales}>{t('own_csv_daily')}</Btn>
             <Btn size="sm" onClick={exportMix}>⬇ Product mix CSV</Btn>
           </div>
         } />
@@ -150,7 +153,7 @@ export default function OwnerSalesTab({
             <p className="font-display text-[15px] font-extrabold text-ink">Order types</p>
             <p className="mb-3 text-[12.5px] text-muted">Dine-in vs takeaway vs delivery</p>
             <div className="space-y-2.5">
-              {orderTypes.length === 0 && <p className="py-4 text-center text-[13px] text-muted">No data yet</p>}
+              {orderTypes.length === 0 && <p className="py-4 text-center text-[13px] text-muted">{t('own_no_data')}</p>}
               {orderTypes.map((t) => (
                 <div key={t.name}>
                   <div className="mb-1 flex justify-between text-[13px]">
@@ -167,12 +170,12 @@ export default function OwnerSalesTab({
           <Card className="p-5">
             <p className="font-display text-[15px] font-extrabold text-ink">Cancellations</p>
             <p className="mb-3 text-[12.5px] text-muted">
-              {fmtNum(cancelled.list.length)} cancelled · {fmtPKR(cancelled.value)} lost · void rate{' '}
+              {t('own_cancel_sub1', { n: fmtNum(cancelled.list.length), lost: fmtPKR(cancelled.value) })}{' '}
               <span className={`font-extrabold ${voidRate > 2 ? 'text-danger' : 'text-ok'}`}>{voidRate.toFixed(1)}%</span>
-              {voidRate > 2 && <span className="text-danger"> — target &lt;2%!</span>}
+              {voidRate > 2 && <span className="text-danger">{t('own_cancel_target')}</span>}
             </p>
             {cancelled.reasons.length === 0 ? (
-              <p className="py-4 text-center text-[13px] text-muted">No cancellations 🎉</p>
+              <p className="py-4 text-center text-[13px] text-muted">{t('own_no_cancels')}</p>
             ) : (
               <div className="space-y-2.5">
                 {cancelled.reasons.map(([r, n]) => (

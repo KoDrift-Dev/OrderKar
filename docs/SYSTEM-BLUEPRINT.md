@@ -88,6 +88,7 @@ Koi discount system nahi (pehle se Phase-2 list mein tha).
 - [x] **Receipt** — on-screen preview + print: browser format + 80mm thermal (2026-10-05)
 - [x] **Paid-order completion** — ready+paid orders get "Complete order" (manager/waiter); tableState: ready+paid = Seated, ready+unpaid = Bill (2026-10-05)
 - [x] **Superadmin POS toggle** — /admin per-restaurant on/off (theme_config.pos_enabled, default on) (2026-10-05)
+- [x] **Language: Roman Urdu / English** (2026-10-05) — superadmin sets per restaurant in /admin (theme_config.language, default roman). 300+ strings converted across owner/manager/waiter/kitchen/customer/feedback/login. Login page has its own toggle (localStorage).
 - [ ] **Order history** — date filter + search (manager/owner)
 - [ ] **Day close summary**
 - [ ] **Request Bill button** (customer tracker → staff alert)

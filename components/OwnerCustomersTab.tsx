@@ -5,6 +5,7 @@
 import { useMemo } from 'react';
 import type { Review } from '@/lib/types';
 import { Card, Empty, SectionHead } from './ui';
+import { useT, type TKey } from '@/lib/i18n';
 
 function Stars({ n, size = 14 }: { n: number; size?: number }) {
   return (
@@ -15,6 +16,7 @@ function Stars({ n, size = 14 }: { n: number; size?: number }) {
 }
 
 export default function OwnerCustomersTab({ reviews }: { reviews: Review[] }) {
+  const t = useT();
   const data = useMemo(() => {
     if (reviews.length === 0) return null;
     const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
@@ -38,7 +40,7 @@ export default function OwnerCustomersTab({ reviews }: { reviews: Review[] }) {
     <div className="space-y-8">
       <SectionHead title="Customer reviews" sub={`${reviews.length} reviews total`} />
       {!data ? (
-        <Empty title="No reviews yet" sub="QR feedback se reviews aayenge." />
+        <Empty title={t('own_cst_no_rev' as TKey)} sub={t('own_cst_no_rev_sub' as TKey)} />
       ) : (
         <>
           <div className="grid gap-3 sm:grid-cols-3">
@@ -51,12 +53,12 @@ export default function OwnerCustomersTab({ reviews }: { reviews: Review[] }) {
             <Card className="p-5">
               <p className="text-[12.5px] font-bold uppercase tracking-wide text-muted">Low ratings (≤2★)</p>
               <p className={`mt-1 font-display text-3xl font-extrabold ${data.low > 0 ? 'text-danger' : 'text-ok'}`}>{data.low}</p>
-              <p className="mt-1 text-[12px] text-muted">{data.low > 0 ? 'Foran follow-up karo' : 'Sab khush 🎉'}</p>
+              <p className="mt-1 text-[12px] text-muted">{data.low > 0 ? t('own_cst_followup' as TKey) : t('own_cst_allhappy' as TKey)}</p>
             </Card>
             <Card className="p-5">
-              <p className="text-[12.5px] font-bold uppercase tracking-wide text-muted">Response needed</p>
+              <p className="text-[12.5px] font-bold uppercase tracking-wide text-muted">{t('own_cst_resp' as TKey)}</p>
               <p className="mt-1 font-display text-3xl font-extrabold text-ink">{data.low}</p>
-              <p className="mt-1 text-[12px] text-muted">low reviews ka jawab do</p>
+              <p className="mt-1 text-[12px] text-muted">{t('own_cst_resp_sub' as TKey)}</p>
             </Card>
           </div>
 

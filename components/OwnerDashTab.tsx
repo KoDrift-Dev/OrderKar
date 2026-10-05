@@ -8,6 +8,7 @@ import { CategoryDonut, RevenueTrend } from './charts';
 import QrSection from './QrSection';
 import OwnerSmartSummary from './OwnerSmartSummary';
 import { Kpi } from './ui';
+import { useT } from '@/lib/i18n';
 
 export interface DashAgg {
   revenue: number;
@@ -36,6 +37,7 @@ export default function OwnerDashTab({
   tables: DiningTable[];
   restaurantName: string;
 }) {
+  const t = useT();
   const cancelled = orders.filter((o) => o.status === 'cancelled');
   const cancelledValue = cancelled.reduce((s, o) => s + Number(o.total_amount), 0);
   const voidRate = orders.length > 0 ? (cancelled.length / orders.length) * 100 : 0;
@@ -50,7 +52,7 @@ export default function OwnerDashTab({
       </div>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi label="Cancelled" value={fmtNum(cancelled.length)} />
-        <Kpi label="Lost to cancels" value={fmtPKR(cancelledValue)} />
+        <Kpi label={t('own_kpi_lost')} value={fmtPKR(cancelledValue)} />
         <Kpi label="Void rate" value={`${voidRate.toFixed(1)}%`} />
         <Kpi label="Net revenue" value={fmtPKR(agg.revenue)} />
       </div>
