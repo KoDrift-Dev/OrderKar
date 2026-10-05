@@ -1,0 +1,405 @@
+'use client';
+
+// Per-restaurant language: 'roman' (Roman Urdu, default) or 'english'.
+// Super-admin sets it per restaurant (theme_config.language); each app root
+// wraps its tree in <LangProvider value={lang}> and components use useT().
+
+import { createContext, useContext } from 'react';
+
+export type Lang = 'roman' | 'english';
+
+export function normalizeLang(v: unknown): Lang {
+  return v === 'english' ? 'english' : 'roman';
+}
+
+// ── Dictionary ─────────────────────────────────────────────────────────────
+// Key naming: <area>_<snake_case>. Areas: mgr pos rct wtr ktn mnu trk cst own
+// set tbl qr del lgn ui cmn. Values may contain {placeholders}.
+
+const D = {
+  // ── common ──
+  cmn_cancel: { roman: 'Cancel', english: 'Cancel' },
+  cmn_close: { roman: 'Band karo', english: 'Close' },
+  cmn_save: { roman: 'Save', english: 'Save' },
+  cmn_saving: { roman: 'Save ho raha…', english: 'Saving…' },
+  cmn_loading: { roman: 'Load ho raha…', english: 'Loading…' },
+  cmn_delete: { roman: 'Delete', english: 'Delete' },
+  cmn_edit: { roman: 'Edit', english: 'Edit' },
+  cmn_add: { roman: 'Add', english: 'Add' },
+  cmn_search: { roman: 'Search…', english: 'Search…' },
+  cmn_total: { roman: 'Total', english: 'Total' },
+  cmn_yes_delete: { roman: 'Yes, delete', english: 'Yes, delete' },
+  cmn_confirm_delete_title: { roman: 'Pakka delete karna hai?', english: 'Are you sure you want to delete?' },
+
+  // dict: owner ops (agent 3939d885)
+  own_ops_table_sub: { roman: 'Free = default · Seated = teal · Bill = amber (payment lo)', english: 'Free = default · Seated = teal · Bill = amber (collect payment)' },
+  own_ops_no_done: { roman: 'Abhi tak koi order complete nahi hua', english: 'No completed orders yet' },
+  own_ops_avg_ready: { roman: 'Order tayyar honay ka avg time', english: 'Avg order-to-ready' },
+  own_ops_slowest: { roman: 'Sab se slow hours', english: 'Slowest hours (bottlenecks)' },
+  own_ktn_sub: { roman: '{n} active orders · sirf dekhne ke liye — status kitchen change karega', english: '{n} active orders · view only — status is changed by the kitchen' },
+  own_ktn_late: { roman: '⏰ Late ho raha hai', english: '⏰ Running late' },
+  own_ktn_more: { roman: '+{n} aur', english: '+{n} more' },
+  own_ktn_no_orders: { roman: 'Koi active order nahi', english: 'No active orders' },
+  own_ktn_no_orders_sub: { roman: 'Naye orders yahan live ayenge.', english: 'New orders will appear here live.' },
+  own_ktn_col_elapsed: { roman: 'Waqt', english: 'Elapsed' },
+  own_stf_sub: { roman: 'Sales ke hisaab se ranking', english: 'Ranked by sales' },
+  own_stf_no_sales: { roman: 'Abhi tak waiter sales nahi', english: 'No waiter sales yet' },
+  own_stf_no_sales_sub: { roman: 'Waiter orders yahan rank honge.', english: 'Waiter orders will be ranked here.' },
+  own_stf_no_staff: { roman: 'Abhi tak koi staff nahi', english: 'No staff yet' },
+  own_stf_no_staff_sub: { roman: 'Team page se staff add karo.', english: 'Add staff from the Team page.' },
+  own_cst_no_rev: { roman: 'Abhi tak koi review nahi', english: 'No reviews yet' },
+  own_cst_no_rev_sub: { roman: 'QR feedback se reviews ayenge.', english: 'Reviews will come in via QR feedback.' },
+  own_cst_followup: { roman: 'Foran follow-up karo', english: 'Follow up right away' },
+  own_cst_allhappy: { roman: 'Sab khush 🎉', english: 'Everyone is happy 🎉' },
+  own_cst_resp: { roman: 'Jawab dena hai', english: 'Response needed' },
+  own_cst_resp_sub: { roman: 'low reviews ka jawab do', english: 'Reply to low reviews' },
+  // dict: DeleteFlow (agent 965dbee8)
+  del_deleting: { roman: 'Delete ho raha…', english: 'Deleting…' },
+  del_toast_deleted: { roman: '“{label}” delete ho gaya', english: '“{label}” deleted' },
+  // dict: TableCard (agent 965dbee8)
+  tblc_free: { roman: 'Khaali', english: 'Free' },
+  // dict: login (agent 965dbee8)
+  lgn_no_profile: { roman: 'Is account ke liye koi staff profile nahi mili.', english: 'No staff profile found for this account.' },
+  lgn_bad_credentials: { roman: 'Email ya password ghalat hai. Dobara try karo.', english: 'Email or password is incorrect. Please try again.' },
+  lgn_no_session: { roman: 'Sign-in ho gaya lekin session nahi bana.', english: 'Sign-in succeeded but no session was created.' },
+  lgn_no_profile_owner: { roman: 'Is account ke liye koi staff profile nahi mili. Apne owner se banwao.', english: 'No staff profile found for this account. Ask your owner to create one.' },
+  lgn_no_restaurant: { roman: 'Tumhara restaurant nahi mil saka.', english: 'Your restaurant could not be found.' },
+  lgn_failed: { roman: 'Login fail ho gaya', english: 'Login failed' },
+  lgn_reset_sent: { roman: 'Reset link bhej di — apna inbox check karo (spam folder bhi).', english: 'Reset link sent — check your inbox (spam folder too).' },
+  lgn_reset_failed: { roman: 'Reset link nahi bheji ja saki.', english: 'Could not send reset link.' },
+  lgn_sub: { roman: 'Apne restaurant workspace mein log in karo.', english: 'Log in to your restaurant workspace.' },
+  lgn_not_configured: { roman: 'Supabase configure nahi hai. Pehle .env.local mein keys add karo.', english: 'Supabase is not configured. Add keys to .env.local first.' },
+  lgn_forgot: { roman: 'Password bhool gaye?', english: 'Forgot password?' },
+  lgn_hide_pass: { roman: 'Password chhupao', english: 'Hide password' },
+  lgn_show_pass: { roman: 'Password dikhao', english: 'Show password' },
+  lgn_logging_in: { roman: 'Log in ho raha…', english: 'Logging in…' },
+  lgn_verifying: { roman: 'Account verify ho raha hai — chand second lagein ge…', english: 'Verifying your account — this will take a few seconds…' },
+  lgn_reset_title: { roman: 'Password reset karo', english: 'Reset password' },
+  lgn_reset_hint: { roman: 'Apna login email likho — reset link bhej dunga.', english: 'Enter your login email — I will send you a reset link.' },
+  lgn_sending: { roman: 'Bhej raha…', english: 'Sending…' },
+  lgn_send_link: { roman: 'Link bhejo', english: 'Send link' },
+  lgn_new_rest: { roman: 'Naya restaurant?', english: 'New restaurant?' },
+  lgn_start_trial: { roman: 'Free trial start karo', english: 'Start free trial' },
+  // dict: customer table page (agent 034aa85a)
+  cst_track_again: { roman: 'Dobara track karo', english: 'Track again' },
+  cst_loading_menu: { roman: 'Menu load ho raha…', english: 'Loading menu…' },
+  cst_table_not_found: { roman: 'Table nahi mili', english: 'Table not found' },
+  cst_table_not_found_sub: { roman: 'Ye QR code shayad kisi aisi table ka hai jo ab maujood nahi. Apne waiter se madad mango.', english: 'This QR code may be for a table that no longer exists. Ask your waiter for help.' },
+  cst_past_orders: { roman: '🕘 Pichle orders ({count})', english: '🕘 Past orders ({count})' },
+  cst_tap_to_expand: { roman: '— kholne ke liye tap karo', english: '— tap to expand' },
+  cst_your_name: { roman: 'Apka naam', english: 'Your name' },
+  cst_your_name_hint: { roman: 'optional — waiter ko aapko dhoondne mein madad milegi', english: 'optional — helps the waiter find you' },
+  // dict: order tracker (agent 034aa85a)
+  trk_step_pending: { roman: 'Order mil gaya', english: 'Received' },
+  trk_step_preparing: { roman: 'Tayyar ho raha hai', english: 'Preparing' },
+  trk_step_ready: { roman: 'Tayyar hai', english: 'Ready' },
+  trk_unavailable: { roman: 'Is order ki live tracking available nahi hai (ye security update se pehle place hua tha). Naya order place karo to live tracking milegi.', english: 'Order tracking is unavailable for this order (it was placed before a security update). Place a new order to get live tracking.' },
+  trk_ready_msg: { roman: 'Apka order tayyar hai — apki table par aa raha hai! 🎉', english: 'Your order is ready — it\'s on its way to your table! 🎉' },
+  trk_completed_msg: { roman: 'Khana enjoy karo! Review dena mat bhoolna. ⭐', english: 'Enjoy your meal! Don\'t forget to leave a review. ⭐' },
+  // dict: manager (agent 14d53ddd)
+  mgr_title: { roman: 'Manager dashboard', english: 'Manager dashboard' },
+  mgr_sub: { roman: 'Aaj ki halchal — live', english: 'Today\'s pulse — live' },
+  mgr_tab_dashboard: { roman: '📊 Dashboard', english: '📊 Dashboard' },
+  mgr_kpi_revenue: { roman: 'Aaj ki revenue', english: 'Today\'s revenue' },
+  mgr_kpi_orders: { roman: 'Aaj ke orders', english: 'Today\'s orders' },
+  mgr_kpi_aov: { roman: 'Avg order', english: 'Avg order' },
+  mgr_kpi_active: { roman: 'Active abhi', english: 'Active now' },
+  mgr_orders_title: { roman: 'Aaj ke orders', english: 'Today\'s orders' },
+  mgr_orders_sub: { roman: '{count} total', english: '{count} total' },
+  mgr_orders_empty: { roman: 'Aaj abhi koi order nahi', english: 'No orders yet today' },
+  mgr_orders_empty_sub: { roman: 'Orders yahan live ayenge.', english: 'Orders will stream in here live.' },
+  mgr_table_no: { roman: 'Table {num}', english: 'Table {num}' },
+  mgr_otype_dinein: { roman: 'Dine-in', english: 'Dine-in' },
+  mgr_otype_takeaway: { roman: 'Takeaway', english: 'Takeaway' },
+  mgr_otype_delivery: { roman: 'Delivery', english: 'Delivery' },
+  mgr_mark_paid: { roman: 'Paid ✓', english: 'Paid ✓' },
+  mgr_collect_payment: { roman: 'Payment lo · {total}', english: 'Collect payment · {total}' },
+  mgr_complete_order: { roman: '✓ Order complete (handover ho gaya)', english: '✓ Complete order (handover done)' },
+  mgr_tables_legend: { roman: 'Free · Seated (teal) · Bill (amber — payment lo)', english: 'Free · Seated (teal) · Bill (amber — collect payment)' },
+  mgr_waste_title: { roman: 'Waste log karo', english: 'Log waste' },
+  mgr_waste_item: { roman: 'Item', english: 'Item' },
+  mgr_waste_item_ph: { roman: 'e.g. Chicken Karahi', english: 'e.g. Chicken Karahi' },
+  mgr_waste_qty: { roman: 'Qty', english: 'Qty' },
+  mgr_waste_cost: { roman: 'Est. cost (Rs)', english: 'Est. cost (Rs)' },
+  mgr_waste_reason: { roman: 'Wajah', english: 'Reason' },
+  mgr_waste_spoilage: { roman: 'Kharab ho gaya', english: 'Spoilage' },
+  mgr_waste_overprep: { roman: 'Zyada bana liya', english: 'Over-prep' },
+  mgr_waste_damaged: { roman: 'Damage ho gaya', english: 'Damaged' },
+  mgr_waste_theft: { roman: 'Chori', english: 'Theft' },
+  mgr_waste_other: { roman: 'Other', english: 'Other' },
+  mgr_waste_logging: { roman: 'Log ho raha…', english: 'Logging…' },
+  mgr_waste_log: { roman: 'Waste log karo', english: 'Log waste' },
+  // dict: pos (agent 14d53ddd)
+  pos_subtitle: { roman: 'Counter sale — tez billing, foran receipt.', english: 'Counter sale — fast billing, instant receipt.' },
+  pos_type_dinein: { roman: '🍽️ Dine-in', english: '🍽️ Dine-in' },
+  pos_type_takeaway: { roman: '🛍️ Takeaway', english: '🛍️ Takeaway' },
+  pos_type_delivery: { roman: '🛵 Delivery', english: '🛵 Delivery' },
+  pos_table_no: { roman: 'Table {num}', english: 'Table {num}' },
+  pos_table_busy: { roman: '{status} — koi free table lo', english: '{status} — pick a free table' },
+  pos_no_tables: { roman: 'Koi active table nahi.', english: 'No active tables.' },
+  pos_ph_name: { roman: 'Customer ka naam', english: 'Customer name' },
+  pos_ph_phone: { roman: 'Phone (delivery ke liye zaroori)', english: 'Phone (required for delivery)' },
+  pos_ph_address: { roman: 'Delivery address', english: 'Delivery address' },
+  pos_ph_search: { roman: 'Items search karo…', english: 'Search items…' },
+  pos_empty_title: { roman: 'Koi item nahi', english: 'No items found' },
+  pos_empty_sub: { roman: 'Search ya category badlo.', english: 'Try a different search or category.' },
+  pos_cart_empty: { roman: 'Items tap karo — yahan ayenge.', english: 'Tap items — they will appear here.' },
+  pos_change: { roman: 'Change: {amount}', english: 'Change: {amount}' },
+  pos_cash_short: { roman: ' — cash kam hai!', english: ' — not enough cash!' },
+  pos_err_cart_empty: { roman: 'Cart khaali hai — pehle items add karo.', english: 'Cart is empty — add items first.' },
+  pos_err_no_table: { roman: 'Table select karo.', english: 'Please select a table.' },
+  pos_err_delivery_info: { roman: 'Delivery ke liye phone aur address zaroori hai.', english: 'Phone and address are required for delivery.' },
+  pos_err_cash_short: { roman: 'Cash kam hai — kam az kam {total} lo.', english: 'Not enough cash — take at least {total}.' },
+  pos_err_failed: { roman: 'Order fail ho gaya.', english: 'Order failed.' },
+  pos_processing: { roman: 'Process ho raha…', english: 'Processing…' },
+  pos_charge: { roman: 'Charge {total}', english: 'Charge {total}' },
+  pos_receipt_done: { roman: '✅ Payment ho gayi!', english: '✅ Payment done!' },
+  pos_new_sale: { roman: 'Nayi sale', english: 'New sale' },
+  // dict: receipt (agent 14d53ddd)
+  rct_type_dinein: { roman: 'Dine-in', english: 'Dine-in' },
+  rct_type_takeaway: { roman: 'Takeaway', english: 'Takeaway' },
+  rct_type_delivery: { roman: 'Delivery', english: 'Delivery' },
+  rct_order: { roman: 'Order', english: 'Order' },
+  rct_cashier: { roman: 'Cashier: {name}', english: 'Cashier: {name}' },
+  rct_customer: { roman: 'Customer: {name}', english: 'Customer: {name}' },
+  rct_phone: { roman: 'Phone: {phone}', english: 'Phone: {phone}' },
+  rct_address: { roman: 'Pata: {addr}', english: 'Address: {addr}' },
+  rct_total: { roman: 'TOTAL', english: 'TOTAL' },
+  rct_payment: { roman: 'Payment', english: 'Payment' },
+  rct_tendered: { roman: 'Tendered', english: 'Tendered' },
+  rct_change: { roman: 'Change', english: 'Change' },
+  rct_fbr_invoice: { roman: 'FBR Invoice', english: 'FBR Invoice' },
+  rct_thanks: { roman: 'Shukriya! Phir tashreef laiye ga.', english: 'Thank you! Visit again.' },
+  // dict: kitchen (agent aab2b2d0)
+  ktn_sub: { roman: 'Live order queue — foran update hota hai', english: 'Live order queue — updates in realtime' },
+  ktn_tab_all: { roman: 'Sab ({n})', english: 'All ({n})' },
+  ktn_tab_new: { roman: 'Naye ({n})', english: 'New ({n})' },
+  ktn_tab_preparing: { roman: 'Ban rahe ({n})', english: 'Preparing ({n})' },
+  ktn_tab_ready: { roman: 'Tayyar ({n})', english: 'Ready ({n})' },
+  ktn_empty_title: { roman: 'Sab clear 🎉', english: 'All clear 🎉' },
+  ktn_empty_sub: { roman: 'Naye orders yahan khud-ba-khud aa jayenge.', english: 'New orders will appear here automatically.' },
+  ktn_late: { roman: 'Late ho raha hai', english: 'Running late' },
+  ktn_start_preparing: { roman: 'Banana shuru karo', english: 'Start preparing' },
+  ktn_mark_ready: { roman: 'Tayyar mark karo', english: 'Mark ready' },
+  ktn_waiting_pickup: { roman: 'Pickup ka intezar hai', english: 'Waiting for pickup' },
+  ktn_cancel_order: { roman: 'Order cancel karo', english: 'Cancel order' },
+  ktn_confirm: { roman: 'Confirm karo', english: 'Confirm' },
+  ktn_reason_customer: { roman: 'Customer ki request', english: 'customer request' },
+  ktn_reason_kitchen: { roman: 'Kitchen ki ghalti', english: 'kitchen error' },
+  ktn_reason_wait: { roman: 'Bohat zyada wait', english: 'long wait' },
+  ktn_reason_unavailable: { roman: 'Item available nahi', english: 'item unavailable' },
+  ktn_reason_duplicate: { roman: 'Duplicate order', english: 'duplicate order' },
+  // dict: owner (agent ba339076)
+  own_range_today: { roman: 'Aaj', english: 'Today' },
+  own_range_7d: { roman: '7 din', english: '7 days' },
+  own_range_30d: { roman: '30 din', english: '30 days' },
+  own_range_12m: { roman: '12 mahinay', english: '12 months' },
+  own_updating: { roman: 'Update ho raha…', english: 'Updating…' },
+  own_crunching: { roman: 'Hisaab lag raha…', english: 'Crunching numbers…' },
+  own_rnglbl_today: { roman: 'Aaj', english: 'Today' },
+  own_rnglbl_7d: { roman: 'Pichlay 7 din', english: 'Last 7 days' },
+  own_rnglbl_30d: { roman: 'Pichlay 30 din', english: 'Last 30 days' },
+  own_rnglbl_12m: { roman: 'Pichlay 12 mahinay', english: 'Last 12 months' },
+  own_rnglbl_custom: { roman: 'Custom range', english: 'Custom range' },
+  own_kpi_lost: { roman: 'Cancels se nuqsan', english: 'Lost to cancellations' },
+  own_csv_daily: { roman: '⬇ Rozana sales CSV', english: '⬇ Daily sales CSV' },
+  own_no_data: { roman: 'Abhi data nahi', english: 'No data yet' },
+  own_pay_unknown: { roman: '❓ Record nahi hua', english: '❓ Not recorded' },
+  own_cancel_no_reason: { roman: 'koi wajah nahi di', english: 'no reason given' },
+  own_cancel_sub1: { roman: '{n} cancelled · {lost} nuqsan · void rate', english: '{n} cancelled · {lost} lost · void rate' },
+  own_cancel_target: { roman: ' — target 2% se kam rakho!', english: ' — target <2%!' },
+  own_no_cancels: { roman: 'Koi cancellation nahi 🎉', english: 'No cancellations 🎉' },
+  // dict: waiter (agent 9d997847)
+  wtr_sub: { roman: 'Tables, ordering aur aapke live orders', english: 'Tables, ordering and your live orders' },
+  wtr_my_orders: { roman: 'Mere orders ({n})', english: 'My orders ({n})' },
+  wtr_back_tables: { roman: '← Tables pe wapas', english: '← Back to tables' },
+  wtr_new_order: { roman: 'Naya order · Table {n}', english: 'New order · Table {n}' },
+  wtr_no_orders: { roman: 'Koi active order nahi', english: 'No active orders' },
+  wtr_no_orders_sub: { roman: 'Order shuru karne ke liye table chunein.', english: 'Pick a table to start an order.' },
+  wtr_collect_payment: { roman: 'Payment lo · {amount}', english: 'Collect payment · {amount}' },
+  wtr_complete_order: { roman: '✓ Order complete karo (handover ho gaya)', english: '✓ Complete order (handover done)' },
+  // dict: menu (agent 9d997847)
+  mnu_decrease: { roman: 'Kam karo', english: 'Decrease' },
+  mnu_increase: { roman: 'Zyada karo', english: 'Increase' },
+  mnu_add_item: { roman: '{name} add karo', english: 'Add {name}' },
+  mnu_close: { roman: 'Band karo', english: 'Close' },
+  mnu_search: { roman: 'Menu mein search karo…', english: 'Search the menu…' },
+  mnu_no_results: { roman: 'Kuch nahi mila', english: 'No results found' },
+  mnu_no_results_sub: { roman: 'Koi aur search try karo.', english: 'Try another search.' },
+  mnu_no_items: { roman: 'Abhi koi item nahi.', english: 'No items right now.' },
+  mnu_placing: { roman: 'Order lag raha…', english: 'Placing…' },
+  mnu_place_order: { roman: 'Order karo', english: 'Place order' },
+  mnu_place_order_count: { roman: 'Order karo · {n}', english: 'Place order · {n}' },
+  mnu_your_order: { roman: 'Aapka order · Table {table}', english: 'Your order · Table {table}' },
+  mnu_prep_time: { roman: '⏱ ~{n} min tayyari', english: '⏱ ~{n} min preparation' },
+  mnu_notes_ph: { roman: 'e.g. kam mirch, pyaaz nahi…', english: 'e.g. less spicy, no onions…' },
+  mnu_order_failed: { roman: 'Order nahi ho saka', english: 'Order failed' },
+
+  // dict: owner ops (agent 3939d885)
+  // dict: DeleteFlow (agent 965dbee8)
+  // dict: TableCard (agent 965dbee8)
+  // dict: login (agent 965dbee8)
+  // dict: customer table page (agent 034aa85a)
+  // dict: order tracker (agent 034aa85a)
+  // dict: manager (agent 14d53ddd)
+  // dict: pos (agent 14d53ddd)
+  // dict: receipt (agent 14d53ddd)
+  // dict: kitchen (agent aab2b2d0)
+  // dict: owner (agent ba339076)
+  // dict: waiter (agent 9d997847)
+  // dict: menu (agent 9d997847)
+  // dict: settings (agent 389bba36)
+  set_loading: { roman: 'Settings load ho rahi…', english: 'Loading settings…' },
+  set_sub: { roman: 'Restaurant ki details, tumhara account aur login security.', english: 'Restaurant details, your account and login security.' },
+  set_rest_info: { roman: 'Yeh info customer pages aur receipts pe nazar aayegi.', english: 'This info appears on customer pages and receipts.' },
+  set_slug_note: { roman: 'Slug change nahi ho sakta — printed QR codes isi pe bane hain.', english: 'Slug cannot be changed — printed QR codes are based on it.' },
+  set_val_name: { roman: 'Restaurant ka naam zaroori hai.', english: 'Restaurant name is required.' },
+  set_val_email: { roman: 'Contact email ka format theek nahi.', english: 'Contact email format is not valid.' },
+  set_saved_rest: { roman: '✅ Restaurant details save ho gayi.', english: '✅ Restaurant details saved.' },
+  set_err_default: { roman: 'Save nahi ho saka.', english: 'Could not save.' },
+  set_err_email: { roman: 'Email change nahi ho saka.', english: 'Could not change email.' },
+  set_err_pass: { roman: 'Password change nahi ho saka.', english: 'Could not change password.' },
+  set_saving: { roman: 'Save ho raha…', english: 'Saving…' },
+  set_val_fullname: { roman: 'Apna naam likho.', english: 'Please enter your name.' },
+  set_err_session: { roman: 'Session nahi mili — dobara login karo.', english: 'Session not found — please log in again.' },
+  set_saved_acct: { roman: '✅ Account details save ho gayi.', english: '✅ Account details saved.' },
+  set_acct_info: { roman: 'Tumhara naam aur phone — staff list mein nazar aayega.', english: 'Your name and phone — visible in the staff list.' },
+  set_email_note: { roman: 'Email change neeche Security section se hota hai.', english: 'Email can be changed in the Security section below.' },
+  set_val_newemail: { roman: 'Naya email sahi format mein likho.', english: 'Enter the new email in a valid format.' },
+  set_email_sent: { roman: '📧 Confirmation link naye email pe bheja gaya hai — wahan se confirm karo.', english: '📧 A confirmation link was sent to the new email — confirm it there.' },
+  set_val_passlen: { roman: 'Password kam az kam 6 characters ka ho.', english: 'Password must be at least 6 characters.' },
+  set_val_passmatch: { roman: 'Dono passwords match nahi kar rahe.', english: 'The two passwords do not match.' },
+  set_pass_changed: { roman: '✅ Password change ho gaya.', english: '✅ Password changed.' },
+  set_new_email: { roman: 'Naya login email', english: 'New login email' },
+  set_new_pass: { roman: 'Naya password', english: 'New password' },
+  set_pass_confirm: { roman: 'Password dobara likho', english: 'Confirm password' },
+  set_ph_pass: { roman: 'Kam az kam 6 characters', english: 'At least 6 characters' },
+  // dict: tables (agent 389bba36)
+  tbl_sub: { roman: '{n} tables · {active} active — har table ka apna QR code', english: '{n} tables · {active} active — each table has its own QR code' },
+  tbl_empty_title: { roman: 'Koi table nahi', english: 'No tables yet' },
+  tbl_empty_sub: { roman: 'Add table dabaa ke pehli table banao.', english: 'Press Add table to create your first table.' },
+  tbl_inactive_note: { roman: 'Inactive — QR kaam nahi karega', english: 'Inactive — QR will not work' },
+  tbl_qr_hint: { roman: 'Scan karke is table ka menu khulega', english: 'Scan to open the menu for this table' },
+  tbl_qr_aria: { roman: 'Table {n} ka QR code', english: 'QR code for table {n}' },
+  tbl_loading: { roman: 'Load ho raha…', english: 'Loading…' },
+  tbl_close: { roman: 'Band karo', english: 'Close' },
+  tbl_del_title: { roman: 'Table {n} delete karna hai?', english: 'Delete table {n}?' },
+  tbl_del_msg: { roman: 'Is table ka QR code kaam karna band kar dega. Purane orders pe koi asar nahi parega.', english: 'The QR code for this table will stop working. Past orders will not be affected.' },
+  tbl_undo_label: { roman: 'Table {n} delete ho gaya', english: 'Table {n} deleted' },
+  tbl_modal_edit: { roman: 'Table {n} edit karo', english: 'Edit table {n}' },
+  tbl_saving: { roman: 'Save ho raha…', english: 'Saving…' },
+  tbl_val_number: { roman: 'Table number 1–999 ke darmiyan hona chahiye.', english: 'Table number must be between 1–999.' },
+  tbl_val_dup: { roman: 'Table {n} pehle se maujood hai — koi aur number chuno.', english: 'Table {n} already exists — choose another number.' },
+  tbl_val_section: { roman: 'Section ka naam likho (jaise "Family Hall").', english: 'Enter a section name (e.g. "Family Hall").' },
+  tbl_val_capacity: { roman: 'Capacity 1–50 ke darmiyan honi chahiye.', english: 'Capacity must be between 1–50.' },
+  tbl_err_save: { roman: 'Save nahi ho saka.', english: 'Could not save.' },
+  tbl_ph_section: { roman: 'Jaise: Family Hall, Basement…', english: 'E.g. Family Hall, Basement…' },
+  tbl_sec_indoor: { roman: 'Indoor', english: 'Indoor' },
+  tbl_sec_outdoor: { roman: 'Outdoor', english: 'Outdoor' },
+  tbl_sec_rooftop: { roman: 'Rooftop', english: 'Rooftop' },
+  tbl_sec_custom: { roman: 'Custom', english: 'Custom' },
+  // dict: qr (agent 389bba36)
+  qr_sub: { roman: 'Tables pe print karke lagao — scan karne se us table ka menu khulega. Reviews QR feedback page kholta hai.', english: 'Print and place on tables — scanning opens the menu for that table. The reviews QR opens the feedback page.' },
+  qr_print_all: { roman: 'Sab print karo', english: 'Print all' },
+  qr_print_sub: { roman: 'Us table ka menu kholne ke liye scan karo · {name}', english: 'Scan to open the menu for that table · {name}' },
+  qr_loading: { roman: 'Load ho raha…', english: 'Loading…' },
+  qr_aria: { roman: '{label} ka QR code', english: 'QR code for {label}' },
+  qr_sec_indoor: { roman: 'Indoor', english: 'Indoor' },
+  qr_sec_outdoor: { roman: 'Outdoor', english: 'Outdoor' },
+  qr_sec_rooftop: { roman: 'Rooftop', english: 'Rooftop' },
+
+  // dict: owner guide
+  gde_sub: { roman: 'Har metric ka matlab aur uska formula — simple zubaan mein.', english: 'What every metric means and exactly how it is calculated — in plain language.' },
+  gde_gotit: { roman: 'Samajh gaya ✓', english: 'Got it ✓' },
+  gde_revenue_w: { roman: 'Is period mein kamaye gaye paise (cancelled orders ke baghair).', english: 'Money earned in this period (excluding cancelled orders).' },
+  gde_revenue_h: { roman: 'Sab non-cancelled orders ke total_amount ka sum.', english: 'Sum of total_amount of all non-cancelled orders.' },
+  gde_orders_w: { roman: 'Kitne orders aaye (cancelled ke baghair).', english: 'How many orders came in (excluding cancelled).' },
+  gde_orders_h: { roman: 'Non-cancelled orders ki ginti.', english: 'Count of non-cancelled orders.' },
+  gde_aov_w: { roman: 'Ek order pe average kharcha.', english: 'Average spend per order.' },
+  gde_aov_h: { roman: 'Revenue ÷ Orders.', english: 'Revenue ÷ Orders.' },
+  gde_items_w: { roman: 'Kitni dishes biki.', english: 'How many dishes were sold.' },
+  gde_items_h: { roman: 'Sab order_items ki quantity ka sum.', english: 'Sum of quantity across all order_items.' },
+  gde_void_w: { roman: 'Kitne % orders cancel hue. 2% se zyada = problem.', english: 'What % of orders were cancelled. Above 2% = problem.' },
+  gde_void_h: { roman: 'Cancelled orders ÷ Total orders × 100.', english: 'Cancelled orders ÷ Total orders × 100.' },
+  gde_smart_w: { roman: 'Aaj ki auto-highlights.', english: "Today's auto-highlights." },
+  gde_smart_h: { roman: 'Rules se banta hai: aaj vs kal revenue, top item, void alerts, avg prep time, best waiter. AI nahi — fixed formulas.', english: 'Built from rules: today vs yesterday revenue, top item, void alerts, avg prep time, best waiter. Not AI — fixed formulas.' },
+  gde_trend_w: { roman: 'Time ke saath revenue ka graph.', english: 'Revenue graph over time.' },
+  gde_trend_h: { roman: 'Har din (ya month) ke orders ka sum. Khaali din 0 dikhte hain.', english: 'Sum of orders per day (or month). Empty days show 0.' },
+  gde_rush_w: { roman: 'Din ke kis hour mein sab se zyada orders.', english: 'Which hour of the day gets the most orders.' },
+  gde_rush_h: { roman: 'Har order ke created_at hour ki ginti (24 boxes).', english: 'Count of orders by created_at hour (24 boxes).' },
+  gde_weekday_w: { roman: 'Hafte ke kis din kitne orders.', english: 'How many orders on each day of the week.' },
+  gde_weekday_h: { roman: 'Orders ki weekday-wise ginti (Mon–Sun).', english: 'Orders counted by weekday (Mon–Sun).' },
+  gde_top_w: { roman: 'Sab se zyada bikne wali dishes.', english: 'Best-selling dishes.' },
+  gde_top_h: { roman: 'Quantity ke hisaab se ranking + unki revenue.', english: 'Ranked by quantity + their revenue.' },
+  gde_pay_w: { roman: 'Cash / Card / JazzCash / EasyPaisa ka share.', english: 'Share of Cash / Card / JazzCash / EasyPaisa.' },
+  gde_pay_h: { roman: 'Har method ki revenue ka total revenue se %. "Not recorded" = waiter ne payment record nahi ki.', english: '% of each method\'s revenue out of total revenue. "Not recorded" = waiter did not record the payment.' },
+  gde_otypes_w: { roman: 'Dine-in vs takeaway vs delivery.', english: 'Dine-in vs takeaway vs delivery.' },
+  gde_otypes_h: { roman: 'Orders ki order_type wise ginti.', english: 'Orders counted by order_type.' },
+  gde_cancels_w: { roman: 'Cancel hue orders, unki value aur reasons.', english: 'Cancelled orders, their value and reasons.' },
+  gde_cancels_h: { roman: 'Status=cancelled wale orders. Reason kitchen se cancel karte waqt select hota hai.', english: 'Orders with status=cancelled. The reason is picked by the kitchen when cancelling.' },
+  gde_live_w: { roman: 'Is waqt kitchen mein kya chal raha — sirf dekhne ke liye.', english: "What's happening in the kitchen right now — view only." },
+  gde_live_h: { roman: 'Realtime: pending / preparing / ready orders. Status sirf kitchen staff change kar sakta hai.', english: 'Realtime: pending / preparing / ready orders. Only kitchen staff can change status.' },
+  gde_tableperf_w: { roman: 'Kaunsi table kitna kamati hai.', english: 'How much each table earns.' },
+  gde_tableperf_h: { roman: 'Har table ke orders ka sum. Green = top third, red = bottom third.', english: 'Sum of orders per table. Green = top third, red = bottom third.' },
+  gde_avgready_w: { roman: 'Order lagne se ready hone tak average time.', english: 'Average time from order placed to ready.' },
+  gde_avgready_h: { roman: 'Ready/completed orders ka (updated_at − created_at) ka average. Estimate hai — beech wali status changes ka exact time record nahi hota.', english: "Average of (updated_at − created_at) for ready/completed orders. An estimate — exact mid-status times aren't recorded." },
+  gde_leader_w: { roman: 'Waiters ki sales ranking.', english: 'Waiters ranked by sales.' },
+  gde_leader_h: { roman: 'Har waiter ke orders (waiter_id se) → orders count, sales sum, avg = sales ÷ orders.', english: 'Per waiter (via waiter_id) → order count, sales sum, avg = sales ÷ orders.' },
+  gde_activity_w: { roman: 'Aaj kaun waiter kitna laya.', english: 'How much each waiter brought in today.' },
+  gde_activity_h: { roman: 'Aaj ke orders waiter-wise: count + revenue.', english: "Today's orders by waiter: count + revenue." },
+  gde_avgrating_w: { roman: 'Sab reviews ki average rating.', english: 'Average rating across all reviews.' },
+  gde_avgrating_h: { roman: 'Ratings ka sum ÷ reviews ki ginti (1–5 stars).', english: 'Sum of ratings ÷ number of reviews (1–5 stars).' },
+  gde_dist_w: { roman: 'Kitne 5★, kitne 1★…', english: 'How many 5★, how many 1★…' },
+  gde_dist_h: { roman: 'Har star level ki ginti.', english: 'Count per star level.' },
+  gde_low_w: { roman: '2★ ya kam wale reviews — foran action lo.', english: 'Reviews of 2★ or less — act immediately.' },
+  gde_low_h: { roman: 'Rating ≤ 2 wale reviews ki ginti.', english: 'Count of reviews with rating ≤ 2.' },
+
+  // dict: feedback
+  fb_title: { roman: 'Khana kaisa laga?', english: 'How was your meal?' },
+  fb_sub: { roman: 'Aapki feedback se {name} aur behtar hoga.', english: 'Your feedback helps {name} get better.' },
+  fb_reviews_count: { roman: '({n} reviews)', english: '({n} reviews)' },
+  fb_thanks: { roman: 'Shukriya!', english: 'Thank you!' },
+  fb_recorded: { roman: 'Aapka review record ho gaya.', english: 'Your review has been recorded.' },
+  fb_another: { roman: 'Aur ek review do', english: 'Leave another' },
+  fb_rating: { roman: 'Aapki rating', english: 'Your rating' },
+  fb_name: { roman: 'Naam (optional)', english: 'Name (optional)' },
+  fb_comment: { roman: 'Comment (optional)', english: 'Comment (optional)' },
+  fb_comment_ph: { roman: 'Kya pasand aya? Kya behtar ho sakta hai?', english: 'What did you love? What could be better?' },
+  fb_err_submit: { roman: 'Review submit nahi ho saka.', english: 'Could not submit review.' },
+  fb_submitting: { roman: 'Bhej raha…', english: 'Submitting…' },
+  fb_submit: { roman: 'Review bhejo', english: 'Submit review' },
+  fb_recent: { roman: 'Recent reviews', english: 'Recent reviews' },
+  fb_shown: { roman: '{n} dikhaye gaye', english: '{n} shown' },
+  fb_no_reviews: { roman: 'Abhi koi review nahi', english: 'No reviews yet' },
+  fb_no_reviews_sub: { roman: 'Sab se pehle review do!', english: 'Be the first to review!' },
+} as const;
+
+export type TKey = keyof typeof D;
+
+const LangCtx = createContext<Lang>('roman');
+export const LangProvider = LangCtx.Provider;
+
+export function useLang(): Lang {
+  return useContext(LangCtx);
+}
+
+/** t('pos_cart_empty') or t('pos_charge_btn', { total: 'Rs 500' }) */
+export function useT(): (key: TKey, vars?: Record<string, string | number>) => string {
+  const lang = useLang();
+  return (key, vars) => {
+    let s: string = D[key][lang];
+    if (vars) {
+      for (const [k, v] of Object.entries(vars)) s = s.replaceAll(`{${k}}`, String(v));
+    }
+    return s;
+  };
+}
+
+/** Non-hook version for plain functions (e.g. receipt HTML builders). */
+export function tr(lang: Lang, key: TKey, vars?: Record<string, string | number>): string {
+  let s: string = D[key][lang];
+  if (vars) {
+    for (const [k, v] of Object.entries(vars)) s = s.replaceAll(`{${k}}`, String(v));
+  }
+  return s;
+}
