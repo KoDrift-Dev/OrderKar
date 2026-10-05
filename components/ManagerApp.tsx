@@ -233,7 +233,7 @@ export default function ManagerApp({
         </div>
       </div>
 
-      <QrSection slug={slug} tableCount={tables.length || 6} restaurantName={restaurantName} />
+      <QrSection slug={slug} tables={tables} restaurantName={restaurantName} />
     </div>
   );
 }

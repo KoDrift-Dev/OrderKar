@@ -7,14 +7,15 @@
 
 import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
-import { allQrs, type QrDef } from '@/lib/qr';
+import { allQrs, tableQr, reviewsQr, type QrDef } from '@/lib/qr';
 import { Btn, Card, SectionHead } from './ui';
+import type { DiningTable } from '@/lib/types';
 
-async function qrSvg(url: string): Promise<string> {
+export async function qrSvg(url: string): Promise<string> {
   return QRCode.toString(url, { type: 'svg', margin: 2, width: 360 });
 }
 
-async function downloadPng(svg: string, filename: string): Promise<void> {
+export async function downloadPng(svg: string, filename: string): Promise<void> {
   const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   try {
@@ -93,11 +94,11 @@ function QrCard({ qr, svg, restaurantName }: { qr: QrDef; svg?: string; restaura
 
 export default function QrSection({
   slug,
-  tableCount,
+  tables,
   restaurantName,
 }: {
   slug: string;
-  tableCount: number;
+  tables: DiningTable[];
   restaurantName: string;
 }) {
   const [svgs, setSvgs] = useState<Record<string, string>>({});
@@ -105,8 +106,20 @@ export default function QrSection({
 
   useEffect(() => {
     const origin = window.location.origin;
-    const defs = allQrs(slug, tableCount, origin);
-    setQrs(defs);
+    const active = [...tables]
+      .filter((t) => t.is_active)
+      .sort((a, b) => a.table_number - b.table_number);
+    const defs: QrDef[] = active.map((t) => {
+      const raw = (t.floor_section || '').trim().toLowerCase();
+      const section = raw ? raw.charAt(0).toUpperCase() + raw.slice(1) : '';
+      const label = section && section !== 'Indoor' ? `Table ${t.table_number} · ${section}` : `Table ${t.table_number}`;
+      const qr = tableQr(slug, t.table_number, origin);
+      return { ...qr, label, sub: section ? `${section} · ${qr.url}` : qr.url };
+    });
+    defs.push(reviewsQr(slug, origin));
+    // Back-compat: if no table rows exist yet, fall back to 6 generic tables.
+    const finalDefs = defs.length > 1 ? defs : allQrs(slug, 6, origin);
+    setQrs(finalDefs);
     let live = true;
     (async () => {
       const entries = await Promise.all(defs.map(async (qr) => [qr.id, await qrSvg(qr.url)] as const));
@@ -115,7 +128,7 @@ export default function QrSection({
     return () => {
       live = false;
     };
-  }, [slug, tableCount]);
+  }, [slug, tables]);
 
   return (
     <section>

@@ -55,7 +55,7 @@ function LoginForm() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('id, restaurant_id, role, is_super_admin, is_active')
+        .select('id, role, is_super_admin, is_active, restaurants(slug)')
         .eq('id', user.id)
         .maybeSingle();
 
@@ -70,13 +70,9 @@ function LoginForm() {
       if (profile.is_super_admin) {
         router.push('/admin');
       } else {
-        const { data: restaurant } = await supabase
-          .from('restaurants')
-          .select('slug')
-          .eq('id', profile.restaurant_id)
-          .maybeSingle();
-        if (!restaurant) throw new Error('Your restaurant could not be found.');
-        router.push(`/r/${restaurant.slug}/${ROLE_HOME[profile.role] ?? 'waiter'}`);
+        const slug = (profile as unknown as { restaurants?: { slug?: string } }).restaurants?.slug;
+        if (!slug) throw new Error('Your restaurant could not be found.');
+        router.push(`/r/${slug}/${ROLE_HOME[profile.role] ?? 'waiter'}`);
       }
       router.refresh();
     } catch (err) {
@@ -126,7 +122,7 @@ function LoginForm() {
           <form onSubmit={submit} className="mt-6 space-y-4">
             <div>
               <Label>Email</Label>
-              <Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@restaurant.pk" />
+              <Input type="email" required disabled={busy} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@restaurant.pk" />
             </div>
             <div>
               <div className="flex items-center justify-between">
@@ -136,7 +132,7 @@ function LoginForm() {
                 </button>
               </div>
               <div className="relative">
-                <Input type={showPass ? 'text' : 'password'} required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="!pr-12" />
+                <Input type={showPass ? 'text' : 'password'} required disabled={busy} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="!pr-12" />
                 <button type="button" onClick={() => setShowPass((s) => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[16px] text-muted" title={showPass ? 'Hide password' : 'Show password'}>
                   {showPass ? '\u{1F648}' : '\u{1F441}\uFE0F'}
                 </button>
@@ -144,8 +140,21 @@ function LoginForm() {
             </div>
             {error && <p className="text-sm font-bold text-danger">{error}</p>}
             <Btn type="submit" className="w-full" size="lg" disabled={busy || !configured}>
-              {busy ? 'Logging in…' : 'Log in'}
+              {busy ? (
+                <span className="inline-flex items-center gap-2">
+                  <svg className="animate-spin" width="17" height="17" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeOpacity="0.25" strokeWidth="3" />
+                    <path d="M22 12a10 10 0 00-10-10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                  </svg>
+                  Logging in…
+                </span>
+              ) : (
+                'Log in'
+              )}
             </Btn>
+            {busy && (
+              <p className="text-center text-[12px] font-semibold text-muted">Account verify ho raha hai — chand second lagein ge…</p>
+            )}
           </form>
           {forgot && (
             <form onSubmit={sendReset} className="mt-5 rounded-btn border border-dashed border-line p-4">

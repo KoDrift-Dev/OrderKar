@@ -13,10 +13,11 @@ import OwnerOpsTab from './OwnerOpsTab';
 import OwnerStaffTab from './OwnerStaffTab';
 import OwnerCustomersTab from './OwnerCustomersTab';
 import OwnerGuide from './OwnerGuide';
+import TableManager from './TableManager';
 import { Empty, PageHeader, Tabs } from './ui';
 
 type Range = 'today' | '7d' | '30d' | '12m' | 'custom';
-type TabKey = 'dashboard' | 'sales' | 'operations' | 'staff' | 'customers';
+type TabKey = 'dashboard' | 'sales' | 'operations' | 'staff' | 'customers' | 'tables';
 
 function isoDay(d: Date): string {
   return d.toLocaleDateString('en-CA'); // YYYY-MM-DD
@@ -158,7 +159,6 @@ export default function OwnerApp({
   const [tables, setTables] = useState<DiningTable[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tableCount, setTableCount] = useState(6);
 
   const { start, end } = rangeBounds(range, custom);
 
@@ -193,10 +193,7 @@ export default function OwnerApp({
       supabase.from('tables').select('*').eq('restaurant_id', restaurantId).order('table_number'),
       supabase.from('reviews').select('*').eq('restaurant_id', restaurantId).order('created_at', { ascending: false }).limit(200),
     ]);
-    if (t) {
-      setTables(t as DiningTable[]);
-      setTableCount(Math.max(1, (t as DiningTable[]).filter((x) => x.is_active).length));
-    }
+    if (t) setTables(t as DiningTable[]);
     if (s) setStaff(s as Profile[]);
     if (c) setCats(c as MenuCategory[]);
     if (m) setMenu(m as MenuItem[]);
@@ -277,6 +274,7 @@ export default function OwnerApp({
           { key: 'operations', label: '⚙️ Operations' },
           { key: 'staff', label: '👥 Staff' },
           { key: 'customers', label: '⭐ Customers' },
+          { key: 'tables', label: '🪑 Tables' },
         ]}
       />
 
@@ -292,7 +290,7 @@ export default function OwnerApp({
               staff={staff}
               itemOrderDate={itemOrderDate}
               slug={slug}
-              tableCount={tableCount}
+              tables={tables}
               restaurantName={restaurantName}
             />
           )}
@@ -309,6 +307,9 @@ export default function OwnerApp({
           {tab === 'operations' && <OwnerOpsTab restaurantId={restaurantId} orders={orders} tables={tables} />}
           {tab === 'staff' && <OwnerStaffTab orders={orders} staff={staff} />}
           {tab === 'customers' && <OwnerCustomersTab reviews={reviews} />}
+          {tab === 'tables' && (
+            <TableManager restaurantId={restaurantId} slug={slug} tables={tables} onChange={setTables} />
+          )}
         </>
       )}
     </div>

@@ -2,7 +2,7 @@
 
 // Owner "Dashboard" tab: KPIs + smart summary + key charts + QR setup.
 
-import type { Order, OrderItem, Profile } from '@/lib/types';
+import type { Order, OrderItem, Profile, DiningTable } from '@/lib/types';
 import { fmtPKR, fmtNum } from '@/lib/format';
 import { CategoryDonut, RevenueTrend } from './charts';
 import QrSection from './QrSection';
@@ -24,7 +24,7 @@ export default function OwnerDashTab({
   staff,
   itemOrderDate,
   slug,
-  tableCount,
+  tables,
   restaurantName,
 }: {
   agg: DashAgg;
@@ -33,7 +33,7 @@ export default function OwnerDashTab({
   staff: Profile[];
   itemOrderDate: Map<string, string>;
   slug: string;
-  tableCount: number;
+  tables: DiningTable[];
   restaurantName: string;
 }) {
   const cancelled = orders.filter((o) => o.status === 'cancelled');
@@ -62,7 +62,7 @@ export default function OwnerDashTab({
         <CategoryDonut cats={agg.cats} />
       </div>
 
-      <QrSection slug={slug} tableCount={tableCount} restaurantName={restaurantName} />
+      <QrSection slug={slug} tables={tables} restaurantName={restaurantName} />
     </div>
   );
 }
