@@ -90,6 +90,7 @@ export interface Order {
   customer_phone: string | null;
   notes: string | null;
   cancel_reason: string | null;
+  ready_for_bill: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -103,6 +104,7 @@ export interface OrderItem {
   unit_price: number;
   notes: string | null;
   status: 'pending' | 'preparing' | 'ready';
+  created_at?: string;
 }
 
 export interface OrderWithItems extends Order {

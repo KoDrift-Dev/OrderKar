@@ -139,10 +139,10 @@ function LoginForm({ lang, onLang }: { lang: Lang; onLang: (l: Lang) => void }) 
               {t('lgn_not_configured')}
             </p>
           )}
-          <form onSubmit={submit} className="mt-6 space-y-4">
+          <form onSubmit={submit} className="mt-6 space-y-4" autoComplete="off">
             <div>
               <Label>Email</Label>
-              <Input type="email" required disabled={busy} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@restaurant.pk" />
+              <Input type="email" name="ok-email" autoComplete="off" required disabled={busy} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@restaurant.pk" />
             </div>
             <div>
               <div className="flex items-center justify-between">
@@ -152,7 +152,7 @@ function LoginForm({ lang, onLang }: { lang: Lang; onLang: (l: Lang) => void }) 
                 </button>
               </div>
               <div className="relative">
-                <Input type={showPass ? 'text' : 'password'} required disabled={busy} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="!pr-12" />
+                <Input type={showPass ? 'text' : 'password'} name="ok-password" autoComplete="new-password" required disabled={busy} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="!pr-12" />
                 <button type="button" onClick={() => setShowPass((s) => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[16px] text-muted" title={showPass ? t('lgn_hide_pass') : t('lgn_show_pass')}>
                   {showPass ? '\u{1F648}' : '\u{1F441}\uFE0F'}
                 </button>
