@@ -15,7 +15,7 @@ import OwnerCustomersTab from './OwnerCustomersTab';
 import OwnerGuide from './OwnerGuide';
 import TableManager from './TableManager';
 import OwnerSettings from './OwnerSettings';
-import { Empty, PageHeader, Tabs } from './ui';
+import { Empty, Tabs } from './ui';
 import { LangProvider, normalizeLang, useT, type Lang, type TKey } from '@/lib/i18n';
 import ManagerApp from './ManagerApp';
 import KitchenApp from './KitchenApp';
@@ -325,43 +325,50 @@ function OwnerAppInner({
   }, [orders, items, catName, range, start, end]);
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Owner dashboard"
-        sub={`${displayName} · full analytics`}
-        right={
-          <div className="flex flex-wrap items-center gap-2">
-            <OwnerGuide />
-            <Tabs<Range>
-              active={range}
-              onChange={setRange}
-              tabs={[
-                { key: 'today', label: t('own_range_today') },
-                { key: '7d', label: t('own_range_7d') },
-                { key: '30d', label: t('own_range_30d') },
-                { key: '12m', label: t('own_range_12m') },
-                { key: 'custom', label: '📅 Custom' },
-              ]}
-            />
-            {ordersLoading && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-brand/10 px-3 py-1.5 text-[12px] font-bold text-brand">
-                <svg className="animate-spin" width="13" height="13" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeOpacity="0.25" strokeWidth="3" />
-                  <path d="M22 12a10 10 0 00-10-10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-                </svg>
-                {t('own_updating')}
-              </span>
-            )}
-            {range === 'custom' && (
-              <div className="glass flex items-center gap-1.5 !rounded-[16px] p-1.5 text-[12.5px] font-bold">
-                <input type="date" value={custom.from} max={custom.to} onChange={(e) => setCustom((c) => ({ ...c, from: e.target.value }))} className="rounded-[10px] border border-line bg-[var(--c-surface-solid)] px-2 py-1.5 text-ink" />
-                <span className="text-muted">→</span>
-                <input type="date" value={custom.to} min={custom.from} onChange={(e) => setCustom((c) => ({ ...c, to: e.target.value }))} className="rounded-[10px] border border-line bg-[var(--c-surface-solid)] px-2 py-1.5 text-ink" />
-              </div>
-            )}
+    <div className="space-y-6 overflow-x-clip">
+      <div className="mb-6">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="font-display text-[26px] font-extrabold leading-tight text-ink">Owner dashboard</h1>
+            <p className="mt-0.5 truncate text-sm text-muted">
+              {displayName} · full analytics
+            </p>
           </div>
-        }
-      />
+          <div className="shrink-0">
+            <OwnerGuide />
+          </div>
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <Tabs<Range>
+            wrap
+            active={range}
+            onChange={setRange}
+            tabs={[
+              { key: 'today', label: t('own_range_today') },
+              { key: '7d', label: t('own_range_7d') },
+              { key: '30d', label: t('own_range_30d') },
+              { key: '12m', label: t('own_range_12m') },
+              { key: 'custom', label: '📅 Custom' },
+            ]}
+          />
+          {ordersLoading && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-brand/10 px-3 py-1.5 text-[12px] font-bold text-brand">
+              <svg className="animate-spin" width="13" height="13" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeOpacity="0.25" strokeWidth="3" />
+                <path d="M22 12a10 10 0 00-10-10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+              </svg>
+              {t('own_updating')}
+            </span>
+          )}
+          {range === 'custom' && (
+            <div className="glass flex items-center gap-1.5 !rounded-[16px] p-1.5 text-[12.5px] font-bold">
+              <input type="date" value={custom.from} max={custom.to} onChange={(e) => setCustom((c) => ({ ...c, from: e.target.value }))} className="rounded-[10px] border border-line bg-[var(--c-surface-solid)] px-2 py-1.5 text-ink" />
+              <span className="text-muted">→</span>
+              <input type="date" value={custom.to} min={custom.from} onChange={(e) => setCustom((c) => ({ ...c, to: e.target.value }))} className="rounded-[10px] border border-line bg-[var(--c-surface-solid)] px-2 py-1.5 text-ink" />
+            </div>
+          )}
+        </div>
+      </div>
 
       <Tabs<TabKey>
         active={tab}

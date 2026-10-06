@@ -99,24 +99,39 @@ export function SectionHead({
 }
 
 /* ── KPI card ───────────────────────────────────────────────── */
+const KPI_ACCENTS = {
+  emerald: 'border-t-emerald-500',
+  sky: 'border-t-sky-500',
+  amber: 'border-t-amber-500',
+  rose: 'border-t-rose-500',
+  orange: 'border-t-orange-500',
+  teal: 'border-t-teal-500',
+  violet: 'border-t-violet-500',
+} as const;
+
 export function Kpi({
   label,
   value,
   delta,
   icon,
+  accent,
 }: {
   label: string;
   value: string;
   delta?: { text: string; up: boolean | null };
   icon?: React.ReactNode;
+  /** colored top border by KPI type */
+  accent?: keyof typeof KPI_ACCENTS;
 }) {
   return (
-    <Card className="p-5">
+    <Card className={`min-w-0 border-t-[3px] p-3.5 sm:p-5 ${accent ? KPI_ACCENTS[accent] : 'border-t-transparent'}`}>
       <div className="flex items-start justify-between gap-2">
-        <p className="text-[13px] font-bold uppercase tracking-wide text-muted">{label}</p>
+        <p className="truncate text-[11px] font-bold uppercase tracking-wide text-muted sm:text-[13px]">{label}</p>
         {icon}
       </div>
-      <p className="mt-2 font-mono text-[28px] font-bold leading-none text-ink">{value}</p>
+      <p className="mt-1.5 truncate whitespace-nowrap font-mono text-[22px] font-bold leading-none text-ink sm:mt-2 sm:text-[28px]">
+        {value}
+      </p>
       {delta && delta.up !== null && (
         <p className={`mt-2 text-[13px] font-bold ${delta.up ? 'text-ok' : 'text-danger'}`}>
           {delta.up ? '▲' : '▼'} {delta.text}
@@ -156,13 +171,20 @@ export function Tabs<T extends string>({
   tabs,
   active,
   onChange,
+  wrap,
 }: {
   tabs: { key: T; label: string }[];
   active: T;
   onChange: (k: T) => void;
+  /** wrap pills onto multiple rows instead of horizontal scroll */
+  wrap?: boolean;
 }) {
   return (
-    <div className="glass inline-flex max-w-full gap-1 overflow-x-auto p-1.5 !rounded-[16px]">
+    <div
+      className={`glass gap-1 p-1.5 !rounded-[16px] ${
+        wrap ? 'flex flex-wrap' : 'no-scrollbar inline-flex max-w-full overflow-x-auto'
+      }`}
+    >
       {tabs.map((t) => (
         <button
           key={t.key}

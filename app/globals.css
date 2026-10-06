@@ -249,3 +249,12 @@ body {
     inset: 0;
   }
 }
+
+/* Hide scrollbars on swipeable tab strips (mobile) */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

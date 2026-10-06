@@ -191,10 +191,10 @@ function ManagerAppInner({
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi label={t('mgr_kpi_revenue')} value={fmtPKR(stats.revenue)} />
-        <Kpi label={t('mgr_kpi_orders')} value={String(stats.orders)} />
-        <Kpi label={t('mgr_kpi_aov')} value={fmtPKR(stats.aov)} />
-        <Kpi label={t('mgr_kpi_active')} value={String(stats.active)} />
+        <Kpi label={t('mgr_kpi_revenue')} value={fmtPKR(stats.revenue)} accent="emerald" />
+        <Kpi label={t('mgr_kpi_orders')} value={String(stats.orders)} accent="violet" />
+        <Kpi label={t('mgr_kpi_aov')} value={fmtPKR(stats.aov)} accent="amber" />
+        <Kpi label={t('mgr_kpi_active')} value={String(stats.active)} accent="teal" />
       </div>
 
       {/* Orders feed + tables */}

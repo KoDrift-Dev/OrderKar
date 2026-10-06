@@ -44,17 +44,17 @@ export default function OwnerDashTab({
 
   return (
     <div className="space-y-8">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi label="Revenue" value={fmtPKR(agg.revenue)} />
-        <Kpi label="Orders" value={fmtNum(agg.orders)} />
-        <Kpi label="Avg order value" value={fmtPKR(agg.orders ? agg.revenue / agg.orders : 0)} />
-        <Kpi label="Items sold" value={fmtNum(agg.itemsSold)} />
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4">
+        <Kpi label="Revenue" value={fmtPKR(agg.revenue)} accent="emerald" />
+        <Kpi label="Orders" value={fmtNum(agg.orders)} accent="violet" />
+        <Kpi label="Avg order value" value={fmtPKR(agg.orders ? agg.revenue / agg.orders : 0)} accent="amber" />
+        <Kpi label="Items sold" value={fmtNum(agg.itemsSold)} accent="teal" />
       </div>
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi label="Cancelled" value={fmtNum(cancelled.length)} />
-        <Kpi label={t('own_kpi_lost')} value={fmtPKR(cancelledValue)} />
-        <Kpi label="Void rate" value={`${voidRate.toFixed(1)}%`} />
-        <Kpi label="Net revenue" value={fmtPKR(agg.revenue)} />
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4">
+        <Kpi label="Cancelled" value={fmtNum(cancelled.length)} accent="rose" />
+        <Kpi label={t('own_kpi_lost')} value={fmtPKR(cancelledValue)} accent="orange" />
+        <Kpi label="Void rate" value={`${voidRate.toFixed(1)}%`} accent="amber" />
+        <Kpi label="Net revenue" value={fmtPKR(agg.revenue)} accent="emerald" />
       </div>
 
       <OwnerSmartSummary orders={orders} items={items} staff={staff} itemOrderDate={itemOrderDate} />
