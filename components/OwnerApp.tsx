@@ -17,9 +17,13 @@ import TableManager from './TableManager';
 import OwnerSettings from './OwnerSettings';
 import { Empty, PageHeader, Tabs } from './ui';
 import { LangProvider, normalizeLang, useT, type Lang, type TKey } from '@/lib/i18n';
+import ManagerApp from './ManagerApp';
+import KitchenApp from './KitchenApp';
+import WaiterApp from './WaiterApp';
 
 type Range = 'today' | '7d' | '30d' | '12m' | 'custom';
-type TabKey = 'dashboard' | 'sales' | 'operations' | 'staff' | 'customers' | 'tables' | 'settings';
+type TabKey = 'dashboard' | 'sales' | 'operations' | 'previews' | 'staff' | 'customers' | 'tables' | 'settings';
+type PreviewKey = 'manager' | 'kitchen' | 'waiter';
 
 function isoDay(d: Date): string {
   return d.toLocaleDateString('en-CA'); // YYYY-MM-DD
@@ -145,10 +149,12 @@ export default function OwnerApp({
   restaurantId,
   slug,
   restaurantName,
+  viewerId,
 }: {
   restaurantId: string;
   slug: string;
   restaurantName: string;
+  viewerId: string;
 }) {
   const [lang, setLang] = useState<Lang>('english');
 
@@ -170,7 +176,7 @@ export default function OwnerApp({
 
   return (
     <LangProvider value={lang}>
-      <OwnerAppInner restaurantId={restaurantId} slug={slug} restaurantName={restaurantName} />
+      <OwnerAppInner restaurantId={restaurantId} slug={slug} restaurantName={restaurantName} viewerId={viewerId} />
     </LangProvider>
   );
 }
@@ -179,15 +185,18 @@ function OwnerAppInner({
   restaurantId,
   slug,
   restaurantName,
+  viewerId,
 }: {
   restaurantId: string;
   slug: string;
   restaurantName: string;
+  viewerId: string;
 }) {
   const t = useT();
   const [range, setRange] = useState<Range>('30d');
   const [custom, setCustom] = useState(defaultCustom);
   const [tab, setTab] = useState<TabKey>('dashboard');
+  const [preview, setPreview] = useState<PreviewKey>('manager');
   const [orders, setOrders] = useState<Order[]>([]);
   const [items, setItems] = useState<OrderItem[]>([]);
   const [staff, setStaff] = useState<Profile[]>([]);
@@ -355,6 +364,7 @@ function OwnerAppInner({
           { key: 'dashboard', label: '📊 Dashboard' },
           { key: 'sales', label: '💰 Sales' },
           { key: 'operations', label: '⚙️ Operations' },
+          { key: 'previews', label: '👁️ Previews' },
           { key: 'staff', label: '👥 Staff' },
           { key: 'customers', label: '⭐ Customers' },
           { key: 'tables', label: '🪑 Tables' },
@@ -390,6 +400,28 @@ function OwnerAppInner({
           </div>
           <div className={tab === 'operations' ? '' : 'hidden'}>
             <OwnerOpsTab restaurantId={restaurantId} orders={orders} tables={tables} />
+          </div>
+          <div className={tab === 'previews' ? '' : 'hidden'}>
+            <Tabs<PreviewKey>
+              active={preview}
+              onChange={setPreview}
+              tabs={[
+                { key: 'manager', label: '🧑‍💼 Manager' },
+                { key: 'kitchen', label: '👨‍🍳 Kitchen' },
+                { key: 'waiter', label: '🤵 Waiter' },
+              ]}
+            />
+            <div className="mt-4">
+              {tab === 'previews' && preview === 'manager' && (
+                <ManagerApp restaurantId={restaurantId} slug={slug} restaurantName={restaurantName} />
+              )}
+              {tab === 'previews' && preview === 'kitchen' && (
+                <KitchenApp restaurantId={restaurantId} />
+              )}
+              {tab === 'previews' && preview === 'waiter' && (
+                <WaiterApp restaurantId={restaurantId} waiterId={viewerId} />
+              )}
+            </div>
           </div>
           <div className={tab === 'staff' ? '' : 'hidden'}>
             <OwnerStaffTab orders={orders} staff={staff} />
