@@ -51,27 +51,28 @@ function ItemCard({
   return (
     <div
       onClick={onOpen}
-      className="group relative cursor-pointer overflow-hidden rounded-[18px] shadow-lift transition-transform active:scale-[0.98]"
+      className="group cursor-pointer overflow-hidden rounded-[18px] border border-line bg-[var(--c-surface-solid)] shadow-lift transition-transform active:scale-[0.98]"
     >
-      <img src={img} alt={item.name} loading="lazy" className="aspect-[4/3] w-full object-cover transition-transform duration-500 group-hover:scale-105" />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[rgba(8,10,18,0.92)] via-[rgba(8,10,18,0.30)] to-transparent" />
-      <div className="absolute left-2 top-2 flex gap-1">
-        {item.tags.includes('bestseller') && (
-          <span className="rounded-full bg-amber px-2 py-0.5 text-[9.5px] font-extrabold text-white shadow">★</span>
-        )}
-        {item.tags.includes('spicy') && (
-          <span className="rounded-full bg-danger px-2 py-0.5 text-[9.5px] font-extrabold text-white shadow">🌶</span>
-        )}
+      <div className="relative">
+        <img src={img} alt={item.name} loading="lazy" className="aspect-[4/3] w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+        <div className="absolute left-2 top-2 flex gap-1">
+          {item.tags.includes('bestseller') && (
+            <span className="rounded-full bg-amber px-2 py-0.5 text-[9.5px] font-extrabold text-white shadow">★</span>
+          )}
+          {item.tags.includes('spicy') && (
+            <span className="rounded-full bg-danger px-2 py-0.5 text-[9.5px] font-extrabold text-white shadow">🌶</span>
+          )}
+        </div>
       </div>
-      <div className="absolute inset-x-0 bottom-0 p-2.5">
-        <h3 className="truncate font-display text-[12.5px] font-extrabold leading-tight text-white">{item.name}</h3>
-        <div className="mt-1 flex items-center justify-between gap-1">
-          <span className="font-mono text-[13px] font-bold text-white">{fmtPKR(item.price)}</span>
+      <div className="p-2.5">
+        <h3 className="line-clamp-2 min-h-[2.5em] font-display text-[13px] font-extrabold leading-tight text-ink">{item.name}</h3>
+        <div className="mt-1.5 flex items-center justify-between gap-1">
+          <span className="font-mono text-[16px] font-extrabold text-brand">{fmtPKR(item.price)}</span>
           {line ? (
-            <div className="flex items-center gap-0.5 rounded-full bg-white/20 p-0.5 backdrop-blur" onClick={(e) => e.stopPropagation()}>
-              <button aria-label={t('mnu_decrease')} onClick={onDec} className="flex h-7 w-7 items-center justify-center rounded-full text-[14px] font-bold text-white">−</button>
-              <span className="min-w-4 text-center font-mono text-[12px] font-bold text-white">{line.qty}</span>
-              <button aria-label={t('mnu_increase')} onClick={onInc} className="flex h-7 w-7 items-center justify-center rounded-full text-[14px] font-bold text-white">+</button>
+            <div className="flex items-center gap-0.5 rounded-full bg-brand-soft p-0.5" onClick={(e) => e.stopPropagation()}>
+              <button aria-label={t('mnu_decrease')} onClick={onDec} className="flex h-7 w-7 items-center justify-center rounded-full text-[14px] font-bold text-brand">−</button>
+              <span className="min-w-4 text-center font-mono text-[12px] font-bold text-ink">{line.qty}</span>
+              <button aria-label={t('mnu_increase')} onClick={onInc} className="flex h-7 w-7 items-center justify-center rounded-full text-[14px] font-bold text-brand">+</button>
             </div>
           ) : (
             <button
@@ -80,13 +81,39 @@ function ItemCard({
                 onAdd();
               }}
               aria-label={t('mnu_add_item', { name: item.name })}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-[17px] font-bold text-brand shadow-lift transition-transform active:scale-90"
+              className="btn-3d flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[17px] font-bold text-white shadow-lift transition-transform active:scale-90"
             >
               +
             </button>
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// Skeleton shown while the menu loads — perceived speed on slow phones.
+function MenuSkeleton({ label }: { label: string }) {
+  return (
+    <div className="mt-4" aria-hidden="true">
+      <div className="mb-2 h-11 animate-pulse rounded-[14px] bg-soft" />
+      <div className="mb-4 flex gap-2">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="h-8 w-24 shrink-0 animate-pulse rounded-full bg-soft" />
+        ))}
+      </div>
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-4">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="overflow-hidden rounded-[18px] border border-line">
+            <div className="aspect-[4/3] animate-pulse bg-soft" />
+            <div className="space-y-2 p-2.5">
+              <div className="h-3.5 w-4/5 animate-pulse rounded bg-soft" />
+              <div className="h-3.5 w-2/5 animate-pulse rounded bg-soft" />
+            </div>
+          </div>
+        ))}
+      </div>
+      <p className="mt-4 text-center text-[12.5px] font-bold text-muted">{label}</p>
     </div>
   );
 }
@@ -98,6 +125,7 @@ export default function MenuOrder({
   customerName,
   onPlaced,
   stickyTop,
+  openOrder,
 }: {
   restaurantId: string;
   table: DiningTable;
@@ -105,12 +133,16 @@ export default function MenuOrder({
   customerName?: string;
   onPlaced: (orderId: string, trackingToken: string) => void;
   stickyTop?: string;
+  /** table already has an open order → new items append to it */
+  openOrder?: { id: string; number: number; token: string } | null;
 }) {
   const [cats, setCats] = useState<MenuCategory[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
   const [activeCat, setActiveCat] = useState<string>('');
   const [cart, setCart] = useState<CartLine[]>([]);
   const [placing, setPlacing] = useState(false);
+  const [menuLoading, setMenuLoading] = useState(true);
+  const [orderNotes, setOrderNotes] = useState('');
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
   const [detail, setDetail] = useState<MenuItem | null>(null);
@@ -131,13 +163,14 @@ export default function MenuOrder({
     const supabase = createClient();
     (async () => {
       const [{ data: c }, { data: it }] = await Promise.all([
-        supabase.from('menu_categories').select('*').eq('restaurant_id', restaurantId).eq('is_active', true).order('display_order'),
-        supabase.from('menu_items').select('*').eq('restaurant_id', restaurantId).eq('is_available', true).order('name'),
+        supabase.from('menu_categories').select('id, restaurant_id, name, display_order').eq('restaurant_id', restaurantId).eq('is_active', true).order('display_order'),
+        supabase.from('menu_items').select('id, restaurant_id, category_id, name, description, ingredients, price, image_url, tags, prep_time_minutes').eq('restaurant_id', restaurantId).eq('is_available', true).order('name'),
       ]);
       const cats = (c ?? []) as MenuCategory[];
       setCats(cats);
       setItems((it ?? []) as MenuItem[]);
       if (cats.length > 0) setActiveCat(cats[0].id);
+      setMenuLoading(false);
     })();
   }, [restaurantId, configured]);
 
@@ -163,28 +196,41 @@ export default function MenuOrder({
     );
   }, [items, query]);
 
-  // Scroll-spy: the pill of the section sitting in the middle of the
-  // screen lights up, and the pill bar follows it.
+  // Scroll-spy: on scroll, the section whose top has crossed a probe line
+  // just under the sticky pill bar becomes active. More reliable than
+  // IntersectionObserver for short sections.
   useEffect(() => {
-    if (searching) return;
-    const obs = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries) {
-          if (!e.isIntersecting) continue;
-          const id = e.target.getAttribute('data-cat');
-          if (!id || jumpLock.current === id) continue;
-          setActiveCat(id);
-          pillsRef.current
-            ?.querySelector(`[data-pill="${id}"]`)
-            ?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+    if (searching || grouped.length === 0) return;
+    const stickyPx = parseInt(top, 10) || 0;
+    const probeY = stickyPx + 170;
+    let raf = 0;
+    const followPill = (id: string) => {
+      pillsRef.current
+        ?.querySelector(`[data-pill="${id}"]`)
+        ?.scrollIntoView({ inline: 'center', block: 'nearest' });
+    };
+    const onScroll = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        if (jumpLock.current) return;
+        let current = grouped[0].cat.id;
+        for (const g of grouped) {
+          const el = sectionRefs.current.get(g.cat.id);
+          if (el && el.getBoundingClientRect().top <= probeY) current = g.cat.id;
         }
-      },
-      { rootMargin: '-35% 0px -55% 0px' },
-    );
-    const els = [...sectionRefs.current.values()];
-    els.forEach((el) => obs.observe(el));
-    return () => obs.disconnect();
-  }, [grouped, searching]);
+        setActiveCat((prev) => {
+          if (prev !== current) followPill(current);
+          return current;
+        });
+      });
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      cancelAnimationFrame(raf);
+    };
+  }, [grouped, searching, top]);
 
   const jumpTo = (id: string) => {
     setActiveCat(id);
@@ -251,6 +297,28 @@ export default function MenuOrder({
     setError('');
     try {
       const supabase = createClient();
+      const rpcLines = cart.map((l) => ({
+        menu_item_id: l.item.id,
+        item_name: l.item.name,
+        quantity: l.qty,
+        unit_price: String(l.item.price),
+        notes: l.notes.trim(),
+      }));
+      const notes = orderNotes.trim() || null;
+      if (openOrder) {
+        // One active order per table: append to the already-open order.
+        const { error: aErr } = await supabase.rpc('append_order_items', {
+          p_order_id: openOrder.id,
+          p_items: rpcLines,
+          p_notes: notes,
+        });
+        if (aErr) throw new Error(aErr.message);
+        setCart([]);
+        setCartOpen(false);
+        setOrderNotes('');
+        onPlaced(openOrder.id, openOrder.token);
+        return;
+      }
       // id + tracking_token are generated client-side: anon can no longer
       // SELECT orders back (tracking goes through the track_order RPC), so we
       // must already know both values after the insert.
@@ -265,6 +333,7 @@ export default function MenuOrder({
         customer_name: customerName?.trim() || null,
         status: 'pending',
         total_amount: total,
+        notes,
       });
       if (oErr) throw new Error(oErr.message);
       const lines = cart.map((l) => ({
@@ -279,6 +348,7 @@ export default function MenuOrder({
       if (iErr) throw new Error(iErr.message);
       setCart([]);
       setCartOpen(false);
+      setOrderNotes('');
       onPlaced(orderId, trackingToken);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (e) {
@@ -308,8 +378,17 @@ export default function MenuOrder({
     onAdd: () => addToCart(item, 1, ''),
   });
 
+  if (menuLoading) {
+    return <MenuSkeleton label={t('mnu_skeleton_sub')} />;
+  }
+
   return (
     <div>
+      {openOrder && (
+        <p className="mb-3 rounded-btn bg-brand/10 px-3.5 py-2 text-[12.5px] font-bold text-brand">
+          {t('wtr_order_open', { n: openOrder.number })}
+        </p>
+      )}
       {/* Sticky search + emoji category pills */}
       <div
         style={{ top }}
@@ -419,7 +498,7 @@ export default function MenuOrder({
                   placing ? 'pointer-events-none opacity-60' : ''
                 }`}
               >
-                {placing ? t('mnu_placing') : t('mnu_place_order')}
+                {openOrder ? (placing ? t('mnu_adding') : t('mnu_add_to_order', { n: openOrder.number })) : placing ? t('mnu_placing') : t('mnu_place_order')}
               </span>
             </button>
             {error && <p className="mt-2 text-center text-[12.5px] font-bold text-danger">{error}</p>}
@@ -472,10 +551,20 @@ export default function MenuOrder({
               ))}
             </div>
             <div className="border-t border-line bg-[var(--c-surface-solid)] px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+              <div className="mb-3">
+                <label className="mb-1 block text-[12px] font-extrabold text-ink">{t('mnu_order_notes')}</label>
+                <Textarea
+                  value={orderNotes}
+                  onChange={(e) => setOrderNotes(e.target.value)}
+                  rows={2}
+                  placeholder={t('mnu_order_notes_ph')}
+                  className="w-full text-[13px]"
+                />
+              </div>
               <div className="flex items-center justify-between">
                 <p className="font-mono text-[16px] font-bold text-ink">{fmtPKR(total)}</p>
                 <Btn size="lg" onClick={placeOrder} disabled={placing} className="!rounded-full px-7">
-                  {placing ? t('mnu_placing') : t('mnu_place_order_count', { n: count })}
+                  {openOrder ? (placing ? t('mnu_adding') : t('mnu_add_to_order', { n: openOrder.number })) : placing ? t('mnu_placing') : t('mnu_place_order_count', { n: count })}
                 </Btn>
               </div>
               {error && <p className="mt-2 text-center text-[12.5px] font-bold text-danger">{error}</p>}

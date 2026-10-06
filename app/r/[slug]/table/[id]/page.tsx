@@ -105,6 +105,7 @@ function TableContent({ params }: { params: { slug: string; id: string } }) {
   const [placed, setPlaced] = useState<PlacedOrder[]>([]);
   const [history, setHistory] = useState<PlacedOrder[]>([]);
   const [name, setName] = useState('');
+  const [openOrder, setOpenOrder] = useState<{ id: string; number: number; token: string } | null>(null);
 
   const placedKey = `orderkar:placed:${tenant.id}:${tableNum}`;
 
@@ -154,11 +155,41 @@ function TableContent({ params }: { params: { slug: string; id: string } }) {
     })();
   }, [tenant.id, tableNum]);
 
+  // One active order per table: find the customer's still-open order (if any)
+  // so new items append to it instead of creating a second order.
+  useEffect(() => {
+    if (placed.length === 0) {
+      setOpenOrder(null);
+      return;
+    }
+    let live = true;
+    (async () => {
+      const supabase = createClient();
+      for (const o of placed) {
+        if (!o.token) continue;
+        const { data } = await supabase.rpc('track_order', { p_token: o.token });
+        const row = data as { id?: string; order_number?: number; status?: string; ready_for_bill?: boolean } | null;
+        if (
+          row?.id &&
+          (row.status === 'pending' || row.status === 'preparing') &&
+          !row.ready_for_bill
+        ) {
+          if (live) setOpenOrder({ id: row.id, number: row.order_number ?? 0, token: o.token });
+          return;
+        }
+      }
+      if (live) setOpenOrder(null);
+    })();
+    return () => {
+      live = false;
+    };
+  }, [placed]);
+
   const onPlaced = async (orderId: string, trackingToken: string) => {
     const supabase = createClient();
     const { data } = await supabase.rpc('track_order', { p_token: trackingToken });
     const row = data as { order_number?: number } | null;
-    setPlaced((p) => [...p, { id: orderId, token: trackingToken, number: row?.order_number ?? 0, at: Date.now() }]);
+    setPlaced((p) => (p.some((x) => x.id === orderId) ? p : [...p, { id: orderId, token: trackingToken, number: row?.order_number ?? 0, at: Date.now() }]));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -239,7 +270,7 @@ function TableContent({ params }: { params: { slug: string; id: string } }) {
                 className="input-neu max-w-xs px-4 py-2.5 text-[15px] text-ink placeholder:text-muted"
               />
             </Card>
-            <MenuOrder restaurantId={tenant.id} table={table} customerName={name} onPlaced={onPlaced} stickyTop="60px" />
+            <MenuOrder restaurantId={tenant.id} table={table} customerName={name} onPlaced={onPlaced} stickyTop="60px" openOrder={openOrder} />
           </>
         )}
       </main>
