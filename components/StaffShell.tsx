@@ -43,11 +43,12 @@ export default function StaffShell({
   };
 
   const roleTabs = ROLE_TABS.filter((n) => n.roles.includes(role));
-  // On the owner page, Manager/Kitchen/Waiter live as in-page previews
-  // (👁️ Previews tab) — don't navigate away to their dedicated URLs.
-  const onOwnerPage = pathname.endsWith('/owner');
-  const visibleRoleTabs = onOwnerPage ? roleTabs.filter((n) => n.href === 'owner') : roleTabs;
   const manageTabs = MANAGE_TABS.filter((n) => n.roles.includes(role));
+  // On the owner page everything lives in-page (tabs + 👁️ Previews) —
+  // don't navigate away to dedicated role URLs.
+  const onOwnerPage = pathname.endsWith('/owner');
+  const visibleRoleTabs = onOwnerPage ? [] : roleTabs;
+  const visibleManageTabs = onOwnerPage ? [] : manageTabs;
 
   const renderTab = (t: { href: string; label: string; icon?: string }) => {
     const href = `/r/${tenant.slug}/${t.href}`;
@@ -89,13 +90,13 @@ export default function StaffShell({
             </button>
           </div>
         </div>
-        {(visibleRoleTabs.length > 1 || manageTabs.length > 0) && (
+        {(visibleRoleTabs.length > 0 || visibleManageTabs.length > 0) && (
           <nav className="mx-auto flex max-w-7xl items-center gap-1 overflow-x-auto px-4 pb-2 sm:px-6">
             {visibleRoleTabs.map(renderTab)}
-            {visibleRoleTabs.length > 1 && manageTabs.length > 0 && (
+            {visibleRoleTabs.length > 0 && visibleManageTabs.length > 0 && (
               <span className="mx-1.5 h-5 w-px shrink-0 bg-line" aria-hidden="true" />
             )}
-            {manageTabs.map(renderTab)}
+            {visibleManageTabs.map(renderTab)}
           </nav>
         )}
       </header>

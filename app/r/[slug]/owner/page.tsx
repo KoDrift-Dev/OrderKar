@@ -6,7 +6,7 @@ export default async function OwnerPage({ params }: { params: { slug: string } }
   const { restaurant, profile } = await requireStaff(params.slug);
   return (
     <StaffShell role={profile.role} name={profile.name}>
-      <OwnerApp restaurantId={restaurant.id} slug={restaurant.slug} restaurantName={restaurant.name} viewerId={profile.id} />
+      <OwnerApp restaurantId={restaurant.id} slug={restaurant.slug} restaurantName={restaurant.name} viewerId={profile.id} viewerRole={profile.role} />
     </StaffShell>
   );
 }

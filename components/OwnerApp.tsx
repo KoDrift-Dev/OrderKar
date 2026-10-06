@@ -5,7 +5,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import type { DiningTable, MenuCategory, MenuItem, Order, OrderItem, Profile, Review } from '@/lib/types';
+import type { DiningTable, MenuCategory, MenuItem, Order, OrderItem, Profile, Review, Role } from '@/lib/types';
 import { CategoryDonut, HourlyHeatmap, RevenueTrend, TopItems, WeekdayBars } from './charts';
 import OwnerDashTab from './OwnerDashTab';
 import OwnerSalesTab from './OwnerSalesTab';
@@ -20,9 +20,11 @@ import { LangProvider, normalizeLang, useT, type Lang, type TKey } from '@/lib/i
 import ManagerApp from './ManagerApp';
 import KitchenApp from './KitchenApp';
 import WaiterApp from './WaiterApp';
+import MenuSection from './MenuSection';
+import TeamManager from './TeamManager';
 
 type Range = 'today' | '7d' | '30d' | '12m' | 'custom';
-type TabKey = 'dashboard' | 'sales' | 'operations' | 'previews' | 'staff' | 'customers' | 'tables' | 'settings';
+type TabKey = 'dashboard' | 'sales' | 'operations' | 'previews' | 'menu' | 'team' | 'staff' | 'customers' | 'tables' | 'settings';
 type PreviewKey = 'manager' | 'kitchen' | 'waiter';
 
 function isoDay(d: Date): string {
@@ -150,11 +152,13 @@ export default function OwnerApp({
   slug,
   restaurantName,
   viewerId,
+  viewerRole,
 }: {
   restaurantId: string;
   slug: string;
   restaurantName: string;
   viewerId: string;
+  viewerRole: Role;
 }) {
   const [lang, setLang] = useState<Lang>('english');
 
@@ -176,7 +180,7 @@ export default function OwnerApp({
 
   return (
     <LangProvider value={lang}>
-      <OwnerAppInner restaurantId={restaurantId} slug={slug} restaurantName={restaurantName} viewerId={viewerId} />
+      <OwnerAppInner restaurantId={restaurantId} slug={slug} restaurantName={restaurantName} viewerId={viewerId} viewerRole={viewerRole} />
     </LangProvider>
   );
 }
@@ -186,11 +190,13 @@ function OwnerAppInner({
   slug,
   restaurantName,
   viewerId,
+  viewerRole,
 }: {
   restaurantId: string;
   slug: string;
   restaurantName: string;
   viewerId: string;
+  viewerRole: Role;
 }) {
   const t = useT();
   const [range, setRange] = useState<Range>('30d');
@@ -365,6 +371,8 @@ function OwnerAppInner({
           { key: 'sales', label: '💰 Sales' },
           { key: 'operations', label: '⚙️ Operations' },
           { key: 'previews', label: '👁️ Previews' },
+          { key: 'menu', label: '🍽️ Menu' },
+          { key: 'team', label: '👥 Team' },
           { key: 'staff', label: '👥 Staff' },
           { key: 'customers', label: '⭐ Customers' },
           { key: 'tables', label: '🪑 Tables' },
@@ -422,6 +430,12 @@ function OwnerAppInner({
                 <WaiterApp restaurantId={restaurantId} waiterId={viewerId} />
               )}
             </div>
+          </div>
+          <div className={tab === 'menu' ? '' : 'hidden'}>
+            {tab === 'menu' && <MenuSection restaurantId={restaurantId} />}
+          </div>
+          <div className={tab === 'team' ? '' : 'hidden'}>
+            {tab === 'team' && <TeamManager restaurantId={restaurantId} meId={viewerId} myRole={viewerRole} />}
           </div>
           <div className={tab === 'staff' ? '' : 'hidden'}>
             <OwnerStaffTab orders={orders} staff={staff} />
