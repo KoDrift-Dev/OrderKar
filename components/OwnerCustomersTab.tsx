@@ -207,7 +207,7 @@ export default function OwnerCustomersTab({ reviews }: { reviews: Review[] }) {
                 return (
                   <Card
                     key={r.id}
-                    className={`group p-4.5 transition-all duration-200 hover:-translate-y-0.5 ${
+                    className={`group p-5 transition-all duration-200 hover:-translate-y-0.5 ${
                       isNegative ? 'border-l-4 border-l-rose-500 bg-rose-500/5' : 'hover:border-brand/40'
                     }`}
                   >

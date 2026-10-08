@@ -195,7 +195,7 @@ export default function OwnerStaffTab({ orders, staff }: { orders: Order[]; staf
           </span>
         </div>
 
-        <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {staff.map((s) => {
             const roleInfo = ROLE_COLORS[s.role] || {
               label: s.role,
@@ -205,41 +205,43 @@ export default function OwnerStaffTab({ orders, staff }: { orders: Order[]; staf
             return (
               <Card
                 key={s.id}
-                className="group p-4.5 transition-all duration-200 hover:-translate-y-1 hover:border-brand/40"
+                className="group p-5 transition-all duration-200 hover:-translate-y-1 hover:border-brand/40 flex flex-col justify-between min-h-[170px]"
               >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-gradient-to-br from-brand/20 to-teal/10 font-display text-[15px] font-black text-brand shadow-sm">
-                    {s.name.charAt(0).toUpperCase()}
+                <div>
+                  <div className="flex items-start justify-between gap-2.5">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-gradient-to-br from-brand/20 to-teal/10 font-display text-[16px] font-black text-brand shadow-sm">
+                      {s.name.charAt(0).toUpperCase()}
+                    </div>
+                    <span
+                      className={`rounded-full border px-2.5 py-0.5 text-[10.5px] font-extrabold uppercase tracking-wider ${roleInfo.badge}`}
+                    >
+                      {roleInfo.label}
+                    </span>
                   </div>
-                  <span
-                    className={`rounded-full border px-2 py-0.5 text-[10.5px] font-extrabold uppercase tracking-wider ${roleInfo.badge}`}
-                  >
-                    {roleInfo.label}
-                  </span>
-                </div>
 
-                <div className="mt-3">
-                  <p className="font-display text-[15px] font-extrabold text-ink truncate group-hover:text-brand transition-colors">
-                    {s.name}
-                  </p>
-                  {s.phone ? (
-                    <p className="mt-1 font-mono text-[12px] font-medium text-muted truncate">
-                      {s.phone}
+                  <div className="mt-3.5">
+                    <p className="font-display text-[15px] font-black text-ink truncate group-hover:text-brand transition-colors">
+                      {s.name}
                     </p>
-                  ) : (
-                    <p className="mt-1 text-[12px] italic text-muted">No phone recorded</p>
-                  )}
+                    {s.phone ? (
+                      <p className="mt-1 font-mono text-[12px] font-medium text-muted truncate">
+                        {s.phone}
+                      </p>
+                    ) : (
+                      <p className="mt-1 text-[12px] italic text-muted">No phone recorded</p>
+                    )}
+                  </div>
                 </div>
 
-                <div className="mt-3 flex items-center justify-between border-t border-line/70 pt-2 text-[11.5px]">
-                  <span className="font-medium text-muted">Status</span>
+                <div className="mt-4 flex items-center justify-between border-t border-line/70 pt-2.5 text-[11.5px]">
+                  <span className="font-semibold text-muted">Status</span>
                   <span
-                    className={`inline-flex items-center gap-1 font-bold ${
+                    className={`inline-flex items-center gap-1.5 font-bold ${
                       s.is_active ? 'text-ok' : 'text-danger'
                     }`}
                   >
                     <span
-                      className={`h-1.5 w-1.5 rounded-full ${s.is_active ? 'bg-ok' : 'bg-danger'}`}
+                      className={`h-2 w-2 rounded-full ${s.is_active ? 'bg-ok' : 'bg-danger'}`}
                     />
                     {s.is_active ? 'Active' : 'Inactive'}
                   </span>
