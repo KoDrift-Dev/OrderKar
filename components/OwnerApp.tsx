@@ -13,6 +13,7 @@ import OwnerOpsTab from './OwnerOpsTab';
 import OwnerStaffTab from './OwnerStaffTab';
 import OwnerCustomersTab from './OwnerCustomersTab';
 import OwnerGuide from './OwnerGuide';
+import OwnerShell, { type OwnerTabKey } from './OwnerShell';
 import TableManager from './TableManager';
 import OwnerSettings from './OwnerSettings';
 import { Empty, Tabs } from './ui';
@@ -24,22 +25,8 @@ import MenuSection from './MenuSection';
 import TeamManager from './TeamManager';
 
 type Range = 'today' | '7d' | '30d' | '12m' | 'custom';
-type TabKey = 'dashboard' | 'sales' | 'operations' | 'previews' | 'menu' | 'team' | 'staff' | 'customers' | 'tables' | 'settings';
+type TabKey = OwnerTabKey;
 type PreviewKey = 'manager' | 'kitchen' | 'waiter';
-
-// Sidebar navigation — same destinations as the old top tab strip.
-const OWNER_NAV: { key: TabKey; label: string; icon: string }[] = [
-  { key: 'dashboard', label: 'Dashboard', icon: '📊' },
-  { key: 'sales', label: 'Sales', icon: '💰' },
-  { key: 'operations', label: 'Operations', icon: '🖥️' },
-  { key: 'previews', label: 'Previews', icon: '👁️' },
-  { key: 'menu', label: 'Menu', icon: '🍽️' },
-  { key: 'team', label: 'Team', icon: '👥' },
-  { key: 'staff', label: 'Staff', icon: '🏅' },
-  { key: 'customers', label: 'Customers', icon: '⭐' },
-  { key: 'tables', label: 'Tables', icon: '🪑' },
-  { key: 'settings', label: 'Settings', icon: '⚙️' },
-];
 
 function isoDay(d: Date): string {
   return d.toLocaleDateString('en-CA'); // YYYY-MM-DD
@@ -167,12 +154,14 @@ export default function OwnerApp({
   restaurantName,
   viewerId,
   viewerRole,
+  viewerName,
 }: {
   restaurantId: string;
   slug: string;
   restaurantName: string;
   viewerId: string;
   viewerRole: Role;
+  viewerName: string;
 }) {
   const [lang, setLang] = useState<Lang>('english');
 
@@ -194,7 +183,7 @@ export default function OwnerApp({
 
   return (
     <LangProvider value={lang}>
-      <OwnerAppInner restaurantId={restaurantId} slug={slug} restaurantName={restaurantName} viewerId={viewerId} viewerRole={viewerRole} />
+      <OwnerAppInner restaurantId={restaurantId} slug={slug} restaurantName={restaurantName} viewerId={viewerId} viewerRole={viewerRole} viewerName={viewerName} />
     </LangProvider>
   );
 }
@@ -205,18 +194,19 @@ function OwnerAppInner({
   restaurantName,
   viewerId,
   viewerRole,
+  viewerName,
 }: {
   restaurantId: string;
   slug: string;
   restaurantName: string;
   viewerId: string;
   viewerRole: Role;
+  viewerName: string;
 }) {
   const t = useT();
   const [range, setRange] = useState<Range>('30d');
   const [custom, setCustom] = useState(defaultCustom);
   const [tab, setTab] = useState<TabKey>('dashboard');
-  const [navOpen, setNavOpen] = useState(false);
   const [preview, setPreview] = useState<PreviewKey>('manager');
   const [orders, setOrders] = useState<Order[]>([]);
   const [items, setItems] = useState<OrderItem[]>([]);
@@ -339,82 +329,50 @@ function OwnerAppInner({
     return base;
   }, [orders, items, catName, range, start, end]);
 
+  const topActions = (
+    <div className="flex flex-wrap items-center gap-2">
+      <OwnerGuide />
+      <Tabs<Range>
+        wrap
+        active={range}
+        onChange={setRange}
+        tabs={[
+          { key: 'today', label: t('own_range_today') },
+          { key: '7d', label: t('own_range_7d') },
+          { key: '30d', label: t('own_range_30d') },
+          { key: '12m', label: t('own_range_12m') },
+          { key: 'custom', label: '📅 Custom' },
+        ]}
+      />
+      {ordersLoading && (
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-brand/10 px-3 py-1.5 text-[12px] font-bold text-brand">
+          <svg className="animate-spin" width="13" height="13" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeOpacity="0.25" strokeWidth="3" />
+            <path d="M22 12a10 10 0 00-10-10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+          </svg>
+          {t('own_updating')}
+        </span>
+      )}
+      {range === 'custom' && (
+        <div className="glass flex items-center gap-1.5 !rounded-[16px] p-1.5 text-[12.5px] font-bold">
+          <input type="date" value={custom.from} max={custom.to} onChange={(e) => setCustom((c) => ({ ...c, from: e.target.value }))} className="rounded-[10px] border border-line bg-[var(--c-surface-solid)] px-2 py-1.5 text-ink" />
+          <span className="text-muted">→</span>
+          <input type="date" value={custom.to} min={custom.from} onChange={(e) => setCustom((c) => ({ ...c, to: e.target.value }))} className="rounded-[10px] border border-line bg-[var(--c-surface-solid)] px-2 py-1.5 text-ink" />
+        </div>
+      )}
+    </div>
+  );
+
   return (
-    <div className="space-y-6 overflow-x-clip">
-      <div className="mb-6">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex min-w-0 items-start gap-2.5">
-            <button
-              onClick={() => setNavOpen(true)}
-              aria-label="Open menu"
-              className="glass mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center !rounded-[12px] text-[18px] text-ink lg:hidden"
-            >
-              ☰
-            </button>
-            <div className="min-w-0">
-            <h1 className="font-display text-[26px] font-extrabold leading-tight text-ink">Owner dashboard</h1>
-            <p className="mt-0.5 truncate text-sm text-muted">
-              {displayName} · full analytics
-            </p>
-            </div>
-          </div>
-          <div className="shrink-0">
-            <OwnerGuide />
-          </div>
-        </div>
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <Tabs<Range>
-            wrap
-            active={range}
-            onChange={setRange}
-            tabs={[
-              { key: 'today', label: t('own_range_today') },
-              { key: '7d', label: t('own_range_7d') },
-              { key: '30d', label: t('own_range_30d') },
-              { key: '12m', label: t('own_range_12m') },
-              { key: 'custom', label: '📅 Custom' },
-            ]}
-          />
-          {ordersLoading && (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-brand/10 px-3 py-1.5 text-[12px] font-bold text-brand">
-              <svg className="animate-spin" width="13" height="13" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeOpacity="0.25" strokeWidth="3" />
-                <path d="M22 12a10 10 0 00-10-10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-              </svg>
-              {t('own_updating')}
-            </span>
-          )}
-          {range === 'custom' && (
-            <div className="glass flex items-center gap-1.5 !rounded-[16px] p-1.5 text-[12.5px] font-bold">
-              <input type="date" value={custom.from} max={custom.to} onChange={(e) => setCustom((c) => ({ ...c, from: e.target.value }))} className="rounded-[10px] border border-line bg-[var(--c-surface-solid)] px-2 py-1.5 text-ink" />
-              <span className="text-muted">→</span>
-              <input type="date" value={custom.to} min={custom.from} onChange={(e) => setCustom((c) => ({ ...c, to: e.target.value }))} className="rounded-[10px] border border-line bg-[var(--c-surface-solid)] px-2 py-1.5 text-ink" />
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="lg:flex lg:items-start lg:gap-6">
-        {/* Desktop sidebar */}
-        <aside className="hidden w-60 shrink-0 lg:block">
-          <nav className="glass sticky top-20 space-y-1 !rounded-[18px] p-2.5">
-            {OWNER_NAV.map((n) => (
-              <button
-                key={n.key}
-                onClick={() => setTab(n.key)}
-                className={`flex w-full items-center gap-3 rounded-[12px] px-3.5 py-2.5 text-[13.5px] font-bold transition-all ${
-                  tab === n.key ? 'btn-3d text-white shadow' : 'text-muted hover:bg-soft hover:text-ink'
-                }`}
-              >
-                <span className="text-[17px] leading-none">{n.icon}</span>
-                {n.label}
-              </button>
-            ))}
-          </nav>
-        </aside>
-
-        {/* Content */}
-        <div className="min-w-0 flex-1">
+    <OwnerShell
+      tab={tab}
+      setTab={setTab}
+      subtitle={`${displayName} · full analytics`}
+      actions={topActions}
+      restaurantName={displayName}
+      userName={viewerName}
+      userRole={viewerRole}
+    >
       {loading ? (
         <Empty title={t('own_crunching')} />
       ) : (
@@ -486,48 +444,6 @@ function OwnerAppInner({
           </div>
         </>
       )}
-        </div>
-      </div>
-
-      {/* Mobile drawer */}
-      {navOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true">
-          <div className="absolute inset-0 bg-ink/45 backdrop-blur-[2px]" onClick={() => setNavOpen(false)} />
-          <div className="absolute left-0 top-0 flex h-full w-72 max-w-[85vw] animate-slide-in-left flex-col bg-[var(--c-surface-solid)] p-4 shadow-2xl">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="min-w-0">
-                <p className="truncate font-display text-[16px] font-extrabold text-ink">{displayName}</p>
-                <p className="text-[11.5px] font-bold uppercase tracking-wide text-muted">Owner</p>
-              </div>
-              <button
-                onClick={() => setNavOpen(false)}
-                aria-label="Close menu"
-                className="glass flex h-9 w-9 items-center justify-center !rounded-full text-[15px] text-muted"
-              >
-                ✕
-              </button>
-            </div>
-            <nav className="flex-1 space-y-1 overflow-y-auto">
-              {OWNER_NAV.map((n) => (
-                <button
-                  key={n.key}
-                  onClick={() => {
-                    setTab(n.key);
-                    setNavOpen(false);
-                  }}
-                  className={`flex w-full items-center gap-3 rounded-[12px] px-3.5 py-2.5 text-[13.5px] font-bold transition-all ${
-                    tab === n.key ? 'btn-3d text-white shadow' : 'text-muted hover:bg-soft hover:text-ink'
-                  }`}
-                >
-                  <span className="text-[17px] leading-none">{n.icon}</span>
-                  {n.label}
-                </button>
-              ))}
-            </nav>
-          </div>
-        </div>
-      )}
-    </div>
+    </OwnerShell>
   );
 }
-
