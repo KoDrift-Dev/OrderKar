@@ -44,11 +44,14 @@ export default function StaffShell({
 
   const roleTabs = ROLE_TABS.filter((n) => n.roles.includes(role));
   const manageTabs = MANAGE_TABS.filter((n) => n.roles.includes(role));
-  // On the owner page everything lives in-page (tabs + 👁️ Previews) —
-  // don't navigate away to dedicated role URLs.
+  // On the owner page, OwnerApp provides the full-screen desktop sidebar shell.
   const onOwnerPage = pathname.endsWith('/owner');
-  const visibleRoleTabs = onOwnerPage ? [] : roleTabs;
-  const visibleManageTabs = onOwnerPage ? [] : manageTabs;
+  if (onOwnerPage) {
+    return <div className="min-h-screen w-full">{children}</div>;
+  }
+
+  const visibleRoleTabs = roleTabs;
+  const visibleManageTabs = manageTabs;
 
   const renderTab = (t: { href: string; label: string; icon?: string }) => {
     const href = `/r/${tenant.slug}/${t.href}`;
@@ -72,21 +75,32 @@ export default function StaffShell({
       <header className="sticky top-0 z-40 border-b border-line bg-[var(--c-surface)] backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="flex items-center gap-3">
-            <Logo size={36} />
+            <Logo size={38} />
             <div className="leading-tight">
-              <p className="font-display text-[15px] font-extrabold text-ink">{tenant.name}</p>
-              <p className="text-[11.5px] font-bold uppercase tracking-wide text-muted">
-                {name} · {role.replace('_', ' ')}
+              <div className="flex items-center gap-2">
+                <p className="font-display text-[15.5px] font-black tracking-tight text-ink">{tenant.name}</p>
+                <span className="hidden sm:inline-flex rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-black text-brand uppercase tracking-wider">
+                  Partner
+                </span>
+              </div>
+              <p className="text-[11.5px] font-bold text-muted">
+                {name} <span className="opacity-50">&middot;</span> <span className="uppercase tracking-wider text-brand font-black">{role.replace('_', ' ')}</span>
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <ThemeToggle />
             <button
               onClick={logout}
-              className="rounded-btn border border-line bg-[var(--c-surface-solid)] px-3.5 py-2 text-[13px] font-bold text-muted hover:text-ink"
+              className="inline-flex items-center gap-1.5 rounded-btn border border-line bg-[var(--c-surface-solid)] px-3 py-1.5 text-[12.5px] font-bold text-muted hover:text-ink hover:border-line-strong transition-all shadow-sm"
+              title="Sign out of account"
             >
-              Log out
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              <span>Log out</span>
             </button>
           </div>
         </div>

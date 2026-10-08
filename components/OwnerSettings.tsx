@@ -36,6 +36,7 @@ export default function OwnerSettings({
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');
   const [contactEmail, setContactEmail] = useState('');
+  const [logoUrl, setLogoUrl] = useState('');
   const [tier, setTier] = useState('');
   const [themeCfg, setThemeCfg] = useState<Record<string, string>>({});
   const [rMsg, setRMsg] = useState<{ text: string; ok: boolean } | null>(null);
@@ -75,6 +76,7 @@ export default function OwnerSettings({
         setAddress(tc.address ?? '');
         setPhone(tc.phone ?? '');
         setContactEmail(tc.email ?? '');
+        setLogoUrl(tc.logo_url ?? '');
         setTier(r.subscription_tier ?? '');
       }
       if (p) {
@@ -106,7 +108,13 @@ export default function OwnerSettings({
           .from('restaurants')
           .update({
             name: name.trim(),
-            theme_config: { ...themeCfg, address: address.trim(), phone: phone.trim(), email: contactEmail.trim() },
+            theme_config: {
+              ...themeCfg,
+              address: address.trim(),
+              phone: phone.trim(),
+              email: contactEmail.trim(),
+              logo_url: logoUrl.trim(),
+            },
           })
           .eq('id', restaurantId);
         if (error) throw error;
@@ -198,92 +206,165 @@ export default function OwnerSettings({
 
   return (
     <div className="space-y-5">
-      <SectionHead title="Settings" sub={t('set_sub')} />
+      <div className="border-b border-line pb-4">
+        <h2 className="font-display text-xl font-extrabold tracking-tight text-ink">
+          Restaurant & Security Settings
+        </h2>
+        <p className="mt-0.5 text-sm text-muted">
+          Manage business profile, owner credentials, and access security
+        </p>
+      </div>
 
       {/* ── restaurant ── */}
-      <Card className="p-5 sm:p-6">
-        <h3 className="font-display text-[16px] font-extrabold text-ink">🏪 Restaurant details</h3>
-        <p className="mt-0.5 text-[12.5px] text-muted">{t('set_rest_info')}</p>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+      <Card className="stat-card-luxury p-5 sm:p-6">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-brand/10 text-brand text-lg shadow-sm">
+            🏪
+          </span>
           <div>
-            <Label>Restaurant name</Label>
+            <h3 className="font-display text-[16px] font-extrabold text-ink">Restaurant Profile</h3>
+            <p className="text-[12.5px] font-medium text-muted">{t('set_rest_info')}</p>
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          {/* Restaurant Logo input & preview */}
+          <div className="sm:col-span-2 rounded-[18px] border border-line bg-soft/40 p-4">
+            <Label>Restaurant Company Logo</Label>
+            <p className="text-[12px] text-muted mb-3">
+              Official branding logo displayed on PDF reports, receipts, and invoices
+            </p>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl border-2 border-line bg-[var(--c-surface-solid)] flex items-center justify-center shadow-xs">
+                {logoUrl ? (
+                  <img
+                    src={logoUrl}
+                    alt={name || 'Logo'}
+                    className="h-full w-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <span className="text-2xl font-black text-brand">
+                    {name ? name.charAt(0).toUpperCase() : '🏪'}
+                  </span>
+                )}
+              </div>
+              <div className="flex-1 w-full space-y-1.5">
+                <Input
+                  value={logoUrl}
+                  onChange={(e) => setLogoUrl(e.target.value)}
+                  placeholder="https://example.com/logo.png (Direct Image URL)"
+                />
+                <p className="text-[11px] text-muted">Paste your image URL (JPG, PNG, WEBP, or SVG)</p>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <Label>Restaurant Business Name</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Spice Villa" maxLength={80} />
           </div>
           <div>
-            <Label>Contact email</Label>
+            <Label>Public Contact Email</Label>
             <Input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} placeholder="hello@restaurant.pk" maxLength={120} />
           </div>
           <div>
-            <Label>Phone</Label>
+            <Label>Business Phone Number</Label>
             <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0300 1234567" maxLength={30} />
           </div>
           <div>
-            <Label>Address</Label>
+            <Label>Physical Street Address</Label>
             <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Main Road, Kharian" maxLength={160} />
           </div>
         </div>
+
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          <span className="rounded-full bg-soft px-3 py-1 text-[12px] font-bold text-muted">slug: {slug}</span>
-          {tier && <span className="rounded-full bg-brand/10 px-3 py-1 text-[12px] font-bold text-brand">Plan: {tier}</span>}
+          <span className="rounded-full border border-line bg-soft px-3 py-1 font-mono text-[12px] font-bold text-muted">
+            URL: /{slug}
+          </span>
+          {tier && (
+            <span className="rounded-full bg-brand/10 px-3 py-1 text-[12px] font-extrabold text-brand uppercase tracking-wider">
+              {tier} Tier
+            </span>
+          )}
         </div>
         <p className="mt-2 text-[11.5px] text-muted">{t('set_slug_note')}</p>
         {rMsg && <div className="mt-3">{msg(rMsg.text, rMsg.ok)}</div>}
-        <div className="mt-4">
+        <div className="mt-5 border-t border-line/70 pt-4">
           <Btn onClick={saveRestaurant} disabled={saving === 'rest'}>
-            {saving === 'rest' ? t('set_saving') : 'Save restaurant details'}
+            {saving === 'rest' ? t('set_saving') : 'Save Profile Changes'}
           </Btn>
         </div>
       </Card>
 
       {/* ── my account ── */}
-      <Card className="p-5 sm:p-6">
-        <h3 className="font-display text-[16px] font-extrabold text-ink">👤 My account</h3>
-        <p className="mt-0.5 text-[12.5px] text-muted">{t('set_acct_info')}</p>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+      <Card className="stat-card-luxury p-5 sm:p-6">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-teal/15 text-teal text-lg shadow-sm">
+            👤
+          </span>
           <div>
-            <Label>Full name</Label>
+            <h3 className="font-display text-[16px] font-extrabold text-ink">Owner Account</h3>
+            <p className="text-[12.5px] font-medium text-muted">{t('set_acct_info')}</p>
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          <div>
+            <Label>Owner Full Name</Label>
             <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Tahseen Alam" maxLength={80} />
           </div>
           <div>
-            <Label>Phone</Label>
+            <Label>Owner Mobile Phone</Label>
             <Input value={myPhone} onChange={(e) => setMyPhone(e.target.value)} placeholder="0300 1234567" maxLength={30} />
           </div>
         </div>
-        <div className="mt-3">
-          <Label>Login email</Label>
-          <Input value={loginEmail} disabled className="opacity-60" />
+        <div className="mt-4">
+          <Label>Active Login Email</Label>
+          <Input value={loginEmail} disabled className="opacity-60 bg-soft cursor-not-allowed font-mono text-[13.5px]" />
           <p className="mt-1 text-[11.5px] text-muted">{t('set_email_note')}</p>
         </div>
         {aMsg && <div className="mt-3">{msg(aMsg.text, aMsg.ok)}</div>}
-        <div className="mt-4">
+        <div className="mt-5 border-t border-line/70 pt-4">
           <Btn onClick={saveAccount} disabled={saving === 'acct'}>
-            {saving === 'acct' ? t('set_saving') : 'Save my details'}
+            {saving === 'acct' ? t('set_saving') : 'Update Account Info'}
           </Btn>
         </div>
       </Card>
 
       {/* ── security ── */}
-      <Card className="p-5 sm:p-6">
-        <h3 className="font-display text-[16px] font-extrabold text-ink">🔐 Login & security</h3>
-        <div className="mt-4 grid gap-6 lg:grid-cols-2">
+      <Card className="stat-card-luxury p-5 sm:p-6">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-amber/15 text-amber text-lg shadow-sm">
+            🔐
+          </span>
           <div>
+            <h3 className="font-display text-[16px] font-extrabold text-ink">Login & Password Security</h3>
+            <p className="text-[12.5px] font-medium text-muted">Update administrative authentication details</p>
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-6 lg:grid-cols-2">
+          <div className="rounded-[16px] border border-line bg-soft/30 p-4">
             <Label>{t('set_new_email')}</Label>
-            <div className="flex gap-2">
+            <div className="mt-1.5 flex gap-2">
               <Input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="new@email.pk" className="flex-1" maxLength={120} />
               <Btn variant="secondary" onClick={changeEmail} disabled={saving === 'email'}>
-                {saving === 'email' ? '…' : 'Change'}
+                {saving === 'email' ? '…' : 'Update'}
               </Btn>
             </div>
           </div>
-          <div>
+          <div className="rounded-[16px] border border-line bg-soft/30 p-4">
             <Label>{t('set_new_pass')}</Label>
             <Input type="password" value={newPass} onChange={(e) => setNewPass(e.target.value)} placeholder={t('set_ph_pass')} maxLength={72} />
-            <div className="mt-2">
+            <div className="mt-3">
               <Label>{t('set_pass_confirm')}</Label>
-              <div className="flex gap-2">
+              <div className="mt-1 flex gap-2">
                 <Input type="password" value={confirmPass} onChange={(e) => setConfirmPass(e.target.value)} placeholder="••••••••" className="flex-1" maxLength={72} />
                 <Btn variant="secondary" onClick={changePassword} disabled={saving === 'pass'}>
-                  {saving === 'pass' ? '…' : 'Change'}
+                  {saving === 'pass' ? '…' : 'Change Password'}
                 </Btn>
               </div>
             </div>

@@ -1,17 +1,15 @@
 'use client';
 
-// Owner "Dashboard" tab: today hero cards (clickable), branch performance,
-// stock alerts, recent activity, smart summary, charts, QR setup.
+// Owner "Dashboard" tab: Executive command center with luxury KPI cards,
+// loss prevention telemetry, realtime operational pulse, smooth charts, and floor QR launchpad.
 
 import type { Order, OrderItem, Profile, DiningTable } from '@/lib/types';
 import { fmtPKR, fmtNum } from '@/lib/format';
 import { CategoryDonut, RevenueTrend } from './charts';
 import QrSection from './QrSection';
 import OwnerSmartSummary from './OwnerSmartSummary';
+import { Card } from './ui';
 import { useT } from '@/lib/i18n';
-import type { OwnerTabKey } from './OwnerShell';
-import type { BranchStat, HeroStats, HistEvent, StockItem } from './OwnerWidgets';
-import { timeAgo } from './OwnerWidgets';
 
 export interface DashAgg {
   revenue: number;
@@ -21,85 +19,120 @@ export interface DashAgg {
   cats: { name: string; revenue: number }[];
 }
 
-function SectionTitle({ icon, title, sub }: { icon: string; title: string; sub?: string }) {
-  return (
-    <div className="mb-3 flex items-center gap-2.5">
-      <span className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-gradient-to-br from-[#7c3aed]/15 to-[#0d9488]/15 text-[17px]">
-        {icon}
-      </span>
-      <div>
-        <h2 className="font-display text-[16px] font-extrabold leading-tight text-ink">{title}</h2>
-        {sub && <p className="text-[12px] text-muted">{sub}</p>}
-      </div>
-    </div>
-  );
+export interface MetricComparison {
+  text: string;
+  isPositive: boolean;
+  isNeutral?: boolean;
 }
 
-function Delta({ pct }: { pct: number | null }) {
-  if (pct === null || !isFinite(pct))
-    return <span className="text-[11.5px] font-semibold text-muted">— vs yesterday</span>;
-  const up = pct >= 0;
-  return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-extrabold ${
-        up ? 'bg-emerald-500/15 text-emerald-600' : 'bg-rose-500/15 text-rose-600'
-      }`}
-    >
-      {up ? '▲' : '▼'} {Math.abs(pct).toFixed(1)}%
-    </span>
-  );
+export interface KpiComparisons {
+  compLabel: string;
+  revenue: MetricComparison;
+  orders: MetricComparison;
+  aov: MetricComparison;
+  itemsSold: MetricComparison;
+  net: MetricComparison;
+  cancelled: MetricComparison;
+  lost: MetricComparison;
+  voidRate: MetricComparison;
 }
 
-function HeroCard({
-  label,
-  value,
-  icon,
-  tint,
-  delta,
-  sub,
-  onClick,
-}: {
+interface ExecutiveKpiProps {
   label: string;
   value: string;
-  icon: string;
-  tint: string;
-  delta?: React.ReactNode;
   sub?: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="group rounded-[20px] border border-line bg-[var(--c-surface-solid)] p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_30px_-12px_rgba(109,40,217,0.25)] sm:p-5"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-[10.5px] font-extrabold uppercase tracking-[0.12em] text-muted">{label}</p>
-          <p className="mt-2 truncate font-mono text-[24px] font-extrabold leading-none text-ink sm:text-[28px]">
-            {value}
-          </p>
-          <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-            {delta}
-            {sub && <span className="text-[11.5px] font-semibold text-muted">{sub}</span>}
-          </div>
-        </div>
-        <span
-          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] text-[20px] transition-transform group-hover:scale-110 ${tint}`}
-        >
-          {icon}
-        </span>
-      </div>
-    </button>
-  );
+  comparison?: MetricComparison;
+  badge?: { text: string; tone: 'emerald' | 'violet' | 'amber' | 'teal' | 'rose' };
+  icon: React.ReactNode;
+  iconBgClass: string;
+  borderClass: string;
+  glowClass?: string;
+  onClick?: () => void;
 }
 
-// Compact secondary KPI.
-function MiniKpi({ label, value, bar }: { label: string; value: string; bar: string }) {
+function ExecutiveKpi({
+  label,
+  value,
+  sub,
+  comparison,
+  badge,
+  icon,
+  iconBgClass,
+  borderClass,
+  glowClass = '',
+  onClick,
+}: ExecutiveKpiProps) {
+  const toneMap = {
+    emerald: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+    violet: 'bg-violet-500/10 text-violet-600 border-violet-500/20',
+    amber: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
+    teal: 'bg-teal-500/10 text-teal-600 border-teal-500/20',
+    rose: 'bg-rose-500/10 text-rose-600 border-rose-500/20',
+  };
+
   return (
-    <div className={`rounded-[16px] border border-line border-t-[3px] bg-[var(--c-surface-solid)] px-4 py-3.5 ${bar}`}>
-      <p className="truncate text-[10px] font-extrabold uppercase tracking-[0.12em] text-muted">{label}</p>
-      <p className="mt-1.5 truncate font-mono text-[20px] font-extrabold leading-none text-ink">{value}</p>
-    </div>
+    <Card
+      onClick={onClick}
+      className={`stat-card-luxury p-5 transition-all duration-300 hover:-translate-y-1 ${borderClass} ${
+        onClick ? 'cursor-pointer hover:shadow-lg active:scale-[0.98] group' : ''
+      } ${glowClass}`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <p className="text-[12px] font-extrabold uppercase tracking-wider text-muted truncate">
+              {label}
+            </p>
+            {onClick && (
+              <span className="opacity-0 group-hover:opacity-100 transition-opacity text-muted group-hover:text-ink text-[12px] font-black">
+                ↗
+              </span>
+            )}
+          </div>
+          <p className="mt-2 font-mono text-[24px] sm:text-[28px] font-black tracking-tight text-ink leading-tight truncate">
+            {value}
+          </p>
+        </div>
+        <div
+          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] ${iconBgClass} shadow-md group-hover:scale-105 transition-transform`}
+        >
+          {icon}
+        </div>
+      </div>
+
+      <div className="mt-3.5 flex flex-wrap items-center justify-between gap-2 border-t border-line/70 pt-2.5 text-[12px]">
+        {comparison ? (
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span
+              className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-black tracking-tight ${
+                comparison.isNeutral
+                  ? 'bg-soft text-muted'
+                  : comparison.isPositive
+                  ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                  : 'bg-rose-500/15 text-rose-600 dark:text-rose-400'
+              }`}
+            >
+              {comparison.text}
+            </span>
+            {sub && <span className="font-medium text-muted truncate text-[11px]">{sub}</span>}
+          </div>
+        ) : sub ? (
+          <span className="font-medium text-muted truncate">{sub}</span>
+        ) : (
+          <div />
+        )}
+
+        {badge && (
+          <span
+            className={`ml-auto shrink-0 rounded-full border px-2 py-0.5 text-[10.5px] font-extrabold ${
+              toneMap[badge.tone]
+            }`}
+          >
+            {badge.text}
+          </span>
+        )}
+      </div>
+    </Card>
   );
 }
 
@@ -112,12 +145,8 @@ export default function OwnerDashTab({
   slug,
   tables,
   restaurantName,
-  hero,
-  branches,
-  stockLow,
-  history,
+  comparisons,
   onNavigate,
-  onOpenHistory,
 }: {
   agg: DashAgg;
   orders: Order[];
@@ -127,165 +156,215 @@ export default function OwnerDashTab({
   slug: string;
   tables: DiningTable[];
   restaurantName: string;
-  hero: HeroStats;
-  branches: BranchStat[];
-  stockLow: StockItem[];
-  history: HistEvent[];
-  onNavigate: (t: OwnerTabKey) => void;
-  onOpenHistory: () => void;
+  comparisons?: KpiComparisons;
+  onNavigate?: (tab: any, subTab?: any) => void;
 }) {
   const t = useT();
   const cancelled = orders.filter((o) => o.status === 'cancelled');
   const cancelledValue = cancelled.reduce((s, o) => s + Number(o.total_amount), 0);
   const voidRate = orders.length > 0 ? (cancelled.length / orders.length) * 100 : 0;
+  const aov = agg.orders ? agg.revenue / agg.orders : 0;
 
   return (
-    <div className="space-y-6 sm:space-y-8">
-      {/* Hero cards — tap to jump to the right section */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-3">
-        <HeroCard
-          label="Today's sale"
-          value={fmtPKR(hero.todayRev)}
-          icon="💰"
-          tint="bg-emerald-500/15"
-          delta={<Delta pct={hero.revPct} />}
-          sub={`${hero.todayOrders} orders`}
-          onClick={() => onNavigate('sales')}
-        />
-        <HeroCard
-          label="Active orders"
-          value={fmtNum(hero.activeCount)}
-          icon="🧾"
-          tint="bg-violet-500/15"
-          sub="Tap to view all →"
-          onClick={() => onNavigate('operations')}
-        />
-        <HeroCard
-          label="Customers today"
-          value={fmtNum(hero.todayCust)}
-          icon="👥"
-          tint="bg-teal-500/15"
-          delta={<Delta pct={hero.custPct} />}
-          onClick={() => onNavigate('customers')}
-        />
+    <div className="space-y-8">
+      {/* ── 1. Top Executive Performance KPIs ── */}
+      <div>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="font-display text-[16px] font-extrabold tracking-tight text-ink">
+            Core Performance Metrics
+          </h2>
+          <span className="text-[12px] font-bold text-muted">
+            {fmtNum(agg.orders)} orders fulfilled
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+          <ExecutiveKpi
+            label="Gross Revenue"
+            value={fmtPKR(agg.revenue)}
+            comparison={comparisons?.revenue}
+            badge={{ text: 'Realized', tone: 'emerald' }}
+            iconBgClass="bg-gradient-to-br from-[#10b981] to-[#059669] text-white shadow-emerald-500/25"
+            borderClass="border-2 border-emerald-500/40 hover:border-emerald-500 hover:shadow-emerald-500/10"
+            onClick={() => onNavigate?.('reports', 'revenue')}
+            icon={
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="1" x2="12" y2="23" />
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+              </svg>
+            }
+          />
+
+          <ExecutiveKpi
+            label="Total Orders"
+            value={fmtNum(agg.orders)}
+            comparison={comparisons?.orders}
+            badge={{ text: 'Processed', tone: 'violet' }}
+            iconBgClass="bg-gradient-to-br from-[#8b5cf6] to-[#6d28d9] text-white shadow-violet-500/25"
+            borderClass="border-2 border-violet-500/40 hover:border-violet-500 hover:shadow-violet-500/10"
+            onClick={() => onNavigate?.('reports', 'orders')}
+            icon={
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+                <path d="M3 6h18" />
+                <path d="M16 10a4 4 0 0 1-8 0" />
+              </svg>
+            }
+          />
+
+          <ExecutiveKpi
+            label="Avg Order Value"
+            value={fmtPKR(aov)}
+            comparison={comparisons?.aov}
+            badge={{ text: 'Per Ticket', tone: 'amber' }}
+            iconBgClass="bg-gradient-to-br from-[#f59e0b] to-[#d97706] text-white shadow-amber-500/30"
+            borderClass="border-2 border-amber-500/40 hover:border-amber-500 hover:shadow-amber-500/10"
+            onClick={() => onNavigate?.('reports', 'revenue')}
+            icon={
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
+              </svg>
+            }
+          />
+
+          <ExecutiveKpi
+            label="Dishes Sold"
+            value={fmtNum(agg.itemsSold)}
+            comparison={comparisons?.itemsSold}
+            badge={{ text: 'Kitchen Output', tone: 'teal' }}
+            iconBgClass="bg-gradient-to-br from-[#06b6d4] to-[#0284c7] text-white shadow-cyan-500/30"
+            borderClass="border-2 border-cyan-500/40 hover:border-cyan-500 hover:shadow-cyan-500/10"
+            onClick={() => onNavigate?.('reports', 'dishes')}
+            icon={
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
+                <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8Z" />
+                <line x1="6" y1="1" x2="6" y2="4" />
+                <line x1="10" y1="1" x2="10" y2="4" />
+                <line x1="14" y1="1" x2="14" y2="4" />
+              </svg>
+            }
+          />
+        </div>
       </div>
 
-      {/* Branch performance — only when more than one branch is visible */}
-      {branches.length > 1 && (
-        <section>
-          <SectionTitle icon="🏪" title="Branch performance" sub="Today's revenue by branch" />
-          <div className="space-y-4 rounded-[18px] border border-line bg-[var(--c-surface-solid)] p-4 sm:p-5">
-            {branches.map((b, i) => (
-              <div key={b.id}>
-                <div className="flex items-center justify-between gap-3">
-                  <p className="truncate text-[13.5px] font-bold text-ink">
-                    <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-soft text-[11px] font-extrabold text-muted">
-                      {i + 1}
-                    </span>
-                    {b.name}
-                  </p>
-                  <p className="shrink-0 font-mono text-[15px] font-extrabold text-ink">{fmtPKR(b.revenue)}</p>
-                </div>
-                <div className="mt-2 h-2 overflow-hidden rounded-full bg-soft">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-[#7c3aed] to-[#0d9488]"
-                    style={{ width: `${Math.max(3, Math.min(100, b.share))}%` }}
-                  />
-                </div>
-                <p className="mt-1 text-[11.5px] font-semibold text-muted">{b.share.toFixed(1)}% of total</p>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Stock alerts */}
-      <section>
-        <SectionTitle
-          icon="📦"
-          title="Stock alerts"
-          sub={stockLow.length > 0 ? `${stockLow.length} item${stockLow.length > 1 ? 's' : ''} low` : undefined}
-        />
-        {stockLow.length === 0 ? (
-          <div className="flex items-center gap-3 rounded-[16px] border border-emerald-500/25 bg-emerald-500/[0.07] px-4 py-3.5">
-            <span className="text-[20px]">✅</span>
-            <p className="text-[13.5px] font-bold text-emerald-700 dark:text-emerald-300">
-              All stocked — nothing below par level.
-            </p>
-          </div>
-        ) : (
-          <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
-            {stockLow.slice(0, 6).map((s) => (
-              <div key={s.id} className="rounded-[16px] border border-amber-500/25 bg-amber-500/[0.06] px-4 py-3">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="truncate text-[13.5px] font-bold text-ink">{s.name}</p>
-                  <span className="shrink-0 rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-extrabold text-amber-600">
-                    LOW
-                  </span>
-                </div>
-                <p className="mt-1 font-mono text-[13px] font-bold text-muted">
-                  {s.stock} <span className="font-sans font-semibold">/ {s.par} {s.unit}</span>
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* Recent activity */}
-      <section>
-        <div className="flex items-start justify-between gap-3">
-          <div className="mb-3 flex items-center gap-2.5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-gradient-to-br from-[#7c3aed]/15 to-[#0d9488]/15 text-[17px]">
-              🕘
+      {/* ── 2. Loss Prevention & Risk Audit ── */}
+      <div>
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-rose-500/10 text-rose-600">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
+              </svg>
             </span>
-            <div>
-              <h2 className="font-display text-[16px] font-extrabold leading-tight text-ink">History</h2>
-              <p className="text-[12px] text-muted">Recorded actions</p>
-            </div>
+            <h2 className="font-display text-[15px] font-extrabold tracking-tight text-ink">
+              Loss Prevention & Risk Audit
+            </h2>
           </div>
-          <button
-            onClick={onOpenHistory}
-            className="shrink-0 rounded-[10px] px-3 py-1.5 text-[12.5px] font-extrabold text-brand hover:bg-brand/10"
-          >
-            View all →
-          </button>
+          <span className="text-[12px] font-bold text-muted">
+            Target Void Rate &lt; 2.0%
+          </span>
         </div>
-        <div className="rounded-[18px] border border-line bg-[var(--c-surface-solid)] px-4 py-1">
-          {history.length === 0 && (
-            <p className="py-6 text-center text-[13px] font-semibold text-muted">No actions recorded yet.</p>
-          )}
-          {history.slice(0, 6).map((e) => (
-            <div key={e.id} className="flex items-center gap-3 border-b border-line/60 py-2.5 last:border-0">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-soft text-[15px]">
-                {e.icon}
-              </span>
-              <p className="min-w-0 flex-1 truncate text-[13px] font-bold text-ink">{e.text}</p>
-              <span className="shrink-0 text-[11.5px] font-semibold text-muted">{timeAgo(e.at)}</span>
-            </div>
-          ))}
+
+        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+          <ExecutiveKpi
+            label="Net Collected"
+            value={fmtPKR(agg.revenue)}
+            comparison={comparisons?.net}
+            badge={{ text: '100% Retained', tone: 'emerald' }}
+            iconBgClass="bg-gradient-to-br from-[#059669] to-[#047857] text-white shadow-emerald-500/25"
+            borderClass="border-2 border-emerald-600/40 hover:border-emerald-600 hover:shadow-emerald-600/10"
+            onClick={() => onNavigate?.('reports', 'revenue')}
+            icon={
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            }
+          />
+
+          <ExecutiveKpi
+            label="Cancelled Orders"
+            value={fmtNum(cancelled.length)}
+            comparison={comparisons?.cancelled}
+            badge={{ text: cancelled.length === 0 ? 'Optimal' : 'Investigate', tone: cancelled.length === 0 ? 'emerald' : 'rose' }}
+            iconBgClass="bg-gradient-to-br from-[#ef4444] to-[#dc2626] text-white shadow-rose-500/25"
+            borderClass="border-2 border-rose-500/40 hover:border-rose-500 hover:shadow-rose-500/10"
+            onClick={() => onNavigate?.('audit')}
+            icon={
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            }
+          />
+
+          <ExecutiveKpi
+            label="Lost Sales (Void)"
+            value={fmtPKR(cancelledValue)}
+            comparison={comparisons?.lost}
+            badge={{ text: cancelledValue === 0 ? 'Nil' : 'Unrecovered', tone: cancelledValue === 0 ? 'emerald' : 'amber' }}
+            iconBgClass="bg-gradient-to-br from-[#f97316] to-[#ea580c] text-white shadow-orange-500/30"
+            borderClass="border-2 border-orange-500/40 hover:border-orange-500 hover:shadow-orange-500/10"
+            onClick={() => onNavigate?.('audit')}
+            icon={
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+                <line x1="12" y1="9" x2="12" y2="13" />
+                <line x1="12" y1="17" x2="12.01" y2="17" />
+              </svg>
+            }
+          />
+
+          <ExecutiveKpi
+            label="Void Rate"
+            value={`${voidRate.toFixed(1)}%`}
+            comparison={comparisons?.voidRate}
+            badge={{
+              text: voidRate <= 2 ? 'Healthy' : 'Attention',
+              tone: voidRate <= 2 ? 'emerald' : 'rose',
+            }}
+            iconBgClass={
+              voidRate <= 2
+                ? 'bg-gradient-to-br from-[#10b981] to-[#059669] text-white shadow-emerald-500/25'
+                : 'bg-gradient-to-br from-[#ef4444] to-[#b91c1c] text-white shadow-rose-500/25'
+            }
+            borderClass={
+              voidRate <= 2
+                ? 'border-2 border-emerald-500/40 hover:border-emerald-500 hover:shadow-emerald-500/10'
+                : 'border-2 border-rose-500/40 hover:border-rose-500 hover:shadow-rose-500/10'
+            }
+            onClick={() => onNavigate?.('audit')}
+            icon={
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+              </svg>
+            }
+          />
         </div>
-      </section>
-
-      <OwnerSmartSummary orders={orders} items={items} staff={staff} itemOrderDate={itemOrderDate} />
-
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
-        <MiniKpi label="Cancelled" value={fmtNum(cancelled.length)} bar="!border-t-rose-500" />
-        <MiniKpi label={t('own_kpi_lost')} value={fmtPKR(cancelledValue)} bar="!border-t-orange-500" />
-        <MiniKpi label="Void rate" value={`${voidRate.toFixed(1)}%`} bar="!border-t-amber-500" />
-        <MiniKpi label="Net revenue" value={fmtPKR(agg.revenue)} bar="!border-t-emerald-500" />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-5">
-        <div className="xl:col-span-3">
-          <RevenueTrend points={agg.trend.map((x) => x.value)} labels={agg.trend.map((x) => x.label)} />
-        </div>
-        <div className="xl:col-span-2">
-          <CategoryDonut cats={agg.cats} />
-        </div>
+      {/* ── 3. Executive AI Pulse (Smart Highlights) ── */}
+      <OwnerSmartSummary
+        orders={orders}
+        items={items}
+        staff={staff}
+        itemOrderDate={itemOrderDate}
+      />
+
+      {/* ── 4. Visual Trend & Revenue Mix ── */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <RevenueTrend
+          points={agg.trend.map((t) => t.value)}
+          labels={agg.trend.map((t) => t.label)}
+        />
+        <CategoryDonut cats={agg.cats} />
       </div>
 
-      <QrSection slug={slug} tables={tables} restaurantName={restaurantName} />
+      {/* ── 5. Floor & QR Code Hub ── */}
+      <div className="rounded-[24px] border border-line bg-gradient-to-br from-brand/5 via-transparent to-teal/5 p-1">
+        <QrSection slug={slug} tables={tables} restaurantName={restaurantName} />
+      </div>
     </div>
   );
 }

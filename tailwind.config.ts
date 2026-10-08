@@ -4,6 +4,7 @@ import type { Config } from 'tailwindcss';
 // Light default, dark via [data-theme="dark"]. All themeable colors resolve
 // through CSS variables so the toggle flips every page instantly.
 const config: Config = {
+  darkMode: ['selector', '[data-theme="dark"]'],
   content: ['./app/**/*.{ts,tsx}', './components/**/*.{ts,tsx}'],
   theme: {
     extend: {

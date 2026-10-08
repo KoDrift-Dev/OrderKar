@@ -9,12 +9,17 @@ export function Card({
   children,
   className = '',
   deep = false,
-}: {
+  ...rest
+}: React.HTMLAttributes<HTMLDivElement> & {
   children: React.ReactNode;
   className?: string;
   deep?: boolean;
 }) {
-  return <div className={`${deep ? 'glass-deep' : 'glass'} ${className}`}>{children}</div>;
+  return (
+    <div className={`${deep ? 'glass-deep' : 'glass'} ${className}`} {...rest}>
+      {children}
+    </div>
+  );
 }
 
 /* ── Buttons ────────────────────────────────────────────────── */

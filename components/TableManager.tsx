@@ -226,67 +226,130 @@ export default function TableManager({
       );
     });
 
-  return (
-    <div>
-      <SectionHead
-        title="Tables"
-        sub={t('tbl_sub', { n: tables.length, active: tables.filter((x) => x.is_active).length })}
-        action={
-          <Btn size="sm" onClick={openNew}>
-            ＋ Add table
-          </Btn>
-        }
-      />
+  const [filterSec, setFilterSec] = useState<string>('all');
 
-      {tables.length === 0 ? (
+  const filteredTables = useMemo(() => {
+    if (filterSec === 'all') return sorted;
+    return sorted.filter((tb) => (tb.floor_section || 'indoor').toLowerCase() === filterSec.toLowerCase());
+  }, [sorted, filterSec]);
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <h2 className="font-display text-xl font-extrabold tracking-tight text-ink">
+              Dining Tables & Floor Layout
+            </h2>
+            <span className="rounded-full bg-brand/10 px-2.5 py-0.5 text-[11px] font-bold text-brand">
+              {tables.filter((x) => x.is_active).length} active / {tables.length} total
+            </span>
+          </div>
+          <p className="mt-0.5 text-sm text-muted">
+            Configure dining stations, floor sections, capacity, and table QR codes
+          </p>
+        </div>
+
+        <button
+          onClick={openNew}
+          className="inline-flex items-center gap-2 rounded-btn bg-brand px-4 py-2 text-[13.5px] font-extrabold text-white shadow-lift transition-all hover:brightness-105 active:translate-y-0"
+        >
+          <span className="text-[16px] leading-none">＋</span>
+          <span>Add New Table</span>
+        </button>
+      </div>
+
+      {/* Section Filter Pills */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        {[
+          { key: 'all', label: 'All Tables' },
+          { key: 'indoor', label: 'Indoor Hall' },
+          { key: 'outdoor', label: 'Outdoor Patio' },
+          { key: 'rooftop', label: 'Rooftop Terrace' },
+        ].map((sec) => (
+          <button
+            key={sec.key}
+            onClick={() => setFilterSec(sec.key)}
+            className={`rounded-[12px] px-3.5 py-1.5 text-[12.5px] font-extrabold transition-all ${
+              filterSec === sec.key
+                ? 'bg-brand text-white shadow-sm'
+                : 'border border-line bg-[var(--c-surface-solid)] text-muted hover:text-ink'
+            }`}
+          >
+            {sec.label}
+          </button>
+        ))}
+      </div>
+
+      {filteredTables.length === 0 ? (
         <Empty title={t('tbl_empty_title')} sub={t('tbl_empty_sub')} />
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {sorted.map((tb) => (
-            <Card key={tb.id} className={`p-4 ${tb.is_active ? '' : 'opacity-60'}`}>
+        <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-4">
+          {filteredTables.map((tb) => (
+            <Card
+              key={tb.id}
+              className={`group p-4 transition-all duration-200 hover:-translate-y-1 ${
+                tb.is_active ? 'hover:border-brand/40' : 'opacity-60 bg-soft/50'
+              }`}
+            >
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="font-display text-[20px] font-extrabold text-ink">Table {tb.table_number}</p>
-                  <p className="mt-0.5 text-[12px] font-bold text-muted">
-                    {sectionLabel(tb, t)} · {tb.capacity} seats
+                  <span className="rounded-full bg-soft px-2 py-0.5 text-[10.5px] font-extrabold uppercase tracking-wider text-muted">
+                    {sectionLabel(tb, t)}
+                  </span>
+                  <p className="mt-1.5 font-display text-[22px] font-black tracking-tight text-ink">
+                    Table {tb.table_number}
+                  </p>
+                  <p className="mt-0.5 font-mono text-[12px] font-bold text-muted">
+                    👥 {tb.capacity} seats
                   </p>
                 </div>
+
                 <button
                   type="button"
                   onClick={() => toggleActive(tb)}
-                  title={tb.is_active ? 'Deactivate' : 'Activate'}
-                  className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${tb.is_active ? 'bg-brand' : 'bg-line'}`}
+                  title={tb.is_active ? 'Deactivate Table' : 'Activate Table'}
+                  className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+                    tb.is_active ? 'bg-brand shadow-sm' : 'bg-line'
+                  }`}
                 >
                   <span
-                    className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${tb.is_active ? 'left-[22px]' : 'left-0.5'}`}
+                    className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${
+                      tb.is_active ? 'left-[22px]' : 'left-0.5'
+                    }`}
                   />
                 </button>
               </div>
-              <div className="mt-3 flex items-center gap-1.5">
+
+              <div className="mt-4 flex items-center gap-1.5 border-t border-line/70 pt-2.5">
                 <button
                   type="button"
                   onClick={() => setQrTable(tb)}
-                  className="flex-1 rounded-btn border border-line bg-[var(--c-surface-solid)] px-2 py-1.5 text-[12px] font-bold text-ink hover:bg-soft"
+                  className="flex-1 rounded-[10px] border border-line bg-[var(--c-surface-solid)] px-2 py-1.5 text-[11.5px] font-extrabold text-ink transition-colors hover:border-brand/40 hover:text-brand shadow-xs"
                 >
                   📷 QR
                 </button>
                 <button
                   type="button"
                   onClick={() => openEdit(tb)}
-                  className="flex-1 rounded-btn border border-line bg-[var(--c-surface-solid)] px-2 py-1.5 text-[12px] font-bold text-ink hover:bg-soft"
+                  className="flex-1 rounded-[10px] border border-line bg-[var(--c-surface-solid)] px-2 py-1.5 text-[11.5px] font-extrabold text-ink transition-colors hover:border-brand/40 hover:text-brand shadow-xs"
                 >
                   ✏️ Edit
                 </button>
                 <button
                   type="button"
                   onClick={() => askDelete(tb)}
-                  className="flex-1 rounded-btn border border-line bg-[var(--c-surface-solid)] px-2 py-1.5 text-[12px] font-bold text-danger hover:bg-danger/10"
+                  className="rounded-[10px] border border-line bg-[var(--c-surface-solid)] px-2.5 py-1.5 text-[11.5px] font-extrabold text-danger transition-colors hover:bg-danger/10 shadow-xs"
+                  title="Delete Table"
                 >
                   🗑
                 </button>
               </div>
+
               {!tb.is_active && (
-                <p className="mt-2 text-center text-[11px] font-bold text-muted">{t('tbl_inactive_note')}</p>
+                <p className="mt-2 text-center text-[10.5px] font-bold text-danger">
+                  {t('tbl_inactive_note')}
+                </p>
               )}
             </Card>
           ))}

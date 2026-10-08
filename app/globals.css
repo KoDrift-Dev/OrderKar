@@ -14,9 +14,9 @@
   --font-mono: 'Space Grotesk', ui-monospace, monospace;
 
   /* ── Light theme ── */
-  --c-page: #e9e4f7; /* soft lavender — white cards pop */
+  --c-page: #f8f7fc; /* airy ultra-light tone — smooth, clean canvas */
   --c-soft: #f3f4f6;
-  --c-surface: rgba(255, 255, 255, 0.72);
+  --c-surface: rgba(255, 255, 255, 0.76);
   --c-surface-solid: #ffffff;
   --c-ink: #1f2937;
   --c-ink-rgb: 31 41 55;
@@ -96,19 +96,25 @@ html {
 
 body {
   @apply bg-page text-body antialiased;
-  /* Ambient aurora wash behind everything (subtle, premium) */
+  /* Ambient smooth wave: one side crisp ultra-light/white, smoothly shifting to a slightly darker soft tint */
   background-image:
-    radial-gradient(900px 480px at 12% -8%, rgba(109, 40, 217, 0.09), transparent 60%),
-    radial-gradient(760px 420px at 88% 4%, rgba(13, 148, 136, 0.08), transparent 60%),
-    radial-gradient(700px 500px at 50% 110%, rgba(245, 158, 11, 0.06), transparent 60%);
+    linear-gradient(130deg, #ffffff 0%, #faf9fd 28%, #f2edfa 65%, #eae3f7 100%);
   background-attachment: fixed;
 }
 
-[data-theme='dark'] body {
+.bg-page {
+  background-color: var(--c-page);
   background-image:
-    radial-gradient(900px 480px at 12% -8%, rgba(139, 92, 246, 0.14), transparent 60%),
-    radial-gradient(760px 420px at 88% 4%, rgba(6, 182, 212, 0.1), transparent 60%),
-    radial-gradient(700px 500px at 50% 110%, rgba(249, 115, 22, 0.08), transparent 60%);
+    linear-gradient(130deg, #ffffff 0%, #faf9fd 28%, #f2edfa 65%, #eae3f7 100%);
+  background-attachment: fixed;
+}
+
+[data-theme='dark'] body,
+[data-theme='dark'] .bg-page {
+  background-color: var(--c-page);
+  background-image:
+    linear-gradient(130deg, #090e17 0%, #0f172a 35%, #141c33 70%, #191a35 100%);
+  background-attachment: fixed;
 }
 
 ::selection {
@@ -158,13 +164,12 @@ body {
 }
 
 /* Primary 3D button */
-/* Brand gradient: violet → teal, soft like the wordmark accent. */
 .btn-3d {
-  background: linear-gradient(120deg, #7c3aed 0%, #6d5ef0 45%, #0d9488 115%);
+  background: linear-gradient(135deg, var(--c-brand) 0%, var(--c-brand-deep) 100%);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.28),
-    0 4px 6px rgba(109, 40, 217, 0.18),
-    0 12px 28px rgba(13, 148, 136, 0.16);
+    0 4px 6px rgba(109, 40, 217, 0.25),
+    0 12px 28px rgba(109, 40, 217, 0.28);
   transition: transform 0.16s ease, box-shadow 0.16s ease, filter 0.16s ease;
 }
 .btn-3d:hover {
@@ -172,22 +177,14 @@ body {
   filter: brightness(1.06);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.3),
-    0 6px 10px rgba(109, 40, 217, 0.2),
-    0 18px 38px rgba(13, 148, 136, 0.2);
+    0 6px 10px rgba(109, 40, 217, 0.28),
+    0 18px 38px rgba(109, 40, 217, 0.34);
 }
 .btn-3d:active {
   transform: translateY(1px) scale(0.99);
   box-shadow:
     inset 0 2px 8px rgba(0, 0, 0, 0.22),
-    0 2px 6px rgba(109, 40, 217, 0.16);
-}
-
-/* Gradient text accent (wordmark style). */
-.text-gradient {
-  background: linear-gradient(100deg, #7c3aed 10%, #0d9488 90%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+    0 2px 6px rgba(109, 40, 217, 0.2);
 }
 
 /* Neumorphic input */
@@ -268,28 +265,64 @@ body {
   scrollbar-width: none;
 }
 
-/* Mobile drawer slide-in */
-@keyframes slide-in-left {
-  from {
-    transform: translateX(-100%);
-  }
-  to {
-    transform: translateX(0);
-  }
+/* ── Modern Executive UI/UX tokens & utilities ── */
+.stat-card-luxury {
+  background: var(--c-surface);
+  -webkit-backdrop-filter: blur(20px) saturate(1.35);
+  backdrop-filter: blur(20px) saturate(1.35);
+  border: 1px solid var(--c-line);
+  box-shadow: var(--shadow-glass);
+  border-radius: 20px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.22s ease;
 }
-.animate-slide-in-left {
-  animation: slide-in-left 0.25s ease-out;
+.stat-card-luxury:hover {
+  transform: translateY(-2px);
+  border-color: var(--c-line-strong);
+  box-shadow: var(--shadow-lift);
+}
+.stat-card-luxury::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  pointer-events: none;
+}
+[data-theme='dark'] .stat-card-luxury::before {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), transparent);
 }
 
-/* Right drawer slide-in */
-@keyframes slide-in-right {
-  from {
-    transform: translateX(100%);
+.glow-emerald {
+  box-shadow: 0 0 20px -3px rgba(16, 185, 129, 0.3);
+}
+.glow-brand {
+  box-shadow: 0 0 20px -3px rgba(109, 40, 217, 0.35);
+}
+.glow-amber {
+  box-shadow: 0 0 20px -3px rgba(245, 158, 11, 0.3);
+}
+.glow-rose {
+  box-shadow: 0 0 20px -3px rgba(239, 68, 68, 0.3);
+}
+.glow-teal {
+  box-shadow: 0 0 20px -3px rgba(13, 148, 136, 0.3);
+}
+
+/* Live pulse animation */
+@keyframes live-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
   }
-  to {
-    transform: translateX(0);
+  50% {
+    opacity: 0.4;
+    transform: scale(1.18);
   }
 }
-.animate-slide-in-right {
-  animation: slide-in-right 0.25s ease-out;
+.animate-live-pulse {
+  animation: live-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }

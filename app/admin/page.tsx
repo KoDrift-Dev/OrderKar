@@ -41,19 +41,41 @@ export default async function AdminPage() {
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-        <PageHeader title="All restaurants" sub={`${restaurants?.length ?? 0} tenants on the platform`} />
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
+          <div>
+            <h1 className="font-display text-[26px] font-black tracking-tight text-ink">
+              All Restaurant Tenants
+            </h1>
+            <p className="mt-0.5 text-sm font-medium text-muted">
+              {restaurants?.length ?? 0} active restaurant tenants provisioned on the platform
+            </p>
+          </div>
+          <span className="rounded-full bg-brand/10 px-3 py-1 text-[12px] font-extrabold text-brand uppercase tracking-wider">
+            Super Administrator Mode
+          </span>
+        </div>
+
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {(restaurants ?? []).map((r) => (
-            <Card key={r.id} className="p-5">
-              <Link href={`/r/${r.slug}/owner`} className="block transition-transform hover:-translate-y-0.5">
+            <Card key={r.id} className="stat-card-luxury p-5 transition-all duration-300 hover:-translate-y-1 hover:border-brand/40">
+              <Link href={`/r/${r.slug}/owner`} className="group block">
                 <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-display text-lg font-extrabold text-ink">{r.name}</h3>
-                  <Pill tone="brand">{r.subscription_tier}</Pill>
+                  <h3 className="font-display text-lg font-black tracking-tight text-ink group-hover:text-brand transition-colors">
+                    {r.name}
+                  </h3>
+                  <span className="rounded-full bg-brand/10 px-2.5 py-0.5 text-[11px] font-extrabold text-brand uppercase tracking-wider">
+                    {r.subscription_tier}
+                  </span>
                 </div>
-                <p className="mt-1 font-mono text-[12.5px] text-muted">/{r.slug}</p>
-                <p className="mt-3 text-sm font-bold text-brand">Open dashboard →</p>
+                <p className="mt-1 font-mono text-[12.5px] font-bold text-muted">/{r.slug}</p>
+                <div className="mt-4 flex items-center justify-between border-t border-line/70 pt-2.5">
+                  <span className="text-[12.5px] font-extrabold text-brand group-hover:underline">
+                    Open Owner Dashboard &rarr;
+                  </span>
+                  <span className="text-[12px] text-muted">Manage tenant</span>
+                </div>
               </Link>
-              <div className="mt-4 space-y-2.5 border-t border-line pt-3">
+              <div className="mt-3.5 space-y-2.5 border-t border-line/70 pt-3">
                 <AdminPosToggle
                   restaurantId={r.id}
                   initial={(r.theme_config as Record<string, unknown> | null)?.pos_enabled !== false}
@@ -69,10 +91,13 @@ export default async function AdminPage() {
         {(!restaurants || restaurants.length === 0) && (
           <Empty title="No restaurants yet" sub="Run seed.sql or sign up a new restaurant to get started." />
         )}
-        <Card className="mt-8 p-5">
-          <h3 className="font-display text-[15px] font-extrabold text-ink">Platform pricing reference</h3>
-          <p className="mt-2 font-mono text-[13px] text-muted">
-            Starter {fmtPKR(4999)}/mo · Pro {fmtPKR(9999)}/mo · Enterprise {fmtPKR(24999)}/mo
+        <Card className="stat-card-luxury mt-8 p-5">
+          <div className="flex items-center gap-2.5">
+            <span className="text-lg">💎</span>
+            <h3 className="font-display text-[15px] font-extrabold text-ink">Platform Pricing & Tier Reference</h3>
+          </div>
+          <p className="mt-2 font-mono text-[13px] font-bold text-muted">
+            Starter {fmtPKR(4999)}/mo &middot; Pro {fmtPKR(9999)}/mo &middot; Enterprise {fmtPKR(24999)}/mo
           </p>
         </Card>
       </main>
