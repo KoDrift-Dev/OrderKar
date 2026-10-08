@@ -20,6 +20,7 @@ export type OwnerTabKey =
   | 'staff'
   | 'customers'
   | 'tables'
+  | 'reports'
   | 'settings';
 
 export const TAB_TITLES: Record<OwnerTabKey, string> = {
@@ -32,6 +33,7 @@ export const TAB_TITLES: Record<OwnerTabKey, string> = {
   staff: 'Staff',
   customers: 'Customers',
   tables: 'Tables',
+  reports: 'Reports',
   settings: 'Settings',
 };
 
@@ -43,6 +45,7 @@ const NAV_GROUPS: { label: string; items: { key: OwnerTabKey; label: string; ico
       { key: 'sales', label: 'Sales', icon: '💰' },
       { key: 'operations', label: 'Operations', icon: '🖥️' },
       { key: 'previews', label: 'Previews', icon: '👁️' },
+      { key: 'reports', label: 'Reports', icon: '📑' },
     ],
   },
   {
@@ -89,14 +92,14 @@ function NavList({
                   <span
                     className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] text-[15px] transition-all ${
                       active
-                        ? 'bg-gradient-to-br from-[#8b5cf6] to-[#6d28d9] shadow-[0_4px_14px_rgba(124,58,237,0.45)]'
+                        ? 'bg-gradient-to-br from-[#7c3aed] to-[#0d9488] shadow-[0_4px_14px_rgba(124,58,237,0.35)]'
                         : 'bg-white/[0.07] group-hover:bg-white/[0.12]'
                     }`}
                   >
                     {n.icon}
                   </span>
                   {n.label}
-                  {active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#a78bfa]" />}
+                  {active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#2dd4bf]" />}
                 </button>
               );
             })}
@@ -164,7 +167,7 @@ export default function OwnerShell({
 
           <div className="relative border-t border-white/10 p-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#8b5cf6] to-[#4c1d95] font-display text-[15px] font-extrabold">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#7c3aed] to-[#0d9488] font-display text-[15px] font-extrabold">
                 {(userName || '?').charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">
@@ -238,7 +241,7 @@ export default function OwnerShell({
             </nav>
             <div className="relative border-t border-white/10 p-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#8b5cf6] to-[#4c1d95] font-display text-[15px] font-extrabold">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#7c3aed] to-[#0d9488] font-display text-[15px] font-extrabold">
                   {(userName || '?').charAt(0).toUpperCase()}
                 </div>
                 <div className="min-w-0 flex-1">

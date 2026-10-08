@@ -16,6 +16,8 @@ import OwnerGuide from './OwnerGuide';
 import OwnerShell, { type OwnerTabKey } from './OwnerShell';
 import TableManager from './TableManager';
 import OwnerSettings from './OwnerSettings';
+import OwnerReportsTab from './OwnerReportsTab';
+import { HistoryDrawer, NotifBell, buildHistory, pctChange, type BranchStat, type HeroStats, type StockItem } from './OwnerWidgets';
 import { Empty, Tabs } from './ui';
 import { LangProvider, normalizeLang, useT, type Lang, type TKey } from '@/lib/i18n';
 import ManagerApp from './ManagerApp';
@@ -215,6 +217,10 @@ function OwnerAppInner({
   const [menu, setMenu] = useState<MenuItem[]>([]);
   const [tables, setTables] = useState<DiningTable[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [recentOrders, setRecentOrders] = useState<Order[]>([]);
+  const [branches, setBranches] = useState<BranchStat[]>([]);
+  const [stockLow, setStockLow] = useState<StockItem[]>([]);
+  const [histOpen, setHistOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [displayName, setDisplayName] = useState(restaurantName);
@@ -224,7 +230,7 @@ function OwnerAppInner({
 
   // Only the columns owner analytics actually read — keeps payloads small.
   const ORDER_COLS =
-    'id,order_number,table_id,waiter_id,order_type,status,total_amount,payment_method,cancel_reason,created_at,updated_at';
+    'id,order_number,table_id,waiter_id,order_type,status,total_amount,payment_method,cancel_reason,customer_name,customer_phone,created_at,updated_at';
   const ITEM_COLS = 'id,order_id,menu_item_id,item_name,quantity,unit_price';
 
   // Static data — loads once per restaurant, never depends on the date range.
@@ -276,12 +282,70 @@ function OwnerAppInner({
     }
   };
 
+  // Hero extras: yesterday->now slim orders (today vs yesterday), low stock,
+  // and branch revenue (super-admin only — RLS hides other restaurants otherwise).
+  const loadExtras = async () => {
+    const supabase = createClient();
+    try {
+      const yest = new Date();
+      yest.setDate(yest.getDate() - 1);
+      yest.setHours(0, 0, 0, 0);
+      const { data: ro } = await supabase
+        .from('orders')
+        .select('id,order_number,total_amount,status,order_type,created_at,customer_name,customer_phone,restaurant_id')
+        .eq('restaurant_id', restaurantId)
+        .gte('created_at', yest.toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1000);
+      if (ro) setRecentOrders(ro as Order[]);
+
+      const { data: inv } = await supabase
+        .from('inventory_items')
+        .select('id,name,current_stock,par_level,unit')
+        .eq('restaurant_id', restaurantId);
+      if (inv) {
+        setStockLow(
+          (inv as { id: string; name: string; current_stock: number; par_level: number; unit: string }[])
+            .filter((x) => Number(x.current_stock) <= 0 || (Number(x.par_level) > 0 && Number(x.current_stock) <= Number(x.par_level)))
+            .map((x) => ({ id: x.id, name: x.name, stock: Number(x.current_stock), par: Number(x.par_level), unit: x.unit || 'pcs' })),
+        );
+      }
+
+      if (viewerRole === 'super_admin') {
+        const { data: rs } = await supabase.from('restaurants').select('id,name');
+        const list = (rs ?? []) as { id: string; name: string }[];
+        if (list.length > 1) {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const { data: bo } = await supabase
+            .from('orders')
+            .select('restaurant_id,total_amount,status')
+            .gte('created_at', today.toISOString())
+            .limit(5000);
+          const rev = new Map<string, number>();
+          for (const o of (bo ?? []) as { restaurant_id: string; total_amount: number; status: string }[]) {
+            if (o.status === 'cancelled') continue;
+            rev.set(o.restaurant_id, (rev.get(o.restaurant_id) ?? 0) + Number(o.total_amount));
+          }
+          const total = [...rev.values()].reduce((a, b) => a + b, 0);
+          setBranches(
+            list
+              .map((r) => ({ id: r.id, name: r.name, revenue: rev.get(r.id) ?? 0, share: total > 0 ? ((rev.get(r.id) ?? 0) / total) * 100 : 0 }))
+              .sort((a, b) => b.revenue - a.revenue),
+          );
+        }
+      }
+    } catch {
+      /* extras are best-effort; cards hide when empty */
+    }
+  };
+
   useEffect(() => {
     let live = true;
     setLoading(true);
     firstDone.current = false;
     (async () => {
-      await Promise.all([loadStatic(), loadOrders(true)]);
+      await Promise.all([loadStatic(), loadOrders(true), loadExtras()]);
       if (live) {
         setLoading(false);
         firstDone.current = true;
@@ -329,8 +393,47 @@ function OwnerAppInner({
     return base;
   }, [orders, items, catName, range, start, end]);
 
+  // Hero cards: today vs yesterday, from the slim recent-orders fetch.
+  const hero: HeroStats = useMemo(() => {
+    const t0 = new Date();
+    t0.setHours(0, 0, 0, 0);
+    const y0 = new Date(t0.getTime() - 86400000);
+    let todayRev = 0;
+    let yRev = 0;
+    let todayOrders = 0;
+    const tc = new Set<string>();
+    const yc = new Set<string>();
+    for (const o of recentOrders) {
+      const t = +new Date(o.created_at);
+      const live = o.status !== 'cancelled';
+      const key = (o.customer_phone || o.customer_name || '').trim();
+      if (t >= t0.getTime()) {
+        todayOrders++;
+        if (live) todayRev += Number(o.total_amount);
+        if (key) tc.add(key);
+      } else if (t >= y0.getTime()) {
+        if (live) yRev += Number(o.total_amount);
+        if (key) yc.add(key);
+      }
+    }
+    const activeCount = orders.filter((o) => o.status === 'pending' || o.status === 'preparing' || o.status === 'ready').length;
+    return {
+      todayRev,
+      yRev,
+      revPct: pctChange(todayRev, yRev),
+      todayCust: tc.size,
+      yCust: yc.size,
+      custPct: pctChange(tc.size, yc.size),
+      activeCount,
+      todayOrders,
+    };
+  }, [recentOrders, orders]);
+
+  const history = useMemo(() => buildHistory(orders), [orders]);
+
   const topActions = (
     <div className="flex flex-wrap items-center gap-2">
+      <NotifBell orders={recentOrders} stockLow={stockLow} restaurantId={restaurantId} onGo={setTab} />
       <OwnerGuide />
       <Tabs<Range>
         wrap
@@ -387,6 +490,12 @@ function OwnerAppInner({
               slug={slug}
               tables={tables}
               restaurantName={displayName}
+              hero={hero}
+              branches={branches}
+              stockLow={stockLow}
+              history={history}
+              onNavigate={setTab}
+              onOpenHistory={() => setHistOpen(true)}
             />
           </div>
           <div className={tab === 'sales' ? '' : 'hidden'}>
@@ -439,11 +548,15 @@ function OwnerAppInner({
           <div className={tab === 'tables' ? '' : 'hidden'}>
             <TableManager restaurantId={restaurantId} slug={slug} tables={tables} onChange={setTables} />
           </div>
+          <div className={tab === 'reports' ? '' : 'hidden'}>
+            <OwnerReportsTab orders={orders} items={items} tables={tables} />
+          </div>
           <div className={tab === 'settings' ? '' : 'hidden'}>
             <OwnerSettings restaurantId={restaurantId} slug={slug} onNameChange={setDisplayName} />
           </div>
         </>
       )}
+      <HistoryDrawer open={histOpen} onClose={() => setHistOpen(false)} events={history} />
     </OwnerShell>
   );
 }
