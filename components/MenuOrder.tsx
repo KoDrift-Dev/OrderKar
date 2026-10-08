@@ -6,7 +6,7 @@
 // (ingredients, instructions), sticky safe-area cart bar.
 // Writes orders through the anon-safe RLS policies.
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
 import type { MenuCategory, MenuItem, DiningTable } from '@/lib/types';
 import { fmtPKR } from '@/lib/format';
@@ -156,7 +156,10 @@ export default function MenuOrder({
   // Scroll-spy plumbing: section elements + pill bar.
   const sectionRefs = useRef(new Map<string, HTMLElement>());
   const pillsRef = useRef<HTMLDivElement>(null);
+  const stickyBarRef = useRef<HTMLDivElement>(null);
+  const activeCatRef = useRef<string>(activeCat);
   const jumpLock = useRef<string | null>(null);
+  const jumpTimer = useRef<number | null>(null);
 
   useEffect(() => {
     if (!configured) return;
@@ -169,10 +172,17 @@ export default function MenuOrder({
       const cats = (c ?? []) as MenuCategory[];
       setCats(cats);
       setItems((it ?? []) as MenuItem[]);
-      if (cats.length > 0) setActiveCat(cats[0].id);
+      if (cats.length > 0) {
+        setActiveCat(cats[0].id);
+        activeCatRef.current = cats[0].id;
+      }
       setMenuLoading(false);
     })();
   }, [restaurantId, configured]);
+
+  useEffect(() => {
+    activeCatRef.current = activeCat;
+  }, [activeCat]);
 
   const catName = useMemo(() => {
     const m: Record<string, string> = {};
@@ -196,48 +206,104 @@ export default function MenuOrder({
     );
   }, [items, query]);
 
-  // Scroll-spy: on scroll, the section whose top has crossed a probe line
-  // just under the sticky pill bar becomes active. More reliable than
-  // IntersectionObserver for short sections.
+  // Smoothly center the active pill in the horizontal pills bar
+  // without calling scrollIntoView, ensuring the whole page / sticky bar never jumps vertically.
+  const scrollPillToCenter = useCallback((id: string, smooth: boolean = true) => {
+    const container = pillsRef.current;
+    if (!container) return;
+    const pill = container.querySelector<HTMLElement>(`[data-pill="${id}"]`);
+    if (!pill) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const pillRect = pill.getBoundingClientRect();
+
+    // Center difference between pill and pills container
+    const pillCenter = pillRect.left + pillRect.width / 2;
+    const containerCenter = containerRect.left + containerRect.width / 2;
+    const delta = pillCenter - containerCenter;
+
+    if (Math.abs(delta) > 2) {
+      container.scrollTo({
+        left: container.scrollLeft + delta,
+        behavior: smooth ? 'smooth' : 'auto',
+      });
+    }
+  }, []);
+
+  // Scroll-spy: on scroll, whichever category is currently at the reading line
+  // just under the sticky pill bar is highlighted, smoothly keeping the pill in view.
   useEffect(() => {
     if (searching || grouped.length === 0) return;
-    const stickyPx = parseInt(top, 10) || 0;
-    const probeY = stickyPx + 170;
     let raf = 0;
-    const followPill = (id: string) => {
-      pillsRef.current
-        ?.querySelector(`[data-pill="${id}"]`)
-        ?.scrollIntoView({ inline: 'center', block: 'nearest' });
-    };
+
     const onScroll = () => {
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
         if (jumpLock.current) return;
+
+        const scrollBottom = window.innerHeight + window.scrollY;
+        const totalHeight = document.documentElement.scrollHeight;
+        const atBottom = scrollBottom >= totalHeight - 60;
+
         let current = grouped[0].cat.id;
-        for (const g of grouped) {
-          const el = sectionRefs.current.get(g.cat.id);
-          if (el && el.getBoundingClientRect().top <= probeY) current = g.cat.id;
+
+        if (atBottom) {
+          // Bottom of page: highlight the last category
+          current = grouped[grouped.length - 1].cat.id;
+        } else if (window.scrollY < 30) {
+          // Top of page: highlight the first category
+          current = grouped[0].cat.id;
+        } else {
+          // Probe line sits comfortably right below the sticky bar
+          const stickyRect = stickyBarRef.current?.getBoundingClientRect();
+          const stickyBottom = stickyRect ? stickyRect.bottom : (parseInt(top, 10) || 0) + 110;
+          const probeY = stickyBottom + 20;
+
+          for (const g of grouped) {
+            const el = sectionRefs.current.get(g.cat.id);
+            if (el && el.getBoundingClientRect().top <= probeY) {
+              current = g.cat.id;
+            }
+          }
         }
-        setActiveCat((prev) => {
-          if (prev !== current) followPill(current);
-          return current;
-        });
+
+        if (current && current !== activeCatRef.current) {
+          activeCatRef.current = current;
+          setActiveCat(current);
+          scrollPillToCenter(current, true);
+        }
       });
     };
+
+    // If user interacts with wheel or touch while smooth scrolling to a section, release the lock immediately
+    const releaseJump = () => {
+      jumpLock.current = null;
+    };
+
     window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('wheel', releaseJump, { passive: true });
+    window.addEventListener('touchstart', releaseJump, { passive: true });
     onScroll();
+
     return () => {
       window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('wheel', releaseJump);
+      window.removeEventListener('touchstart', releaseJump);
       cancelAnimationFrame(raf);
     };
-  }, [grouped, searching, top]);
+  }, [grouped, searching, top, scrollPillToCenter]);
 
   const jumpTo = (id: string) => {
+    activeCatRef.current = id;
     setActiveCat(id);
+    scrollPillToCenter(id, true);
     jumpLock.current = id;
-    window.setTimeout(() => {
+
+    if (jumpTimer.current) window.clearTimeout(jumpTimer.current);
+    jumpTimer.current = window.setTimeout(() => {
       jumpLock.current = null;
-    }, 900);
+    }, 850);
+
     const go = () => sectionRefs.current.get(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     if (searching) {
       setQuery('');
@@ -391,6 +457,7 @@ export default function MenuOrder({
       )}
       {/* Sticky search + emoji category pills */}
       <div
+        ref={stickyBarRef}
         style={{ top }}
         className="sticky z-30 -mx-4 bg-[var(--c-surface)] px-4 pb-2 pt-2 backdrop-blur-xl sm:-mx-6 sm:px-6"
       >
@@ -404,19 +471,24 @@ export default function MenuOrder({
           ref={pillsRef}
           className="flex gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
-          {cats.map((c) => (
-            <button
-              key={c.id}
-              data-pill={c.id}
-              onClick={() => jumpTo(c.id)}
-              className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-[12px] font-bold transition-all ${
-                activeCat === c.id ? 'btn-3d text-white' : 'glass !rounded-full text-muted hover:text-ink'
-              }`}
-            >
-              <span className="text-[14px] leading-none">{categoryEmoji(c.name)}</span>
-              {c.name}
-            </button>
-          ))}
+          {cats.map((c) => {
+            const isActive = activeCat === c.id;
+            return (
+              <button
+                key={c.id}
+                data-pill={c.id}
+                onClick={() => jumpTo(c.id)}
+                className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-[12px] font-bold transition-all duration-200 ${
+                  isActive
+                    ? 'btn-3d text-white border border-transparent shadow-md'
+                    : 'glass !rounded-full text-muted hover:text-ink'
+                }`}
+              >
+                <span className="text-[14px] leading-none">{categoryEmoji(c.name)}</span>
+                {c.name}
+              </button>
+            );
+          })}
         </div>
       </div>
 

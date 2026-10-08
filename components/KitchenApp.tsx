@@ -246,6 +246,234 @@ function OrderCard({
   );
 }
 
+function OrderRow({
+  order,
+  flash,
+  expanded,
+  onToggle,
+  onStatus,
+  busy,
+  menuMap,
+}: {
+  order: OrderWithItems;
+  flash: boolean;
+  expanded: boolean;
+  onToggle: () => void;
+  onStatus: (id: string, status: OrderStatus) => void;
+  busy: boolean;
+  menuMap: Record<string, { ingredients?: string | null; description?: string | null }>;
+}) {
+  const t = useT();
+  const [cancelling, setCancelling] = useState(false);
+  const reasonOpts = [
+    { value: 'customer request', label: t('ktn_reason_customer') },
+    { value: 'kitchen error', label: t('ktn_reason_kitchen') },
+    { value: 'long wait', label: t('ktn_reason_wait') },
+    { value: 'item unavailable', label: t('ktn_reason_unavailable') },
+    { value: 'duplicate order', label: t('ktn_reason_duplicate') },
+  ];
+  const [reason, setReason] = useState(reasonOpts[0].value);
+  const now = useClock();
+  const elapsedMs = now.getTime() - new Date(order.created_at).getTime();
+  const late = elapsedMs > 20 * 60000 && order.status !== 'ready';
+  const newCount = order.order_items.filter((it) => isNewItem(order.created_at, it.created_at)).length;
+  const tint = STATUS_TINT[order.status] ?? '';
+
+  const cancelOrder = async () => {
+    const supabase = createClient();
+    await supabase.from('orders').update({ status: 'cancelled', cancel_reason: reason }).eq('id', order.id);
+  };
+
+  const totalItems = order.order_items.reduce((s, i) => s + i.quantity, 0);
+
+  return (
+    <Card className={`overflow-hidden p-3.5 sm:p-4 transition-all duration-200 ${tint} ${flash ? 'animate-flash-new ring-2 ring-brand' : ''}`}>
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={onToggle}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(); } }}
+        className="flex cursor-pointer flex-wrap items-center justify-between gap-3 select-none"
+      >
+        <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
+          <span className="font-mono text-[17px] font-extrabold text-ink">#{order.order_number}</span>
+          <span className="text-[13.5px] font-bold text-brand">
+            {order.tables ? `Table ${order.tables.table_number}` : order.order_type}
+            {order.customer_name ? ` · ${order.customer_name}` : ''}
+          </span>
+          {newCount > 0 && (
+            <span className="animate-pulse rounded-full bg-brand px-2 py-0.5 text-[10px] font-extrabold uppercase text-white">
+              {t('ktn_new_badge')} {newCount}
+            </span>
+          )}
+          {late && (
+            <span className="rounded-full bg-danger/15 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-danger">
+              {t('ktn_late')}
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2.5 sm:gap-3 ml-auto">
+          <span className="hidden text-[12px] font-bold text-muted md:inline">
+            {totalItems} items · {fmtPKR(order.total_amount)}
+          </span>
+          <span className={`font-mono text-[13.5px] font-bold ${late ? 'animate-pulse text-danger' : 'text-body'}`}>
+            {fmtElapsed(elapsedMs)}
+          </span>
+          <StatusPill status={order.status} size="sm" />
+
+          {!expanded && (
+            <div onClick={(e) => e.stopPropagation()} className="hidden sm:block">
+              {order.status === 'pending' && (
+                <button
+                  disabled={busy}
+                  onClick={() => onStatus(order.id, 'preparing')}
+                  className="btn-3d shrink-0 rounded-full px-3 py-1 text-[11.5px] font-extrabold text-white disabled:opacity-60"
+                >
+                  {t('ktn_start_preparing')}
+                </button>
+              )}
+              {order.status === 'preparing' && (
+                <button
+                  disabled={busy}
+                  onClick={() => onStatus(order.id, 'ready')}
+                  className="shrink-0 rounded-full bg-gradient-to-br from-teal to-emerald-600 px-3 py-1 text-[11.5px] font-extrabold text-white shadow-lift disabled:opacity-60"
+                >
+                  {t('ktn_mark_ready')}
+                </button>
+              )}
+              {order.status === 'ready' && order.order_type !== 'dine_in' && (
+                <button
+                  disabled={busy}
+                  onClick={() => onStatus(order.id, 'completed')}
+                  className="shrink-0 rounded-full bg-ok/15 px-3 py-1 text-[11.5px] font-extrabold text-ok disabled:opacity-60"
+                >
+                  {t('ktn_mark_picked')}
+                </button>
+              )}
+            </div>
+          )}
+
+          <span className="text-[11px] font-bold text-muted">
+            {expanded ? '▲' : '▼'}
+          </span>
+        </div>
+      </div>
+
+      {expanded && (
+        <div className="mt-3.5 border-t border-line pt-3.5">
+          {order.notes && (
+            <p className="mb-3 rounded-btn bg-amber/10 px-3.5 py-2 text-[13px] font-semibold text-amber">
+              Note: {order.notes}
+            </p>
+          )}
+
+          <ul className="space-y-2">
+            {order.order_items.map((it) => {
+              const meta = it.menu_item_id ? menuMap[it.menu_item_id] : undefined;
+              const fresh = isNewItem(order.created_at, it.created_at);
+              return (
+                <li key={it.id} className={`rounded-[12px] p-2.5 ${fresh ? 'bg-brand/10 ring-1 ring-brand/40' : 'bg-soft/60'}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="text-[14px] leading-snug text-body">
+                      <span className="mr-2 inline-flex h-7 min-w-7 items-center justify-center rounded-[9px] bg-brand px-2 font-mono text-[13px] font-bold text-white">
+                        {it.quantity}
+                      </span>
+                      <span className="font-bold text-ink">{it.item_name}</span>
+                      {fresh && (
+                        <span className="ml-2 rounded-full bg-brand px-2 py-0.5 text-[9.5px] font-extrabold uppercase text-white">
+                          {t('ktn_new_badge')}
+                        </span>
+                      )}
+                    </span>
+                    <span className="shrink-0 font-mono text-[13px] font-bold text-muted">{fmtPKR(it.unit_price * it.quantity)}</span>
+                  </div>
+                  {it.notes && <p className="mt-1 pl-9 text-[12.5px] italic text-muted">↳ {it.notes}</p>}
+                  {meta?.description && <p className="mt-1 pl-9 text-[12px] leading-relaxed text-muted">{meta.description}</p>}
+                  {meta?.ingredients && (
+                    <p className="mt-1 pl-9 text-[12px] leading-relaxed text-muted">
+                      <span className="font-extrabold uppercase tracking-wide">{t('ktn_ingredients')}: </span>
+                      {meta.ingredients}
+                    </p>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+
+          <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-[12.5px] sm:grid-cols-4">
+            <p className="text-muted"><span className="font-bold">{t('ktn_order_type')}:</span> <span className="font-bold text-ink">{order.order_type}</span></p>
+            <p className="text-muted"><span className="font-bold">{t('ktn_payment')}:</span> <span className="font-bold text-ink">{order.payment_status}{order.payment_method ? ` · ${order.payment_method}` : ''}</span></p>
+            {order.customer_name && (
+              <p className="text-muted"><span className="font-bold">{t('ktn_customer')}:</span> <span className="font-bold text-ink">{order.customer_name}</span></p>
+            )}
+            {order.customer_phone && (
+              <p className="text-muted"><span className="font-bold">Phone:</span> <span className="font-bold text-ink">{order.customer_phone}</span></p>
+            )}
+          </div>
+
+          <div className="mt-3.5 flex gap-2" onClick={(e) => e.stopPropagation()}>
+            {order.status === 'pending' && (
+              <button
+                disabled={busy}
+                onClick={() => onStatus(order.id, 'preparing')}
+                className="btn-3d flex-1 rounded-btn py-2.5 font-display text-[14.5px] font-bold text-white disabled:opacity-60"
+              >
+                {t('ktn_start_preparing')}
+              </button>
+            )}
+            {order.status === 'preparing' && (
+              <button
+                disabled={busy}
+                onClick={() => onStatus(order.id, 'ready')}
+                className="flex-1 rounded-btn bg-gradient-to-br from-teal to-emerald-600 py-2.5 font-display text-[14.5px] font-bold text-white shadow-lift transition-all hover:-translate-y-px active:translate-y-0 disabled:opacity-60"
+              >
+                {t('ktn_mark_ready')}
+              </button>
+            )}
+            {order.status === 'ready' && order.order_type !== 'dine_in' && (
+              <button
+                disabled={busy}
+                onClick={() => onStatus(order.id, 'completed')}
+                className="flex-1 rounded-btn bg-ok/15 py-2.5 font-display text-[14.5px] font-bold text-ok hover:bg-ok/25 disabled:opacity-60"
+              >
+                {t('ktn_mark_picked')}
+              </button>
+            )}
+            {order.status === 'ready' && order.order_type === 'dine_in' && (
+              <p className="flex-1 rounded-btn bg-ok/10 py-2.5 text-center font-display text-[14px] font-bold text-ok">
+                {t('ktn_waiting_pickup')}
+                <span className="block text-[11.5px] font-bold text-muted">{t('ktn_serve_hint')}</span>
+              </p>
+            )}
+          </div>
+
+          {order.status !== 'ready' &&
+            (cancelling ? (
+              <div className="mt-2 flex gap-2" onClick={(e) => e.stopPropagation()}>
+                <select value={reason} onChange={(e) => setReason(e.target.value)} className="min-w-0 flex-1 rounded-btn border border-line bg-[var(--c-surface-solid)] px-3 py-2 text-[13px] font-bold text-ink">
+                  {reasonOpts.map((r) => (
+                    <option key={r.value} value={r.value}>{r.label}</option>
+                  ))}
+                </select>
+                <button onClick={cancelOrder} className="shrink-0 rounded-btn bg-danger px-4 py-2 text-[13px] font-extrabold text-white">
+                  {t('ktn_confirm')}
+                </button>
+                <button onClick={() => setCancelling(false)} className="shrink-0 rounded-btn border border-line px-3 py-2 text-[13px] font-bold text-muted">
+                  ✕
+                </button>
+              </div>
+            ) : (
+              <button onClick={() => setCancelling(true)} className="mt-2 w-full rounded-btn py-1.5 text-[12.5px] font-bold text-danger/80 hover:bg-danger/10 hover:text-danger">
+                {t('ktn_cancel_order')}
+              </button>
+            ))}
+        </div>
+      )}
+    </Card>
+  );
+}
+
 function KitchenAppInner({ restaurantId }: { restaurantId: string }) {
   const t = useT();
   const [orders, setOrders] = useState<OrderWithItems[]>([]);
@@ -420,77 +648,53 @@ function KitchenAppInner({ restaurantId }: { restaurantId: string }) {
           ))}
         </div>
       ) : view === 'rows' ? (
-        <div className="space-y-2">
-          {(['pending', 'preparing', 'ready'] as const).flatMap((k) => groups[k]).map((o) => {
-            const newCount = o.order_items.filter((it) => isNewItem(o.created_at, it.created_at)).length;
+        <div className="space-y-4">
+          {(['pending', 'preparing', 'ready'] as const).map((k) => {
+            if (groups[k].length === 0) return null;
             return (
-              <div
-                key={o.id}
-                className={`glass flex cursor-pointer items-center gap-3 !rounded-[14px] px-3.5 py-2.5 ${flashIds.has(o.id) ? 'animate-flash-new ring-2 ring-brand' : ''}`}
-                onClick={() => setExpandedId((prev) => (prev === o.id ? null : o.id))}
-              >
-                <span className="font-mono text-[16px] font-bold text-ink">#{o.order_number}</span>
-                <span className="min-w-0 flex-1 truncate text-[13px] font-bold text-body">
-                  {o.tables ? `Table ${o.tables.table_number}` : o.order_type}
-                  {o.customer_name ? ` · ${o.customer_name}` : ''}
-                </span>
-                {newCount > 0 && (
-                  <span className="shrink-0 rounded-full bg-brand px-2 py-0.5 text-[10px] font-extrabold uppercase text-white">
-                    {t('ktn_new_badge')} {newCount}
+              <div key={k}>
+                <div className="mb-2.5 flex items-center gap-2">
+                  <h2 className="font-display text-[15px] font-extrabold text-ink">
+                    {sectionTitle(k)}
+                  </h2>
+                  <span className="rounded-full bg-soft px-2.5 py-0.5 font-mono text-[12px] font-bold text-muted">
+                    {groups[k].length}
                   </span>
-                )}
-                <span className="hidden shrink-0 text-[12px] font-bold text-muted sm:block">
-                  {o.order_items.reduce((s, i) => s + i.quantity, 0)} items
-                </span>
-                <span className="shrink-0 font-mono text-[13px] font-bold text-body">{fmtElapsed(Date.now() - new Date(o.created_at).getTime())}</span>
-                <StatusPill status={o.status} size="sm" />
-                {o.status === 'pending' && (
-                  <button
-                    disabled={busyId === o.id}
-                    onClick={(e) => { e.stopPropagation(); setStatusFast(o.id, 'preparing'); }}
-                    className="btn-3d shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-extrabold text-white disabled:opacity-60"
-                  >
-                    {t('ktn_start_preparing')}
-                  </button>
-                )}
-                {o.status === 'preparing' && (
-                  <button
-                    disabled={busyId === o.id}
-                    onClick={(e) => { e.stopPropagation(); setStatusFast(o.id, 'ready'); }}
-                    className="shrink-0 rounded-full bg-gradient-to-br from-teal to-emerald-600 px-3.5 py-1.5 text-[12px] font-extrabold text-white disabled:opacity-60"
-                  >
-                    {t('ktn_mark_ready')}
-                  </button>
-                )}
-                {o.status === 'ready' && o.order_type !== 'dine_in' && (
-                  <button
-                    disabled={busyId === o.id}
-                    onClick={(e) => { e.stopPropagation(); setStatusFast(o.id, 'completed'); }}
-                    className="shrink-0 rounded-full bg-ok/15 px-3.5 py-1.5 text-[12px] font-extrabold text-ok disabled:opacity-60"
-                  >
-                    {t('ktn_mark_picked')}
-                  </button>
-                )}
+                  <div className="h-px flex-1 bg-line" />
+                </div>
+                <div className="space-y-2.5">
+                  {groups[k].map((o) => (
+                    <OrderRow key={o.id} {...cardProps(o)} />
+                  ))}
+                </div>
               </div>
             );
           })}
         </div>
       ) : (
-        <div className="mx-auto max-w-3xl space-y-3">
-          {(['pending', 'preparing', 'ready'] as const).map((k) => (
-            <div key={k}>
-              {groups[k].length > 0 && (
-                <h2 className="mb-2 mt-4 font-display text-[14px] font-extrabold uppercase tracking-wide text-muted first:mt-0">
-                  {sectionTitle(k)} ({groups[k].length})
-                </h2>
-              )}
-              <div className="space-y-3">
-                {groups[k].map((o) => (
-                  <OrderCard key={o.id} {...cardProps(o)} />
-                ))}
+        /* Cards in Grid View */
+        <div className="space-y-6">
+          {(['pending', 'preparing', 'ready'] as const).map((k) => {
+            if (groups[k].length === 0) return null;
+            return (
+              <div key={k}>
+                <div className="mb-3 flex items-center gap-2">
+                  <h2 className="font-display text-[16px] font-extrabold text-ink">
+                    {sectionTitle(k)}
+                  </h2>
+                  <span className="rounded-full bg-soft px-2.5 py-0.5 font-mono text-[12px] font-bold text-muted">
+                    {groups[k].length}
+                  </span>
+                  <div className="h-px flex-1 bg-line" />
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {groups[k].map((o) => (
+                    <OrderCard key={o.id} {...cardProps(o)} />
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

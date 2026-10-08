@@ -184,7 +184,7 @@ const D = {
   ktn_waiting_pickup: { roman: 'Pickup ka intezar hai', english: 'Waiting for pickup' },
   ktn_view_kanban: { roman: 'Kanban', english: 'Kanban' },
   ktn_view_rows: { roman: 'Rows', english: 'Rows' },
-  ktn_view_column: { roman: 'Column', english: 'Column' },
+  ktn_view_column: { roman: 'Grid', english: 'Grid' },
   ktn_col_new: { roman: 'Naye', english: 'New' },
   ktn_col_preparing: { roman: 'Ban rahe', english: 'Preparing' },
   ktn_col_ready: { roman: 'Tayyar', english: 'Ready' },
