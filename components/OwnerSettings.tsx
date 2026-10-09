@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useT } from '@/lib/i18n';
 import { Btn, Card, SectionHead, Input, Label } from './ui';
 import { useGuard } from './DeleteFlow';
+import { POS_PALETTES, type PosPaletteId } from './PosTab';
 
 function msg(text: string, ok: boolean) {
   return (
@@ -39,6 +40,7 @@ export default function OwnerSettings({
   const [logoUrl, setLogoUrl] = useState('');
   const [tier, setTier] = useState('');
   const [themeCfg, setThemeCfg] = useState<Record<string, string>>({});
+  const [posPalette, setPosPalette] = useState<PosPaletteId>('amber');
   const [rMsg, setRMsg] = useState<{ text: string; ok: boolean } | null>(null);
 
   // ── my account ──
@@ -78,6 +80,14 @@ export default function OwnerSettings({
         setContactEmail(tc.email ?? '');
         setLogoUrl(tc.logo_url ?? '');
         setTier(r.subscription_tier ?? '');
+        if (tc.pos_palette && POS_PALETTES[tc.pos_palette as PosPaletteId]) {
+          setPosPalette(tc.pos_palette as PosPaletteId);
+        } else {
+          try {
+            const local = localStorage.getItem('orderkar_pos_palette') as PosPaletteId | null;
+            if (local && POS_PALETTES[local]) setPosPalette(local);
+          } catch {}
+        }
       }
       if (p) {
         setFullName(p.name ?? '');
@@ -114,10 +124,14 @@ export default function OwnerSettings({
               phone: phone.trim(),
               email: contactEmail.trim(),
               logo_url: logoUrl.trim(),
+              pos_palette: posPalette,
             },
           })
           .eq('id', restaurantId);
         if (error) throw error;
+        try {
+          localStorage.setItem('orderkar_pos_palette', posPalette);
+        } catch {}
         onNameChange(name.trim());
         setRMsg({ text: t('set_saved_rest'), ok: true });
       } catch (err) {
@@ -296,6 +310,63 @@ export default function OwnerSettings({
           <Btn onClick={saveRestaurant} disabled={saving === 'rest'}>
             {saving === 'rest' ? t('set_saving') : 'Save Profile Changes'}
           </Btn>
+        </div>
+      </Card>
+
+      {/* ── POS Register Appearance & Theme ── */}
+      <Card className="stat-card-luxury p-5 sm:p-6">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-amber/15 text-amber text-lg shadow-sm">
+            🎨
+          </span>
+          <div>
+            <h3 className="font-display text-[16px] font-extrabold text-ink">POS Register Theme Color Palette</h3>
+            <p className="text-[12.5px] font-medium text-muted">
+              Choose the color palette for your counter billing and table POS register
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {(Object.keys(POS_PALETTES) as PosPaletteId[]).map((pid) => {
+            const p = POS_PALETTES[pid];
+            const isSelected = posPalette === pid;
+            return (
+              <button
+                key={pid}
+                type="button"
+                onClick={() => {
+                  setPosPalette(pid);
+                  try {
+                    localStorage.setItem('orderkar_pos_palette', pid);
+                  } catch {}
+                }}
+                className={`relative flex items-center gap-3.5 rounded-2xl border p-3.5 text-left transition-all ${
+                  isSelected
+                    ? 'border-brand bg-brand/[0.06] shadow-sm ring-2 ring-brand/20'
+                    : 'border-line bg-[var(--c-surface-solid)] hover:border-brand/40 hover:bg-soft/40'
+                }`}
+              >
+                <span
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl shadow-xs text-white text-xs font-bold"
+                  style={{ backgroundColor: p.brand }}
+                >
+                  {isSelected ? '✓' : ''}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-black text-ink">{p.name}</p>
+                    {isSelected && (
+                      <span className="rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-bold text-brand">
+                        Active
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-muted font-medium mt-0.5">{p.nameUrdu}</p>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </Card>
 

@@ -27,6 +27,7 @@ import MenuSection from './MenuSection';
 import TeamManager from './TeamManager';
 import OwnerAuditTab from './OwnerAuditTab';
 import OwnerReportsTab, { type ReportSubTab } from './OwnerReportsTab';
+import PosTab from './PosTab';
 import type { KpiComparisons, MetricComparison } from './OwnerDashTab';
 
 type Range = 'today' | '7d' | '30d' | '12m' | 'custom';
@@ -34,6 +35,7 @@ type TabKey =
   | 'dashboard'
   | 'reports'
   | 'sales'
+  | 'pos'
   | 'audit'
   | 'operations'
   | 'customers'
@@ -604,6 +606,19 @@ function OwnerAppInner({
       group: 'Live Operations',
       items: [
         {
+          key: 'pos',
+          label: 'Sales & POS',
+          icon: (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <rect width="20" height="14" x="2" y="5" rx="2" />
+              <line x1="2" y1="10" x2="22" y2="10" />
+              <circle cx="6" cy="15" r="1" />
+              <circle cx="10" cy="15" r="1" />
+            </svg>
+          ),
+          badge: 'Live',
+        },
+        {
           key: 'operations',
           label: 'Kitchen & Speed',
           icon: (
@@ -734,12 +749,12 @@ function OwnerAppInner({
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-line bg-[var(--c-surface)] backdrop-blur-2xl transition-all duration-300 lg:sticky lg:top-0 lg:h-screen ${
-          collapsed ? 'lg:w-[76px]' : 'lg:w-[264px]'
-        } ${mobileMenuOpen ? 'w-[280px] translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'}`}
+        className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-[var(--c-surface)] backdrop-blur-2xl transition-all duration-300 lg:sticky lg:top-0 lg:h-screen ${
+          collapsed ? 'lg:w-[76px]' : 'lg:w-[272px]'
+        } ${mobileMenuOpen ? 'w-[272px] translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'}`}
       >
         {/* Sidebar Header: Logo & Restaurant Brand */}
-        <div className="flex h-18 shrink-0 items-center justify-between border-b border-line px-4">
+        <div className="flex h-16 shrink-0 items-center justify-between border-b border-line px-4">
           <div className="flex items-center gap-3 overflow-hidden">
             <Logo size={36} />
             {(!collapsed || mobileMenuOpen) && (
@@ -786,13 +801,12 @@ function OwnerAppInner({
         </div>
 
         {/* Sidebar Navigation Items */}
-        <div className="no-scrollbar flex-1 overflow-y-auto px-3.5 py-6 space-y-6">
+        <div className="no-scrollbar flex-1 overflow-y-auto px-3 py-3.5 space-y-3.5">
           {NAV_GROUPS.map((group) => (
             <div key={group.group}>
               {(!collapsed || mobileMenuOpen) && (
-                <div className="mb-2 mt-4 flex items-center gap-2 px-3">
-                  <span className="h-1.5 w-1.5 rounded-full bg-brand shrink-0" />
-                  <p className="text-[12px] font-black uppercase tracking-wider text-ink">
+                <div className="mb-1.5 mt-2.5 px-3">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-muted/80">
                     {group.group}
                   </p>
                 </div>
@@ -805,15 +819,15 @@ function OwnerAppInner({
                       key={item.key}
                       onClick={() => selectTab(item.key)}
                       title={collapsed && !mobileMenuOpen ? item.label : undefined}
-                      className={`group flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-[14px] font-extrabold transition-all duration-150 ${
+                      className={`group flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] font-sans transition-all duration-200 ${
                         active
-                          ? 'bg-brand text-white shadow-lift'
-                          : 'text-muted hover:bg-soft hover:text-ink'
-                      } ${collapsed && !mobileMenuOpen ? 'justify-center px-0' : ''}`}
+                          ? 'bg-gradient-to-r from-brand/15 via-brand/10 to-brand/5 text-brand font-bold border border-brand/20 shadow-xs'
+                          : 'text-ink/80 font-medium hover:bg-soft/70 hover:text-ink'
+                      } ${collapsed && !mobileMenuOpen ? 'justify-center px-0 py-2.5' : ''}`}
                     >
                       <span
                         className={`transition-colors shrink-0 ${
-                          active ? 'text-white' : 'text-muted group-hover:text-brand'
+                          active ? 'text-brand' : 'text-muted group-hover:text-ink'
                         }`}
                       >
                         {item.icon}
@@ -822,17 +836,30 @@ function OwnerAppInner({
                       {(!collapsed || mobileMenuOpen) && (
                         <>
                           <span className="truncate">{item.label}</span>
-                          {item.badge && (
+
+                          {item.badge ? (
                             <span
-                              className={`ml-auto rounded-full px-2 py-0.5 text-[10.5px] font-black ${
+                              className={`ml-auto rounded-full px-2 py-0.5 text-[10.5px] font-bold ${
                                 active
-                                  ? 'bg-white/20 text-white'
-                                  : 'bg-brand/10 text-brand'
+                                  ? 'bg-brand/20 text-brand'
+                                  : 'bg-soft text-muted border border-line'
                               }`}
                             >
                               {item.badge}
                             </span>
-                          )}
+                          ) : active ? (
+                            <svg
+                              className="ml-auto h-3.5 w-3.5 text-brand shrink-0 transition-transform duration-200"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <polyline points="9 18 15 12 9 6" />
+                            </svg>
+                          ) : null}
                         </>
                       )}
                     </button>
@@ -896,7 +923,7 @@ function OwnerAppInner({
       {/* ── 2. MAIN FULL-SCREEN APPLICATION CANVAS ── */}
       <div className="flex-1 min-w-0 flex flex-col">
         {/* Sticky Top Utility Command Bar */}
-        <header className="sticky top-0 z-30 flex h-20 shrink-0 items-center justify-between border-b border-line bg-[var(--c-surface)] px-4 sm:px-6 lg:px-8 backdrop-blur-xl">
+        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b border-line bg-[var(--c-surface)] px-4 sm:px-6 lg:px-6 backdrop-blur-xl">
           <div className="flex items-center gap-3 min-w-0">
             {/* Mobile Hamburger Button */}
             <button
@@ -1026,7 +1053,7 @@ function OwnerAppInner({
         )}
 
         {/* Edge-to-Edge Canvas Content */}
-        <main className="flex-1 w-full px-4 pt-3.5 pb-8 sm:px-6 sm:pt-4 sm:pb-8 lg:px-8 lg:pt-4 lg:pb-8 space-y-6">
+        <main className={`flex-1 w-full px-4 sm:px-6 lg:px-8 ${tab === 'pos' ? 'pt-2.5 pb-2 space-y-0 lg:h-[calc(100vh-64px)] lg:overflow-hidden' : 'pt-3.5 pb-8 sm:pt-4 sm:pb-8 space-y-6'}`}>
           {loading ? (
             <Card className="p-16 text-center">
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand/10 text-brand">
@@ -1096,6 +1123,19 @@ function OwnerAppInner({
                 />
               </div>
 
+              {/* 3.5 Dedicated Sales & POS Section */}
+              <div className={tab === 'pos' ? 'h-full flex flex-col' : 'hidden'}>
+                {tab === 'pos' && (
+                  <PosTab
+                    restaurantId={restaurantId}
+                    restaurant={{ name: displayName }}
+                    tables={tables}
+                    orders={currentOrders}
+                    onOrderPlaced={() => loadOrders(range, custom, false)}
+                  />
+                )}
+              </div>
+
               {/* 4. Operations Tab */}
               <div className={tab === 'operations' ? '' : 'hidden'}>
                 <OwnerOpsTab restaurantId={restaurantId} orders={currentOrders} tables={tables} />
@@ -1163,7 +1203,7 @@ function OwnerAppInner({
 
                       <div className="flex items-center gap-1.5 rounded-[14px] border border-line bg-[var(--c-surface-solid)] p-1 shadow-sm">
                         {[
-                          { key: 'manager', label: 'Manager POS', icon: '🧑‍💼' },
+                          { key: 'manager', label: 'Manager Hub', icon: '🧑‍💼' },
                           { key: 'kitchen', label: 'Kitchen KDS', icon: '👨‍🍳' },
                           { key: 'waiter', label: 'Waiter App', icon: '🤵' },
                         ].map((p) => (

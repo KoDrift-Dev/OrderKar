@@ -326,3 +326,23 @@ body {
 .animate-live-pulse {
   animation: live-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
+
+/* POS Items fixed-area scrollbar (matches reference picture) */
+.pos-items-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--c-brand) var(--c-soft);
+}
+.pos-items-scroll::-webkit-scrollbar {
+  width: 7px;
+}
+.pos-items-scroll::-webkit-scrollbar-track {
+  background: var(--c-soft);
+  border-radius: 9999px;
+}
+.pos-items-scroll::-webkit-scrollbar-thumb {
+  background: var(--c-brand);
+  border-radius: 9999px;
+}
+.pos-items-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--c-brand-deep);
+}

@@ -19,6 +19,7 @@ const ROLE_TABS: { href: string; label: string; roles: Role[] }[] = [
 
 // Management sections — separate from the dashboard, for owner/manager.
 const MANAGE_TABS: { href: string; label: string; icon: string; roles: Role[] }[] = [
+  { href: 'pos', label: 'POS Register', icon: '🧾', roles: ['owner', 'manager', 'super_admin'] },
   { href: 'menu', label: 'Menu', icon: '🍽️', roles: ['owner', 'manager', 'super_admin'] },
   { href: 'team', label: 'Team', icon: '👥', roles: ['owner', 'manager', 'super_admin'] },
 ];
