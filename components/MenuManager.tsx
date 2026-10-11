@@ -228,6 +228,14 @@ export default function MenuManager({ restaurantId }: { restaurantId: string }) 
       {/* Filters */}
       <Card className="mb-4 p-4">
         <input
+          type="text"
+          name="orderkar-menu-search"
+          autoComplete="off"
+          data-lpignore="true"
+          data-1p-ignore="true"
+          readOnly
+          onFocus={(e) => e.currentTarget.removeAttribute('readOnly')}
+          onBlur={(e) => e.currentTarget.setAttribute('readOnly', '')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by dish name, ingredients…"

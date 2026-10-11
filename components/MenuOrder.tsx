@@ -462,6 +462,14 @@ export default function MenuOrder({
         className="sticky z-30 -mx-4 bg-[var(--c-surface)] px-4 pb-2 pt-2 backdrop-blur-xl sm:-mx-6 sm:px-6"
       >
         <input
+          type="text"
+          name="orderkar-dish-search"
+          autoComplete="off"
+          data-lpignore="true"
+          data-1p-ignore="true"
+          readOnly
+          onFocus={(e) => e.currentTarget.removeAttribute('readOnly')}
+          onBlur={(e) => e.currentTarget.setAttribute('readOnly', '')}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t('mnu_search')}

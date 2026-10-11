@@ -353,7 +353,7 @@ export default function TableManager({
         {/* Stat cards */}
         <div className="grid grid-cols-3 gap-3">
           {[
-            { label: 'Occupied', count: liveCounts.seated + liveCounts.bill, total: liveTotal, bar: 'from-teal-500 to-emerald-600', icon: '🪑' },
+            { label: 'Occupied', count: liveCounts.seated + liveCounts.bill, total: liveTotal, bar: 'from-teal to-emerald-600', icon: '🪑' },
             { label: 'Available', count: liveCounts.free, total: liveTotal, bar: 'from-emerald-400 to-green-500', icon: '✅' },
             { label: 'Out of Service', count: outOfService, total: tables.length, bar: 'from-slate-400 to-slate-500', icon: '🚫' },
           ].map((c) => {
@@ -415,7 +415,7 @@ export default function TableManager({
               </div>
             )}
             <div className="mt-3 flex flex-wrap gap-4 px-1 text-[11.5px] font-bold text-muted">
-              <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-teal-500" /> Seated</span>
+              <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-teal" /> Seated</span>
               <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-amber-500" /> Bill Pending</span>
               <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-soft" /> Available</span>
             </div>
@@ -428,7 +428,7 @@ export default function TableManager({
                 <div className="flex items-center justify-between">
                   <h3 className="font-display text-[16px] font-black text-ink">Table {detailTable.table_number}</h3>
                   <span className={`rounded-full px-3 py-1 text-[11px] font-extrabold ${
-                    detailState === 'seated' ? 'bg-teal-500/15 text-teal-700 dark:text-teal-300'
+                    detailState === 'seated' ? 'bg-teal/15 text-teal'
                     : detailState === 'bill' ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
                     : 'bg-soft text-muted'
                   }`}>
