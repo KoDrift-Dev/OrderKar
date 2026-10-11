@@ -136,6 +136,53 @@ body {
 }
 .animate-steam { animation: steam-rise 2.6s ease-in-out infinite; transform-box: fill-box; }
 
+/* ── KPI Icon Animations ── */
+@keyframes icon-bounce-gentle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+.animate-icon-bounce {
+  animation: icon-bounce-gentle 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes icon-pulse-gentle {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+}
+.animate-icon-pulse {
+  animation: icon-pulse-gentle 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes icon-clock-tick {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(16deg); }
+  75% { transform: rotate(-12deg); }
+}
+.animate-icon-tick {
+  animation: icon-clock-tick 3.2s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@keyframes icon-heartbeat {
+  0%, 100% { transform: scale(1); }
+  14% { transform: scale(1.16); }
+  28% { transform: scale(1); }
+  42% { transform: scale(1.1); }
+  70% { transform: scale(1); }
+}
+.animate-icon-heartbeat {
+  animation: icon-heartbeat 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes icon-wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-8deg); }
+  75% { transform: rotate(8deg); }
+}
+.animate-icon-wiggle {
+  animation: icon-wiggle 2.5s ease-in-out infinite;
+}
+
 /* ── Glass primitives ── */
 .glass {
   background: var(--c-surface);

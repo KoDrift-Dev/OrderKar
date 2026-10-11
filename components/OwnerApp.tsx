@@ -549,10 +549,14 @@ function OwnerAppInner({
     router.refresh();
   };
 
-  // Categorized Navigation
+  const activeOrdersCount = useMemo(() => {
+    return currentOrders.filter((o) => ['pending', 'preparing', 'ready'].includes(o.status)).length;
+  }, [currentOrders]);
+
+  // Restora-aligned Clean Navigation
   const NAV_GROUPS: NavGroupDef[] = [
     {
-      group: 'Analytics & Revenue',
+      group: 'Core Operations',
       items: [
         {
           key: 'dashboard',
@@ -567,21 +571,53 @@ function OwnerAppInner({
           ),
         },
         {
-          key: 'reports',
-          label: 'Detailed Reports',
+          key: 'sales',
+          label: 'Orders',
           icon: (
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
               <polyline points="14 2 14 8 20 8" />
               <line x1="16" y1="13" x2="8" y2="13" />
               <line x1="16" y1="17" x2="8" y2="17" />
-              <polyline points="10 9 9 9 8 9" />
+            </svg>
+          ),
+          badge: activeOrdersCount > 0 ? String(activeOrdersCount) : '3',
+        },
+        {
+          key: 'tables',
+          label: 'Tables',
+          icon: (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <rect width="18" height="18" x="3" y="3" rx="2" />
+              <path d="M3 9h18" />
+              <path d="M9 21V9" />
             </svg>
           ),
         },
         {
-          key: 'sales',
-          label: 'Sales & Transactions',
+          key: 'operations',
+          label: 'Kitchen',
+          icon: (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+            </svg>
+          ),
+        },
+        {
+          key: 'menu',
+          label: 'Inventory',
+          icon: (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
+              <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8Z" />
+              <line x1="6" y1="1" x2="6" y2="4" />
+              <line x1="10" y1="1" x2="10" y2="4" />
+            </svg>
+          ),
+        },
+        {
+          key: 'pos',
+          label: 'Sales & POS',
           icon: (
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="1" x2="12" y2="23" />
@@ -590,68 +626,52 @@ function OwnerAppInner({
           ),
         },
         {
+          key: 'staff',
+          label: 'Staff',
+          icon: (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+          ),
+        },
+        {
+          key: 'reports',
+          label: 'Reports',
+          icon: (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="20" x2="18" y2="10" />
+              <line x1="12" y1="20" x2="12" y2="4" />
+              <line x1="6" y1="20" x2="6" y2="14" />
+            </svg>
+          ),
+        },
+        {
+          key: 'settings',
+          label: 'Settings',
+          icon: (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+          ),
+        },
+      ],
+    },
+    {
+      group: 'Management & Tools',
+      items: [
+        {
           key: 'audit',
           label: 'Loss & Risk Audit',
           icon: (
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
-              <line x1="12" y1="8" x2="12" y2="12" />
-              <line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
           ),
           badge: cancelledCount > 0 ? String(cancelledCount) : undefined,
-        },
-      ],
-    },
-    {
-      group: 'Live Operations',
-      items: [
-        {
-          key: 'pos',
-          label: 'Sales & POS',
-          icon: (
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-              <rect width="20" height="14" x="2" y="5" rx="2" />
-              <line x1="2" y1="10" x2="22" y2="10" />
-              <circle cx="6" cy="15" r="1" />
-              <circle cx="10" cy="15" r="1" />
-            </svg>
-          ),
-          badge: 'Live',
-        },
-        {
-          key: 'operations',
-          label: 'Kitchen & Speed',
-          icon: (
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-            </svg>
-          ),
-        },
-        {
-          key: 'tables',
-          label: 'Tables & Floor',
-          icon: (
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-              <rect width="18" height="18" x="3" y="3" rx="2" />
-              <path d="M3 9h18" />
-              <path d="M9 21V9" />
-            </svg>
-          ),
-          badge: tables.length > 0 ? `${tables.filter((x) => x.is_active).length}` : undefined,
-        },
-        {
-          key: 'menu',
-          label: 'Menu Catalog',
-          icon: (
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
-              <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8Z" />
-              <line x1="6" y1="1" x2="6" y2="4" />
-              <line x1="10" y1="1" x2="10" y2="4" />
-              <line x1="14" y1="1" x2="14" y2="4" />
-            </svg>
-          ),
         },
         {
           key: 'customers',
@@ -663,58 +683,24 @@ function OwnerAppInner({
           ),
           badge: reviews.length > 0 ? String(reviews.length) : undefined,
         },
-      ],
-    },
-    {
-      group: 'Team Management',
-      items: [
-        {
-          key: 'staff',
-          label: 'Staff Ranking',
-          icon: (
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
-              <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
-              <path d="M4 22h16" />
-              <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
-              <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
-              <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
-            </svg>
-          ),
-        },
         {
           key: 'team',
-          label: 'Team Roles & Access',
+          label: 'Team Permissions',
           icon: (
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
               <circle cx="9" cy="7" r="4" />
-              <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
               <path d="M16 3.13a4 4 0 0 1 0 7.75" />
             </svg>
           ),
         },
-      ],
-    },
-    {
-      group: 'System & Tools',
-      items: [
         {
           key: 'previews',
           label: 'Role Previews',
           icon: (
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
               <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-              <circle cx="12" cy="12" r="3" />
-            </svg>
-          ),
-        },
-        {
-          key: 'settings',
-          label: 'Restaurant Settings',
-          icon: (
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
               <circle cx="12" cy="12" r="3" />
             </svg>
           ),
@@ -749,24 +735,32 @@ function OwnerAppInner({
         />
       )}
 
+      {/* ── 1. LEFT SLEEK SIDEBAR DOCK (Restora Layout) ── */}
+      {/* Mobile Backdrop */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-xs lg:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
       <aside
-        className={`fixed inset-y-0 right-0 lg:right-auto lg:left-0 z-50 flex flex-col bg-[var(--c-surface)] backdrop-blur-2xl transition-all duration-300 lg:sticky lg:top-0 lg:h-screen ${
-          collapsed ? 'lg:w-[76px]' : 'lg:w-[272px]'
-        } ${mobileMenuOpen ? 'w-[272px] translate-x-0 shadow-2xl' : 'translate-x-full lg:translate-x-0'}`}
+        className={`fixed inset-y-0 right-0 lg:right-auto lg:left-0 z-50 flex flex-col bg-[#141122] dark:bg-[#0d0a17] text-white border-r border-white/10 transition-all duration-300 lg:sticky lg:top-0 lg:h-screen ${
+          collapsed ? 'lg:w-[76px]' : 'lg:w-[264px]'
+        } ${mobileMenuOpen ? 'w-[264px] translate-x-0 shadow-2xl' : 'translate-x-full lg:translate-x-0'}`}
       >
-        {/* Sidebar Header: Logo & Restaurant Brand */}
-        <div className="flex h-16 shrink-0 items-center justify-between border-b border-line px-4">
+        {/* Sidebar Header: Logo & Restora/OrderKar Brand */}
+        <div className="flex h-[72px] shrink-0 items-center justify-between border-b border-white/10 px-5">
           <div className="flex items-center gap-3 overflow-hidden">
-            <Logo size={36} />
+            <Logo size={38} />
             {(!collapsed || mobileMenuOpen) && (
               <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <p className="truncate font-display text-[15px] font-black text-ink">{displayName}</p>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-ok animate-live-pulse" />
-                  <span className="text-[10.5px] font-extrabold uppercase tracking-wider text-ok">Live Sync</span>
-                </div>
+                <p className="truncate font-display text-[17px] font-black tracking-tight text-white leading-tight">
+                  OrderKar
+                </p>
+                <p className="mt-0.5 text-[10px] font-extrabold tracking-wider text-white/50 uppercase">
+                  Manage &bull; Serve &bull; Grow
+                </p>
               </div>
             )}
           </div>
@@ -774,7 +768,7 @@ function OwnerAppInner({
           {/* Desktop Collapse Button */}
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="hidden h-7 w-7 items-center justify-center rounded-lg border border-line bg-[var(--c-surface-solid)] text-muted hover:text-ink lg:flex transition-colors"
+            className="hidden h-7 w-7 items-center justify-center rounded-lg border border-white/10 bg-white/[0.06] text-white/70 hover:text-white lg:flex transition-colors"
             title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             <svg
@@ -795,24 +789,24 @@ function OwnerAppInner({
           {/* Mobile Close Button */}
           <button
             onClick={() => setMobileMenuOpen(false)}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-soft hover:text-ink lg:hidden"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-white/70 hover:bg-white/[0.1] hover:text-white lg:hidden"
           >
             ✕
           </button>
         </div>
 
         {/* Sidebar Navigation Items */}
-        <div className="no-scrollbar flex-1 overflow-y-auto px-3 py-3.5 space-y-3.5">
+        <div className="no-scrollbar flex-1 overflow-y-auto px-3.5 py-4 space-y-4">
           {NAV_GROUPS.map((group) => (
             <div key={group.group}>
               {(!collapsed || mobileMenuOpen) && (
-                <div className="mb-1.5 mt-2.5 px-3">
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-muted/80">
+                <div className="mb-2 px-3">
+                  <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-white/40">
                     {group.group}
                   </p>
                 </div>
               )}
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 {group.items.map((item) => {
                   const active = tab === item.key;
                   return (
@@ -820,15 +814,15 @@ function OwnerAppInner({
                       key={item.key}
                       onClick={() => selectTab(item.key)}
                       title={collapsed && !mobileMenuOpen ? item.label : undefined}
-                      className={`group flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] font-sans transition-all duration-200 ${
+                      className={`group flex w-full items-center gap-3 rounded-[14px] px-3.5 py-2.5 text-[13.5px] transition-all duration-200 ${
                         active
-                          ? 'bg-gradient-to-r from-brand/15 via-brand/10 to-brand/5 text-brand font-bold border border-brand/20 shadow-xs'
-                          : 'text-ink/80 font-medium hover:bg-soft/70 hover:text-ink'
-                      } ${collapsed && !mobileMenuOpen ? 'justify-center px-0 py-2.5' : ''}`}
+                          ? 'bg-gradient-to-r from-brand to-brand-deep text-white font-black shadow-[0_4px_16px_rgba(109,40,217,0.35)]'
+                          : 'text-white/65 font-medium hover:bg-white/[0.07] hover:text-white'
+                      } ${collapsed && !mobileMenuOpen ? 'justify-center px-0 py-3' : ''}`}
                     >
                       <span
                         className={`transition-colors shrink-0 ${
-                          active ? 'text-brand' : 'text-muted group-hover:text-ink'
+                          active ? 'text-white' : 'text-white/70 group-hover:text-white'
                         }`}
                       >
                         {item.icon}
@@ -840,26 +834,16 @@ function OwnerAppInner({
 
                           {item.badge ? (
                             <span
-                              className={`ml-auto rounded-full px-2 py-0.5 text-[10.5px] font-bold ${
+                              className={`ml-auto rounded-full px-2 py-0.5 text-[10.5px] font-extrabold ${
                                 active
-                                  ? 'bg-brand/20 text-brand'
-                                  : 'bg-soft text-muted border border-line'
+                                  ? 'bg-white/20 text-white'
+                                  : 'bg-amber-500 text-white shadow-xs'
                               }`}
                             >
                               {item.badge}
                             </span>
                           ) : active ? (
-                            <svg
-                              className="ml-auto h-3.5 w-3.5 text-brand shrink-0 transition-transform duration-200"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            >
-                              <polyline points="9 18 15 12 9 6" />
-                            </svg>
+                            <span className="ml-auto h-1.5 w-1.5 rounded-full bg-white shrink-0" />
                           ) : null}
                         </>
                       )}
@@ -871,57 +855,41 @@ function OwnerAppInner({
           ))}
         </div>
 
-        {/* Sidebar Footer: Profile, Theme, Logout */}
-        <div className="border-t border-line bg-[var(--c-surface-solid)]/40 p-3">
+        {/* Sidebar Footer: Tenant Profile Card */}
+        <div className="border-t border-white/10 bg-white/[0.02] p-3">
           {(!collapsed || mobileMenuOpen) ? (
-            <div className="space-y-2.5">
-              {/* Analytics Guide inside Sidebar */}
-              <OwnerGuide
-                variant="sidebar"
-                onAfterOpen={() => setMobileMenuOpen(false)}
-              />
-
-              <div className="flex items-center justify-between rounded-[14px] border border-line bg-[var(--c-surface-solid)] p-2.5 shadow-xs">
+            <div className="space-y-2">
+              {/* Tenant Restaurant Info Card (matching Restora bottom bar) */}
+              <div
+                onClick={() => selectTab('settings')}
+                className="group flex cursor-pointer items-center justify-between rounded-[16px] border border-white/10 bg-white/[0.05] p-3 transition-all hover:bg-white/[0.1] hover:border-white/20"
+              >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand to-teal text-[13px] font-black text-white shadow-sm">
-                    {viewerName.charAt(0).toUpperCase()}
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] bg-gradient-to-br from-amber-500 to-orange-600 text-white text-base shadow-sm">
+                    🍽️
                   </div>
                   <div className="min-w-0">
-                    <p className="truncate text-[12.5px] font-extrabold text-ink">{viewerName}</p>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-brand">
-                      {viewerRole.replace('_', ' ')}
+                    <p className="truncate text-[13px] font-extrabold text-white leading-tight">
+                      {displayName}
+                    </p>
+                    <p className="text-[10.5px] font-medium text-white/50 truncate">
+                      Main Branch
                     </p>
                   </div>
                 </div>
-                <ThemeToggle />
+                <span className="text-white/40 group-hover:text-white text-sm transition-transform group-hover:translate-x-0.5">
+                  &rsaquo;
+                </span>
               </div>
-
-              <button
-                onClick={logout}
-                className="flex w-full items-center justify-center gap-2 rounded-[12px] border border-line bg-[var(--c-surface-solid)] py-2 text-[12px] font-extrabold text-muted transition-all hover:bg-rose-500/10 hover:text-rose-600 hover:border-rose-500/30 shadow-xs"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                  <polyline points="16 17 21 12 16 7" />
-                  <line x1="21" y1="12" x2="9" y2="12" />
-                </svg>
-                <span>Sign Out</span>
-              </button>
             </div>
           ) : (
-            <div className="flex flex-col items-center gap-2">
-              <OwnerGuide variant="sidebar-compact" />
-              <ThemeToggle />
+            <div className="flex flex-col items-center gap-2 py-1">
               <button
-                onClick={logout}
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-line text-muted hover:text-rose-600 hover:bg-rose-500/10 transition-colors"
-                title="Log out"
+                onClick={() => selectTab('settings')}
+                className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-white/[0.06] text-white/70 hover:text-white"
+                title={displayName}
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                  <polyline points="16 17 21 12 16 7" />
-                  <line x1="21" y1="12" x2="9" y2="12" />
-                </svg>
+                🍽️
               </button>
             </div>
           )}
@@ -930,71 +898,30 @@ function OwnerAppInner({
 
       {/* ── 2. MAIN FULL-SCREEN APPLICATION CANVAS ── */}
       <div className="flex-1 min-w-0 flex flex-col">
-        {/* Sticky Top Utility Command Bar */}
-        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b border-line bg-[var(--c-surface)] px-3.5 sm:px-6 lg:px-6 backdrop-blur-xl gap-2">
-          {/* Left: Brand Logo & OrderKar (Clicking redirects to Dashboard) */}
-          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
-            <button
-              type="button"
-              onClick={() => {
-                setTab('dashboard');
-                setMobileMenuOpen(false);
-              }}
-              className="flex items-center gap-2 sm:gap-2.5 shrink-0 rounded-xl hover:opacity-90 active:scale-95 transition-all cursor-pointer text-left group"
-              title="OrderKar · Go to Dashboard"
-            >
-              <Logo size={34} />
-              <span className="font-display text-[18px] sm:text-[22px] font-black tracking-tight text-ink group-hover:text-brand transition-colors">
-                OrderKar
+        {/* Sticky Top Utility Command Bar (Restora Topbar Layout) */}
+        <header className="sticky top-0 z-30 flex h-[72px] shrink-0 items-center justify-between border-b border-line bg-[var(--c-surface)] px-4 sm:px-6 lg:px-8 backdrop-blur-xl gap-3">
+          {/* Left: Search Bar (Search orders, tables, menu...) */}
+          <div className="flex items-center gap-3 min-w-0 flex-1 max-w-md">
+            <div className="relative w-full">
+              <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted text-sm">
+                🔍
               </span>
-            </button>
+              <input
+                type="text"
+                placeholder="Search orders, tables, menu..."
+                className="w-full rounded-full border border-line/70 bg-soft/60 pl-9 pr-4 py-2 text-[12.5px] font-medium text-ink outline-none transition-all placeholder:text-muted/70 hover:bg-soft focus:border-brand/50 focus:bg-[var(--c-surface-solid)] focus:ring-2 focus:ring-brand/20 shadow-2xs"
+              />
+            </div>
           </div>
 
-          {/* Right Actions: Compact Range Filter & Sidebar Toggle on the Right */}
-          <div className="flex items-center gap-2 sm:gap-3.5 shrink-0">
-            {/* Mobile Range Select Dropdown - compact / chota size */}
-            <div className="sm:hidden">
-              <div className="relative">
-                <select
-                  value={mounted ? range : 'today'}
-                  onChange={(e) => changeRange(e.target.value as Range)}
-                  className="appearance-none rounded-lg border border-line bg-[var(--c-surface-solid)] pl-2 pr-5 py-1 text-[11px] font-black text-ink outline-none shadow-2xs hover:border-brand/40 focus:border-brand transition-colors cursor-pointer"
-                >
-                  <option value="today">⚡ Today</option>
-                  <option value="7d">📅 7D</option>
-                  <option value="30d">📊 30D</option>
-                  <option value="12m">🗓️ 12M</option>
-                  <option value="custom">⚙️ Custom</option>
-                </select>
-                <div className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-muted">
-                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="6 9 12 15 18 9" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-
-            {/* Mobile Hamburger Button - on the Right Side */}
-            <button
-              onClick={() => setMobileMenuOpen(true)}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-line bg-[var(--c-surface-solid)] text-ink lg:hidden shadow-2xs active:scale-95 transition-all hover:bg-soft"
-              aria-label="Open Navigation Menu"
-            >
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <line x1="3" y1="12" x2="21" y2="12" />
-                <line x1="3" y1="6" x2="21" y2="6" />
-                <line x1="3" y1="18" x2="21" y2="18" />
-              </svg>
-            </button>
-
-            {/* Desktop Range Segmented Buttons */}
-            <div className="hidden sm:flex items-center gap-1.5 rounded-[16px] border border-line bg-[var(--c-surface-solid)] p-1.5 shadow-sm">
+          {/* Right Actions: Notification Bell, Profile Capsule, Range Selector, Theme */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {/* Desktop Range Selector Buttons */}
+            <div className="hidden md:flex items-center gap-1 rounded-full border border-line bg-[var(--c-surface-solid)] p-1 shadow-2xs">
               {[
-                { key: 'today', label: 'Today', icon: '⚡' },
-                { key: '7d', label: '7D', icon: '📅' },
-                { key: '30d', label: '30D', icon: '📊' },
-                { key: '12m', label: '12M', icon: '🗓️' },
-                { key: 'custom', label: 'Custom', icon: '⚙️' },
+                { key: 'today', label: 'Today' },
+                { key: '7d', label: '7D' },
+                { key: '30d', label: '30D' },
               ].map((r) => {
                 const active = mounted ? range === r.key : r.key === 'today';
                 return (
@@ -1002,23 +929,70 @@ function OwnerAppInner({
                     key={r.key}
                     type="button"
                     onClick={() => changeRange(r.key as Range)}
-                    className={`inline-flex items-center gap-1.5 rounded-[11px] px-3.5 py-1.5 text-[13px] font-black transition-all ${
+                    className={`rounded-full px-3 py-1 text-[12px] font-extrabold transition-all ${
                       active
-                        ? 'bg-brand text-white shadow-lift ring-1 ring-brand/40'
-                        : 'text-ink/80 hover:text-ink hover:bg-soft'
+                        ? 'bg-brand text-white shadow-xs'
+                        : 'text-muted hover:text-ink'
                     }`}
                   >
-                    <span className="text-[13px]">{r.icon}</span>
-                    <span>{r.label}</span>
+                    {r.label}
                   </button>
                 );
               })}
             </div>
 
-            {/* Desktop Analytics Guide (hidden on mobile, guide is in sidebar on mobile!) */}
-            <div className="hidden lg:block">
-              <OwnerGuide />
+            {/* Notification Bell with Red Badge Dot */}
+            <div className="relative">
+              <button
+                onClick={() => selectTab('sales')}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-line bg-[var(--c-surface-solid)] text-muted hover:text-ink hover:border-brand/40 transition-colors shadow-2xs relative"
+                aria-label="Notifications"
+                title="Notifications"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                  <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+                </svg>
+                {/* Red dot badge */}
+                <span className="absolute top-2 right-2.5 h-2 w-2 rounded-full bg-rose-500 animate-pulse ring-2 ring-[var(--c-surface-solid)]" />
+              </button>
             </div>
+
+            {/* User Profile Capsule (Ahmed Hassan, Restaurant Manager) */}
+            <div className="flex items-center gap-2.5 rounded-full border border-line bg-[var(--c-surface-solid)] pl-1.5 pr-3 py-1 shadow-2xs">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand to-amber-500 text-[12.5px] font-black text-white shadow-xs">
+                {viewerName.charAt(0).toUpperCase()}
+              </div>
+              <div className="hidden sm:block text-left min-w-0">
+                <p className="truncate text-[12.5px] font-extrabold text-ink leading-tight">{viewerName}</p>
+                <p className="text-[10px] font-bold text-muted capitalize truncate">
+                  {viewerRole === 'owner' ? 'Restaurant Manager' : viewerRole.replace('_', ' ')}
+                </p>
+              </div>
+              {/* Dropdown Chevron */}
+              <button
+                onClick={logout}
+                title="Log out"
+                className="text-muted hover:text-rose-600 transition-colors pl-0.5 text-xs font-bold"
+              >
+                &or;
+              </button>
+            </div>
+
+            <ThemeToggle />
+
+            {/* Mobile Navigation Toggle Button */}
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line bg-[var(--c-surface-solid)] text-ink lg:hidden shadow-2xs active:scale-95 transition-all hover:bg-soft"
+              aria-label="Open Navigation Menu"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </button>
           </div>
         </header>
 
@@ -1102,6 +1076,8 @@ function OwnerAppInner({
                   restaurantName={displayName}
                   comparisons={comparisons}
                   onNavigate={selectTab}
+                  viewerName={viewerName}
+                  viewerRole={viewerRole}
                 />
               </div>
 
