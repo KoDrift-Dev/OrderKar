@@ -44,7 +44,7 @@ function expiryBadge(dateStr: string | null): { text: string; cls: string } | nu
   if (days <= 7)
     return {
       text: days === 0 ? 'Expires today' : `Expires in ${days}d`,
-      cls: 'bg-amber-500/10 text-amber-700 dark:text-amber-400',
+      cls: 'bg-amber/10 text-amber dark:text-amber',
     };
   return {
     text: `Exp ${exp.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`,
@@ -65,7 +65,7 @@ function stockStatus(it: InvItem): StockStatus {
 
 const STATUS_META: Record<StockStatus, { label: string; cls: string; dot: string }> = {
   in: { label: 'In Stock', cls: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300', dot: 'bg-emerald-500' },
-  low: { label: 'Low Stock', cls: 'bg-amber-500/10 text-amber-700 dark:text-amber-300', dot: 'bg-amber-500' },
+  low: { label: 'Low Stock', cls: 'bg-amber/10 text-amber dark:text-amber', dot: 'bg-amber' },
   critical: { label: 'Critical', cls: 'bg-rose-500/10 text-rose-700 dark:text-rose-300', dot: 'bg-rose-500' },
   out: { label: 'Out of Stock', cls: 'bg-slate-500/10 text-slate-600 dark:text-slate-300', dot: 'bg-slate-400' },
 };
@@ -389,7 +389,7 @@ export default function OwnerInventoryTab({ restaurantId }: { restaurantId: stri
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-gradient-to-br from-amber-500 to-orange-600 text-[22px] text-white shadow-sm">
+          <span className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-gradient-to-br from-amber to-orange-600 text-[22px] text-white shadow-sm">
             📦
           </span>
           <div>
@@ -417,7 +417,7 @@ export default function OwnerInventoryTab({ restaurantId }: { restaurantId: stri
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
           { label: 'Total Items', value: fmtNum(stats.total), icon: '📦', tone: 'text-brand' },
-          { label: 'Low Stock', value: fmtNum(stats.low), icon: '⚠️', tone: 'text-amber-600 dark:text-amber-400' },
+          { label: 'Low Stock', value: fmtNum(stats.low), icon: '⚠️', tone: 'text-amber dark:text-amber' },
           { label: 'Out of Stock', value: fmtNum(stats.out), icon: '🚫', tone: 'text-rose-600 dark:text-rose-400' },
           { label: 'Total Stock Value', value: fmtPKR(stats.value), icon: '💰', tone: 'text-emerald-600 dark:text-emerald-400' },
         ].map((c) => (
@@ -601,7 +601,7 @@ export default function OwnerInventoryTab({ restaurantId }: { restaurantId: stri
             ) : (
               <ul className="mt-2 space-y-2">
                 {actionNeeded.map((r) => (
-                  <li key={r.id} className="flex items-center justify-between gap-2 rounded-[12px] bg-amber-500/[0.07] px-3 py-2">
+                  <li key={r.id} className="flex items-center justify-between gap-2 rounded-[12px] bg-amber/[0.07] px-3 py-2">
                     <div className="min-w-0">
                       <p className="truncate text-[12.5px] font-extrabold text-ink">{r.name}</p>
                       <p className="text-[11px] font-medium text-muted">

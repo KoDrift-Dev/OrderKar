@@ -361,7 +361,7 @@ export default function OwnerDashTab({
         <div className="relative z-10 flex h-full flex-col justify-center p-4 sm:p-5 lg:p-6 max-w-xl">
           <h1 className="font-display text-[22px] sm:text-[26px] lg:text-[30px] font-black tracking-tight text-white leading-tight">
             {greeting},{' '}
-            <span className="bg-gradient-to-r from-amber-400 via-orange-400 to-brand-300 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-amber via-orange-400 to-brand bg-clip-text text-transparent">
               {firstName}
             </span>
           </h1>
@@ -388,7 +388,7 @@ export default function OwnerDashTab({
             {/* Occupied Tables */}
             <button
               onClick={() => onNavigate?.('tables')}
-              className="group relative cursor-pointer overflow-hidden rounded-[18px] border border-line/60 bg-[var(--c-surface-solid)] p-3 sm:p-3.5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-amber-500/40 hover:shadow-md text-left flex flex-col justify-between"
+              className="group relative cursor-pointer overflow-hidden rounded-[18px] border border-line/60 bg-[var(--c-surface-solid)] p-3 sm:p-3.5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-amber/40 hover:shadow-md text-left flex flex-col justify-between"
             >
               <div>
                 <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-[12px] bg-gradient-to-br from-[#ff9f43] via-[#f78b1f] to-[#e66a00] text-white shadow-[0_4px_12px_rgba(247,139,31,0.35)] transition-transform duration-300 group-hover:scale-110">
@@ -406,7 +406,7 @@ export default function OwnerDashTab({
               </div>
               <div className="mt-2">
                 <div className="h-1.5 w-full overflow-hidden rounded-full bg-soft">
-                  <div className="h-full rounded-full bg-gradient-to-r from-amber-500 to-orange-500 transition-all duration-500" style={{ width: `${occupancyPct}%` }} />
+                  <div className="h-full rounded-full bg-gradient-to-r from-amber to-orange-500 transition-all duration-500" style={{ width: `${occupancyPct}%` }} />
                 </div>
                 <p className="mt-1.5 text-[10px] font-bold text-muted">
                   {totalTables > 0 ? `${occupancyPct}% occupancy` : 'No tables added'}
@@ -648,18 +648,18 @@ export default function OwnerDashTab({
             </div>
 
             {/* Insight card */}
-            <div className="rounded-[20px] border border-amber-500/30 bg-gradient-to-br from-amber-500/[0.08] via-amber-500/[0.03] to-transparent p-4 sm:p-5 shadow-sm md:col-span-5 flex flex-col justify-between">
+            <div className="rounded-[20px] border border-amber/30 bg-gradient-to-br from-amber/[0.08] via-amber/[0.03] to-transparent p-4 sm:p-5 shadow-sm md:col-span-5 flex flex-col justify-between">
               <div>
                 <div className="flex items-center gap-1.5">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500/20 text-amber-600 text-xs">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber/20 text-amber text-xs">
                     {'\u{1F4A1}'}
                   </span>
-                  <h3 className="font-display text-[14px] font-extrabold text-amber-600 dark:text-amber-400">
+                  <h3 className="font-display text-[14px] font-extrabold text-amber dark:text-amber">
                     Insight for You
                   </h3>
                 </div>
                 <div className="mt-3 flex items-start gap-2.5">
-                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-amber-600 text-xs">
+                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber/20 text-amber text-xs">
                     {'\u26A0\uFE0F'}
                   </span>
                   <div>
@@ -685,8 +685,8 @@ export default function OwnerDashTab({
             <h3 className="font-display text-[15px] font-extrabold text-ink tracking-tight">Quick Overview</h3>
             <div className="grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-4">
               {[
-                { label: 'Tables', sub: totalTables > 0 ? `${occupiedTables} occupied` : 'View all tables', icon: '\u{1FA91}', tab: 'tables', grad: 'from-amber-500 to-orange-500' },
-                { label: 'Active Orders', sub: `${activeOrders.length} in progress`, icon: '\u{1F4CB}', tab: 'sales', grad: 'from-emerald-500 to-teal-600' },
+                { label: 'Tables', sub: totalTables > 0 ? `${occupiedTables} occupied` : 'View all tables', icon: '\u{1FA91}', tab: 'tables', grad: 'from-amber to-orange-500' },
+                { label: 'Active Orders', sub: `${activeOrders.length} in progress`, icon: '\u{1F4CB}', tab: 'sales', grad: 'from-emerald-500 to-teal' },
                 { label: 'Kitchen', sub: delayedOrders.length > 0 ? `${delayedOrders.length} delayed` : 'Monitor kitchen', icon: '\u{1F468}\u200D\u{1F373}', tab: 'operations', grad: 'from-rose-500 to-pink-600' },
                 { label: 'Menu', sub: 'Manage menu', icon: '\u{1F37D}\uFE0F', tab: 'menu', grad: 'from-indigo-500 to-purple-600' },
               ].map((c) => (
@@ -718,8 +718,8 @@ export default function OwnerDashTab({
             <h3 className="font-display text-[15px] font-extrabold text-ink tracking-tight">Quick Actions</h3>
             <div className="mt-3 grid grid-cols-3 gap-2">
               {[
-                { label: 'New Order', icon: '+', tab: 'pos', color: 'bg-gradient-to-br from-amber-500 to-orange-500 text-white text-lg font-black' },
-                { label: 'View Tables', icon: '\u{1FA91}', tab: 'tables', color: 'bg-amber-500/15 text-amber-600 dark:text-amber-400' },
+                { label: 'New Order', icon: '+', tab: 'pos', color: 'bg-gradient-to-br from-amber to-orange-500 text-white text-lg font-black' },
+                { label: 'View Tables', icon: '\u{1FA91}', tab: 'tables', color: 'bg-amber/15 text-amber dark:text-amber' },
                 { label: 'Menu', icon: '\u{1F37D}\uFE0F', tab: 'menu', color: 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400' },
                 { label: 'View Reports', icon: '\u{1F4CA}', tab: 'reports', color: 'bg-sky-500/15 text-sky-600 dark:text-sky-400' },
                 { label: 'Manage Staff', icon: '\u{1F465}', tab: 'staff', color: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' },
@@ -758,9 +758,9 @@ export default function OwnerDashTab({
                 {recentActivities.map((act) => {
                   const iconColor =
                     act.iconType === 'order'
-                      ? 'bg-teal-500/15 text-teal-600 dark:text-teal-400'
+                      ? 'bg-teal/15 text-teal dark:text-teal'
                       : act.iconType === 'ready'
-                      ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                      ? 'bg-amber/15 text-amber dark:text-amber'
                       : 'bg-rose-500/15 text-rose-500';
                   return (
                     <div key={act.id} className="flex items-center gap-2.5 py-2 first:pt-0 last:pb-0">
