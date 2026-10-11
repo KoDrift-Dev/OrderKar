@@ -716,7 +716,7 @@ export default function PosTab({
                       )}
 
                       {/* Center Icon/Image in rounded soft box */}
-                      <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-2xl bg-[#faf5ec] dark:bg-amber-500/10 text-amber-900 dark:text-amber-400 flex items-center justify-center overflow-hidden mb-1.5 shadow-2xs shrink-0 border border-amber-900/5">
+                      <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-2xl bg-[#faf5ec] dark:bg-amber/10 text-amber dark:text-amber flex items-center justify-center overflow-hidden mb-1.5 shadow-2xs shrink-0 border border-amber/5">
                         {item.image_url ? (
                           <SmartImage
                             src={realImg}
@@ -740,7 +740,7 @@ export default function PosTab({
                       </p>
 
                       {/* Price (amber font) */}
-                      <p className="font-mono text-[12px] sm:text-[13px] font-black text-[#b45309] dark:text-amber-500 mt-0.5">
+                      <p className="font-mono text-[12px] sm:text-[13px] font-black text-[#b45309] dark:text-amber mt-0.5">
                         {fmtPKR(item.price)}
                       </p>
 
@@ -1021,7 +1021,7 @@ export default function PosTab({
               </Btn>
             </div>
             {blockedFormat && (
-              <div className="mt-3 rounded-[12px] border border-amber-500/40 bg-amber-500/10 p-3 text-center">
+              <div className="mt-3 rounded-[12px] border border-amber/40 bg-amber/10 p-3 text-center">
                 <p className="text-[12.5px] font-extrabold text-ink">
                   Popup was blocked — the receipt couldn&apos;t open for printing.
                 </p>
