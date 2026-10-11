@@ -3,7 +3,8 @@
 // Owner settings — restaurant/company details, owner account,
 // and login security (email + password change).
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { logActivity, ACT } from '@/lib/activity';
 import { useT } from '@/lib/i18n';
@@ -12,7 +13,21 @@ import { useGuard } from './DeleteFlow';
 import { POS_PALETTES, type PosPaletteId } from './PosTab';
 import SmartImage from './SmartImage';
 import SubscriptionCard from './SubscriptionCard';
-import { rootDomain } from '@/lib/tenant-url';
+import { rootDomain, brandThemeVars } from '@/lib/tenant-url';
+
+// 8 preset brand colors (restaurant-friendly palette)
+const BRAND_PRESETS = [
+  '#6D28D9', // OrderKar purple (default)
+  '#0D9488', // teal
+  '#F59E0B', // amber
+  '#DC2626', // chili red
+  '#16A34A', // fresh green
+  '#2563EB', // royal blue
+  '#DB2777', // magenta
+  '#1F2937', // charcoal
+];
+
+const isHex = (v: string) => /^#[0-9a-f]{6}$/i.test(v.trim());
 
 function msg(text: string, ok: boolean) {
   return (
@@ -32,6 +47,7 @@ export default function OwnerSettings({
   onNameChange: (name: string) => void;
 }) {
   const t = useT();
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const guard = useGuard();
   const [saving, setSaving] = useState<string | null>(null);
@@ -46,6 +62,9 @@ export default function OwnerSettings({
   const [themeCfg, setThemeCfg] = useState<Record<string, string>>({});
   const [posPalette, setPosPalette] = useState<PosPaletteId>('amber');
   const [brandColor, setBrandColor] = useState('');
+  const [brandColor2, setBrandColor2] = useState('');
+  const [brandMode, setBrandMode] = useState<'single' | 'dual'>('single');
+  const [brandMsg, setBrandMsg] = useState<{ text: string; ok: boolean } | null>(null);
   const [copied, setCopied] = useState(false);
   const [rMsg, setRMsg] = useState<{ text: string; ok: boolean } | null>(null);
 
@@ -103,6 +122,9 @@ export default function OwnerSettings({
         setContactEmail(tc.email ?? '');
         setLogoUrl(tc.logo_url ?? '');
         setBrandColor(typeof tc.brand_color === 'string' ? tc.brand_color : '');
+        const bc2 = typeof tc.brand_color_2 === 'string' ? tc.brand_color_2 : '';
+        setBrandColor2(bc2);
+        setBrandMode(bc2.trim() ? 'dual' : 'single');
         setTier(r.subscription_tier ?? '');
         if (tc.pos_palette && POS_PALETTES[tc.pos_palette as PosPaletteId]) {
           setPosPalette(tc.pos_palette as PosPaletteId);
@@ -150,6 +172,7 @@ export default function OwnerSettings({
               logo_url: logoUrl.trim(),
               pos_palette: posPalette,
               brand_color: brandColor.trim(),
+              brand_color_2: brandMode === 'dual' ? brandColor2.trim() : '',
             },
           })
           .eq('id', restaurantId);
@@ -168,6 +191,50 @@ export default function OwnerSettings({
         });
       } catch (err) {
         setRMsg({ text: `❌ ${err instanceof Error ? err.message : t('set_err_default')}`, ok: false });
+      } finally {
+        setSaving(null);
+      }
+    });
+
+  const saveBrand = () =>
+    guard(async () => {
+      setBrandMsg(null);
+      const c1 = brandColor.trim();
+      const c2 = brandMode === 'dual' ? brandColor2.trim() : '';
+      if (c1 && !isHex(c1)) {
+        setBrandMsg({ text: 'Color 1 must be a valid hex like #6D28D9', ok: false });
+        return;
+      }
+      if (c2 && !isHex(c2)) {
+        setBrandMsg({ text: 'Color 2 must be a valid hex like #0D9488', ok: false });
+        return;
+      }
+      setSaving('brand');
+      try {
+        const { error } = await createClient()
+          .from('restaurants')
+          .update({
+            theme_config: {
+              ...themeCfg,
+              brand_color: c1,
+              brand_color_2: c2,
+            },
+          })
+          .eq('id', restaurantId);
+        if (error) throw error;
+        setThemeCfg((prev) => ({ ...prev, brand_color: c1, brand_color_2: c2 }));
+        setBrandMsg({ text: '✓ Brand color saved', ok: true });
+        logActivity(createClient(), {
+          restaurantId,
+          action: ACT.SETTINGS_UPDATED,
+          entityType: 'restaurant',
+          entityId: restaurantId,
+          details: { section: 'brand-color', color1: c1, color2: c2 || undefined },
+        });
+        // Re-run server components so the new brand applies across the whole console instantly
+        router.refresh();
+      } catch (err) {
+        setBrandMsg({ text: `❌ ${err instanceof Error ? err.message : t('set_err_default')}`, ok: false });
       } finally {
         setSaving(null);
       }
@@ -286,6 +353,11 @@ export default function OwnerSettings({
     );
   }
 
+  // Live preview vars for the brand section (WYSIWYG — same vars TenantProvider applies)
+  const pvC1 = isHex(brandColor) ? brandColor.trim() : '#6D28D9';
+  const pvC2 = brandMode === 'dual' && isHex(brandColor2) ? brandColor2.trim() : '';
+  const previewVars = brandThemeVars(pvC1, pvC2) as CSSProperties;
+
   return (
     <div className="space-y-5">
       <div className="border-b border-line pb-4">
@@ -347,14 +419,62 @@ export default function OwnerSettings({
           </div>
 
           <div className="sm:col-span-2 rounded-[18px] border border-line bg-soft/40 p-4">
-            <Label>Brand Color</Label>
-            <p className="text-[12px] text-muted mb-3">
-              Your restaurant&apos;s primary color across the app (buttons, highlights)
-            </p>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <Label>Brand Color</Label>
+                <p className="text-[12px] text-muted">
+                  Your restaurant&apos;s primary color across the app (buttons, highlights)
+                </p>
+              </div>
+              <div
+                className="flex rounded-full border border-line bg-[var(--c-surface-solid)] p-0.5 text-[12px] font-extrabold"
+                role="tablist"
+                aria-label="Brand color mode"
+              >
+                {(['single', 'dual'] as const).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    role="tab"
+                    aria-selected={brandMode === m}
+                    onClick={() => setBrandMode(m)}
+                    className={`rounded-full px-3.5 py-1.5 capitalize transition-all ${
+                      brandMode === m ? 'bg-brand text-white shadow-sm' : 'text-muted hover:text-ink'
+                    }`}
+                  >
+                    {m === 'single' ? 'Single' : 'Dual'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 8 preset swatches */}
+            <p className="mt-4 text-[11px] font-extrabold uppercase tracking-wider text-muted">Presets</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {BRAND_PRESETS.map((c) => {
+                const active = brandColor.trim().toLowerCase() === c.toLowerCase();
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    title={c}
+                    aria-label={`Preset color ${c}`}
+                    onClick={() => setBrandColor(c)}
+                    className={`h-9 w-9 rounded-full transition-transform hover:scale-110 ${
+                      active ? 'ring-2 ring-ink ring-offset-2 ring-offset-[var(--c-surface-solid)]' : 'ring-1 ring-line'
+                    }`}
+                    style={{ backgroundColor: c }}
+                  />
+                );
+              })}
+            </div>
+
+            {/* Custom picker (kept as-is) */}
+            <p className="mt-4 text-[11px] font-extrabold uppercase tracking-wider text-muted">Custom</p>
+            <div className="mt-2 flex items-center gap-3">
               <input
                 type="color"
-                value={/^#[0-9a-f]{6}$/i.test(brandColor) ? brandColor : '#6D28D9'}
+                value={isHex(brandColor) ? brandColor.trim() : '#6D28D9'}
                 onChange={(e) => setBrandColor(e.target.value)}
                 aria-label="Brand color picker"
                 className="h-10 w-14 cursor-pointer rounded-lg border border-line bg-[var(--c-surface-solid)]"
@@ -375,6 +495,67 @@ export default function OwnerSettings({
                 >
                   Reset
                 </button>
+              )}
+            </div>
+
+            {/* Dual: second color */}
+            {brandMode === 'dual' && (
+              <div className="mt-4">
+                <p className="text-[11px] font-extrabold uppercase tracking-wider text-muted">Second color</p>
+                <div className="mt-2 flex items-center gap-3">
+                  <input
+                    type="color"
+                    value={isHex(brandColor2) ? brandColor2.trim() : '#0D9488'}
+                    onChange={(e) => setBrandColor2(e.target.value)}
+                    aria-label="Second brand color picker"
+                    className="h-10 w-14 cursor-pointer rounded-lg border border-line bg-[var(--c-surface-solid)]"
+                  />
+                  <Input
+                    value={brandColor2}
+                    onChange={(e) => setBrandColor2(e.target.value)}
+                    placeholder="#0D9488"
+                    maxLength={7}
+                    className="max-w-[220px] font-mono"
+                    aria-label="Second brand color hex"
+                  />
+                  {brandColor2.trim() && (
+                    <button
+                      type="button"
+                      onClick={() => setBrandColor2('')}
+                      className="text-[12px] font-bold text-muted underline"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Live preview */}
+            <div className="mt-4 rounded-[14px] border border-line bg-[var(--c-surface-solid)] p-3" style={previewVars}>
+              <p className="mb-2 text-[11px] font-extrabold uppercase tracking-wider text-muted">Live preview</p>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <span className="btn-3d rounded-btn px-4 py-2 text-[13px] font-bold text-white">Order Now</span>
+                <span className="rounded-full bg-brand px-3 py-1 text-[11px] font-extrabold text-white">New</span>
+                <span className="text-[14px] font-extrabold text-brand">Spice Route</span>
+              </div>
+              {brandMode === 'dual' && pvC2 && (
+                <div
+                  className="mt-2.5 h-2.5 w-full rounded-full"
+                  style={{ background: `linear-gradient(90deg, ${pvC1}, ${pvC2})` }}
+                />
+              )}
+            </div>
+
+            {/* Save */}
+            <div className="mt-3 flex flex-wrap items-center gap-2.5">
+              <Btn size="sm" disabled={saving === 'brand'} onClick={saveBrand}>
+                {saving === 'brand' ? 'Saving…' : 'Save Brand Color'}
+              </Btn>
+              {brandMsg && (
+                <span className={`text-[12.5px] font-bold ${brandMsg.ok ? 'text-emerald-600' : 'text-danger'}`}>
+                  {brandMsg.text}
+                </span>
               )}
             </div>
           </div>

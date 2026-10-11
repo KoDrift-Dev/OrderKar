@@ -72,3 +72,39 @@ export function hexToRgbTriplet(hex: string): string | null {
   const n = parseInt(m[1], 16);
   return `${(n >> 16) & 255} ${(n >> 8) & 255} ${n & 255}`;
 }
+
+/** Darken a #rrggbb hex by a fraction 0..1. Returns normalized #rrggbb or null. */
+export function darkenHex(hex: string, frac = 0.28): string | null {
+  const m = hex
+    .trim()
+    .replace(/^#/, '')
+    .match(/^([0-9a-f]{6})$/i);
+  if (!m) return null;
+  const n = parseInt(m[1], 16);
+  const d = (v: number) => Math.max(0, Math.round(v * (1 - frac)));
+  const r = d((n >> 16) & 255);
+  const g = d((n >> 8) & 255);
+  const b = d(n & 255);
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
+}
+
+/**
+ * CSS custom properties that apply a tenant brand theme (single or dual color).
+ * Single: --c-brand-deep is a darkened shade of color1.
+ * Dual:   --c-brand-deep is color2, so brand gradients flow color1 → color2.
+ * Returns {} when color1 is not a valid hex (caller falls back to defaults).
+ */
+export function brandThemeVars(color1: string, color2?: string): Record<string, string> {
+  const t1 = hexToRgbTriplet(color1);
+  if (!t1) return {};
+  const c1 = color1.trim();
+  const dual = color2 && hexToRgbTriplet(color2) ? color2.trim() : '';
+  const deep = dual || darkenHex(c1) || c1;
+  return {
+    '--c-brand-rgb': t1,
+    '--c-brand': c1,
+    '--c-brand-deep': deep,
+    '--c-brand-soft': `rgb(${t1} / 0.1)`,
+    '--c-brand-2-rgb': dual ? (hexToRgbTriplet(dual) as string) : t1,
+  };
+}
