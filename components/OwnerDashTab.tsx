@@ -628,7 +628,7 @@ export default function OwnerDashTab({
                     </svg>
                     {hoveredBar !== null && chartData.bars[hoveredBar] && (
                       <div
-                        className="pointer-events-none absolute -top-1 z-20 -translate-x-1/2 rounded-[12px] border border-line bg-[var(--c-surface-solid)] px-2.5 py-1 shadow-lg"
+                        className="pointer-events-none absolute -top-1 z-20 -translate-x-1/2 rounded-[12px] border border-line/12 bg-[var(--c-surface-solid)] px-2.5 py-1 shadow-lg"
                         style={{ left: `${Math.min(88, Math.max(12, ((hoveredBar + 0.8) / chartData.bars.length) * 100))}%` }}
                       >
                         <p className="text-[10px] font-extrabold uppercase tracking-wider text-muted">
@@ -794,7 +794,7 @@ export default function OwnerDashTab({
         </button>
         {showQrDrawer && (
           <div className="mt-4 space-y-4">
-            <div className="rounded-[24px] border border-line bg-gradient-to-br from-brand/5 via-transparent to-teal/5 p-1">
+            <div className="rounded-[24px] border border-line/12 bg-gradient-to-br from-brand/5 via-transparent to-teal/5 p-1">
               <QrSection slug={slug} tables={tables} restaurantName={restaurantName} />
             </div>
           </div>

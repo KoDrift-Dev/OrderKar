@@ -43,7 +43,7 @@ export default function OwnerCustomersTab({ reviews }: { reviews: Review[] }) {
   return (
     <div className="space-y-8">
       {/* ── Section Header ── */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line/12 pb-4">
         <div>
           <h2 className="font-display text-xl font-extrabold tracking-tight text-ink">
             Customer Experience & Reviews
