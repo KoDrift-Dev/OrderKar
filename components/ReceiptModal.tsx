@@ -116,10 +116,24 @@ function buildReceiptInner(
 }
 
 function buildReceiptDoc(inner: string, orderNumber: string | number): string {
+  // The @page size is set from JS after measuring the receipt, so the printed
+  // page is exactly the receipt slip (80mm thermal) — no big blank paper.
   return (
     `<!doctype html><html><head><meta charset="utf-8"><title>Receipt #${esc(String(orderNumber))}</title>` +
-    `<style>@media print{body{margin:0}}</style></head>` +
-    `<body style="margin:0;padding:12px;background:#eee"><div style="max-width:340px;margin:0 auto">${inner}</div></body></html>`
+    `<style>*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff}</style></head>` +
+    `<body><div id="r">${inner}</div>` +
+    `<script>
+      function fitPage() {
+        var el = document.getElementById('r');
+        if (!el) return;
+        var hmm = Math.ceil((el.offsetHeight * 25.4) / 96) + 2;
+        var st = document.createElement('style');
+        st.textContent = '@page{size:80mm ' + hmm + 'mm;margin:0;}';
+        document.head.appendChild(st);
+      }
+      if (document.readyState === 'complete') fitPage();
+      else window.addEventListener('load', fitPage);
+    <\/script></body></html>`
   );
 }
 
