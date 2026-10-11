@@ -22,6 +22,34 @@ interface InvItem {
   current_stock: number;
   par_level: number;
   cost_per_unit: number;
+  supplier_id: string | null;
+  expiry_date: string | null;
+}
+
+interface SupplierOpt {
+  id: string;
+  name: string;
+  is_active: boolean;
+}
+
+function expiryBadge(dateStr: string | null): { text: string; cls: string } | null {
+  if (!dateStr) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const exp = new Date(dateStr + 'T00:00:00');
+  if (Number.isNaN(exp.getTime())) return null;
+  const days = Math.round((exp.getTime() - today.getTime()) / 86400000);
+  if (days < 0)
+    return { text: 'Expired', cls: 'bg-rose-500/10 text-rose-700 dark:text-rose-300' };
+  if (days <= 7)
+    return {
+      text: days === 0 ? 'Expires today' : `Expires in ${days}d`,
+      cls: 'bg-amber-500/10 text-amber-700 dark:text-amber-400',
+    };
+  return {
+    text: `Exp ${exp.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`,
+    cls: 'bg-slate-500/10 text-slate-600 dark:text-slate-300',
+  };
 }
 
 type StockStatus = 'in' | 'low' | 'critical' | 'out';
@@ -42,7 +70,7 @@ const STATUS_META: Record<StockStatus, { label: string; cls: string; dot: string
   out: { label: 'Out of Stock', cls: 'bg-slate-500/10 text-slate-600 dark:text-slate-300', dot: 'bg-slate-400' },
 };
 
-const EMPTY_FORM = { name: '', category: '', unit: 'kg', current_stock: '', par_level: '', cost_per_unit: '' };
+const EMPTY_FORM = { name: '', category: '', unit: 'kg', current_stock: '', par_level: '', cost_per_unit: '', supplier_id: '', expiry_date: '' };
 
 function Donut({ parts }: { parts: { label: string; count: number; color: string }[] }) {
   const total = parts.reduce((s, p) => s + p.count, 0) || 1;
@@ -115,18 +143,28 @@ export default function OwnerInventoryTab({ restaurantId }: { restaurantId: stri
   const [wasteNote, setWasteNote] = useState('');
   const [wasteError, setWasteError] = useState('');
   const [confirmDel, setConfirmDel] = useState<InvItem | null>(null);
+  const [suppliers, setSuppliers] = useState<SupplierOpt[]>([]);
   const guard = useGuard();
   const del = useUndoDelete<InvItem>(async (it) => {
     await createClient().from('inventory_items').delete().eq('id', it.id);
   });
 
   const load = async () => {
-    const { data } = await createClient()
-      .from('inventory_items')
-      .select('*')
-      .eq('restaurant_id', restaurantId)
-      .order('name');
+    const supabase = createClient();
+    const [{ data }, { data: sup }] = await Promise.all([
+      supabase
+        .from('inventory_items')
+        .select('*')
+        .eq('restaurant_id', restaurantId)
+        .order('name'),
+      supabase
+        .from('suppliers')
+        .select('id, name, is_active')
+        .eq('restaurant_id', restaurantId)
+        .order('name'),
+    ]);
     if (data) setRows(data as InvItem[]);
+    if (sup) setSuppliers(sup as SupplierOpt[]);
     setLoading(false);
   };
 
@@ -191,6 +229,8 @@ export default function OwnerInventoryTab({ restaurantId }: { restaurantId: stri
       current_stock: String(it.current_stock),
       par_level: String(it.par_level),
       cost_per_unit: String(it.cost_per_unit),
+      supplier_id: it.supplier_id ?? '',
+      expiry_date: it.expiry_date ?? '',
     });
     setFormError('');
     setMenuOpenId(null);
@@ -291,6 +331,8 @@ export default function OwnerInventoryTab({ restaurantId }: { restaurantId: stri
         current_stock: Number(form.current_stock) || 0,
         par_level: Number(form.par_level) || 0,
         cost_per_unit: Number(form.cost_per_unit) || 0,
+        supplier_id: form.supplier_id || null,
+        expiry_date: form.expiry_date || null,
       };
       setSaving(true);
       const supabase = createClient();
@@ -461,6 +503,14 @@ export default function OwnerInventoryTab({ restaurantId }: { restaurantId: stri
                           <p className="text-[11px] font-medium text-muted">
                             {fmtPKR(Number(r.cost_per_unit))} / {r.unit}
                           </p>
+                          {(() => {
+                            const eb = expiryBadge(r.expiry_date);
+                            return eb ? (
+                              <span className={`mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-extrabold ${eb.cls}`}>
+                                ⏳ {eb.text}
+                              </span>
+                            ) : null;
+                          })()}
                         </div>
                         <p className="hidden text-[12.5px] font-medium text-muted md:col-span-2 md:block">
                           {r.category || '—'}
@@ -613,6 +663,33 @@ export default function OwnerInventoryTab({ restaurantId }: { restaurantId: stri
                 <div>
                   <Label>Cost / unit (Rs)</Label>
                   <Input type="number" value={form.cost_per_unit} onChange={(e) => setForm({ ...form, cost_per_unit: e.target.value })} placeholder="0" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Supplier</Label>
+                  <select
+                    value={form.supplier_id}
+                    onChange={(e) => setForm({ ...form, supplier_id: e.target.value })}
+                    aria-label="Supplier"
+                    className="input-neu w-full px-4 py-2.5 text-[15px] text-ink"
+                  >
+                    <option value="">No supplier</option>
+                    {suppliers.map((sp) => (
+                      <option key={sp.id} value={sp.id}>
+                        {sp.name}{sp.is_active ? '' : ' (inactive)'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <Label>Expiry date</Label>
+                  <Input
+                    type="date"
+                    value={form.expiry_date}
+                    onChange={(e) => setForm({ ...form, expiry_date: e.target.value })}
+                    aria-label="Expiry date"
+                  />
                 </div>
               </div>
               {formError && <p className="text-[12.5px] font-bold text-rose-600">{formError}</p>}

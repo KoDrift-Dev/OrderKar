@@ -6,6 +6,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { deductInventoryForOrder } from '@/lib/inventory';
 import { logActivity, ACT } from '@/lib/activity';
 import { tableQr } from '@/lib/qr';
 import { useT } from '@/lib/i18n';
@@ -370,6 +371,7 @@ export default function TableManager({
         entityId: detailOrderFull.id,
         details: { payment_method: method },
       });
+      deductInventoryForOrder(createClient(), detailOrderFull.id, restaurantId);
     }
   };
   const detailOrderFull = detailOrderId ? orders.find((o) => o.id === detailOrderId) ?? null : null;
