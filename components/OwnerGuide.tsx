@@ -62,11 +62,26 @@ const SECTIONS: { id: string; title: string; rows: { metric: string; w: TKey; h:
   },
 ];
 
-export default function OwnerGuide() {
+export interface OwnerGuideProps {
+  variant?: 'button' | 'sidebar' | 'sidebar-compact';
+  className?: string;
+  onAfterOpen?: () => void;
+}
+
+export default function OwnerGuide({
+  variant = 'button',
+  className = '',
+  onAfterOpen,
+}: OwnerGuideProps = {}) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [activeSection, setActiveSection] = useState('all');
   const t = useT();
+
+  const handleOpen = () => {
+    setOpen(true);
+    onAfterOpen?.();
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -93,13 +108,39 @@ export default function OwnerGuide() {
 
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-2 rounded-[14px] border-2 border-brand/30 bg-brand/10 hover:bg-brand hover:text-white px-4 py-2 text-[13px] font-black text-brand shadow-sm transition-all duration-200 active:scale-95 group"
-      >
-        <span className="text-[14px] transition-transform group-hover:scale-110">💡</span>
-        <span className="tracking-tight">Analytics Guide</span>
-      </button>
+      {variant === 'sidebar' ? (
+        <button
+          type="button"
+          onClick={handleOpen}
+          className={`group flex w-full items-center gap-2.5 rounded-xl border border-brand/25 bg-gradient-to-r from-brand/15 via-brand/10 to-brand/5 px-3 py-2.5 text-[13px] font-extrabold text-brand transition-all duration-200 hover:bg-brand hover:text-white shadow-xs ${className}`}
+        >
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-brand/15 text-brand text-[13px] group-hover:bg-white/20 group-hover:text-white transition-colors">
+            💡
+          </span>
+          <span className="truncate">Analytics Guide</span>
+          <span className="ml-auto rounded-full bg-brand/15 group-hover:bg-white/20 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-brand group-hover:text-white transition-colors">
+            Help
+          </span>
+        </button>
+      ) : variant === 'sidebar-compact' ? (
+        <button
+          type="button"
+          onClick={handleOpen}
+          title="Analytics Guide"
+          className={`flex h-8 w-8 items-center justify-center rounded-lg border border-brand/25 bg-brand/10 text-brand hover:bg-brand hover:text-white transition-colors shadow-xs ${className}`}
+        >
+          <span className="text-[14px]">💡</span>
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={handleOpen}
+          className={`inline-flex items-center gap-2 rounded-[14px] border-2 border-brand/30 bg-brand/10 hover:bg-brand hover:text-white px-4 py-2 text-[13px] font-black text-brand shadow-sm transition-all duration-200 active:scale-95 group ${className}`}
+        >
+          <span className="text-[14px] transition-transform group-hover:scale-110">💡</span>
+          <span className="tracking-tight">Analytics Guide</span>
+        </button>
+      )}
 
       {open &&
         mounted &&

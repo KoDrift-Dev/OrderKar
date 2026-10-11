@@ -6,6 +6,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import type { DiningTable, MenuCategory, MenuItem, Order, OrderItem, Profile, Review, Role } from '@/lib/types';
 import OwnerDashTab from './OwnerDashTab';
@@ -555,7 +556,7 @@ function OwnerAppInner({
       items: [
         {
           key: 'dashboard',
-          label: 'Executive Overview',
+          label: 'Dashboard',
           icon: (
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
               <rect width="7" height="9" x="3" y="3" rx="1" />
@@ -749,9 +750,9 @@ function OwnerAppInner({
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-[var(--c-surface)] backdrop-blur-2xl transition-all duration-300 lg:sticky lg:top-0 lg:h-screen ${
+        className={`fixed inset-y-0 right-0 lg:right-auto lg:left-0 z-50 flex flex-col bg-[var(--c-surface)] backdrop-blur-2xl transition-all duration-300 lg:sticky lg:top-0 lg:h-screen ${
           collapsed ? 'lg:w-[76px]' : 'lg:w-[272px]'
-        } ${mobileMenuOpen ? 'w-[272px] translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'}`}
+        } ${mobileMenuOpen ? 'w-[272px] translate-x-0 shadow-2xl' : 'translate-x-full lg:translate-x-0'}`}
       >
         {/* Sidebar Header: Logo & Restaurant Brand */}
         <div className="flex h-16 shrink-0 items-center justify-between border-b border-line px-4">
@@ -874,6 +875,12 @@ function OwnerAppInner({
         <div className="border-t border-line bg-[var(--c-surface-solid)]/40 p-3">
           {(!collapsed || mobileMenuOpen) ? (
             <div className="space-y-2.5">
+              {/* Analytics Guide inside Sidebar */}
+              <OwnerGuide
+                variant="sidebar"
+                onAfterOpen={() => setMobileMenuOpen(false)}
+              />
+
               <div className="flex items-center justify-between rounded-[14px] border border-line bg-[var(--c-surface-solid)] p-2.5 shadow-xs">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand to-teal text-[13px] font-black text-white shadow-sm">
@@ -903,6 +910,7 @@ function OwnerAppInner({
             </div>
           ) : (
             <div className="flex flex-col items-center gap-2">
+              <OwnerGuide variant="sidebar-compact" />
               <ThemeToggle />
               <button
                 onClick={logout}
@@ -923,50 +931,61 @@ function OwnerAppInner({
       {/* ── 2. MAIN FULL-SCREEN APPLICATION CANVAS ── */}
       <div className="flex-1 min-w-0 flex flex-col">
         {/* Sticky Top Utility Command Bar */}
-        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b border-line bg-[var(--c-surface)] px-4 sm:px-6 lg:px-6 backdrop-blur-xl">
-          <div className="flex items-center gap-3 min-w-0">
-            {/* Mobile Hamburger Button */}
+        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b border-line bg-[var(--c-surface)] px-3.5 sm:px-6 lg:px-6 backdrop-blur-xl gap-2">
+          {/* Left: Brand Logo & OrderKar (Clicking redirects to Dashboard) */}
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+            <button
+              type="button"
+              onClick={() => {
+                setTab('dashboard');
+                setMobileMenuOpen(false);
+              }}
+              className="flex items-center gap-2 sm:gap-2.5 shrink-0 rounded-xl hover:opacity-90 active:scale-95 transition-all cursor-pointer text-left group"
+              title="OrderKar · Go to Dashboard"
+            >
+              <Logo size={34} />
+              <span className="font-display text-[18px] sm:text-[22px] font-black tracking-tight text-ink group-hover:text-brand transition-colors">
+                OrderKar
+              </span>
+            </button>
+          </div>
+
+          {/* Right Actions: Compact Range Filter & Sidebar Toggle on the Right */}
+          <div className="flex items-center gap-2 sm:gap-3.5 shrink-0">
+            {/* Mobile Range Select Dropdown - compact / chota size */}
+            <div className="sm:hidden">
+              <div className="relative">
+                <select
+                  value={mounted ? range : 'today'}
+                  onChange={(e) => changeRange(e.target.value as Range)}
+                  className="appearance-none rounded-lg border border-line bg-[var(--c-surface-solid)] pl-2 pr-5 py-1 text-[11px] font-black text-ink outline-none shadow-2xs hover:border-brand/40 focus:border-brand transition-colors cursor-pointer"
+                >
+                  <option value="today">⚡ Today</option>
+                  <option value="7d">📅 7D</option>
+                  <option value="30d">📊 30D</option>
+                  <option value="12m">🗓️ 12M</option>
+                  <option value="custom">⚙️ Custom</option>
+                </select>
+                <div className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-muted">
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            {/* Mobile Hamburger Button - on the Right Side */}
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-[var(--c-surface-solid)] text-ink lg:hidden shadow-sm"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-line bg-[var(--c-surface-solid)] text-ink lg:hidden shadow-2xs active:scale-95 transition-all hover:bg-soft"
               aria-label="Open Navigation Menu"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                 <line x1="3" y1="12" x2="21" y2="12" />
                 <line x1="3" y1="6" x2="21" y2="6" />
                 <line x1="3" y1="18" x2="21" y2="18" />
               </svg>
             </button>
-
-            {/* Breadcrumb & Section Name */}
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="hidden sm:inline-block text-[11px] font-extrabold uppercase tracking-wider text-muted">
-                  Owner Portal &middot;
-                </span>
-                <h1 className="font-display text-[19px] sm:text-[21px] font-black tracking-tight text-ink truncate">
-                  {currentTabTitle}
-                </h1>
-              </div>
-            </div>
-          </div>
-
-          {/* Top Actions: Range Filter & Analytics Guide */}
-          <div className="flex items-center gap-2.5 sm:gap-3.5">
-            {/* Mobile Range Select Dropdown */}
-            <div className="sm:hidden">
-              <select
-                value={mounted ? range : 'today'}
-                onChange={(e) => changeRange(e.target.value as Range)}
-                className="rounded-xl border border-line bg-[var(--c-surface-solid)] px-2.5 py-1.5 text-[12px] font-black text-ink outline-none"
-              >
-                <option value="today">⚡ Today</option>
-                <option value="7d">📅 7D</option>
-                <option value="30d">📊 30D</option>
-                <option value="12m">🗓️ 12M</option>
-                <option value="custom">⚙️ Custom</option>
-              </select>
-            </div>
 
             {/* Desktop Range Segmented Buttons */}
             <div className="hidden sm:flex items-center gap-1.5 rounded-[16px] border border-line bg-[var(--c-surface-solid)] p-1.5 shadow-sm">
@@ -996,7 +1015,10 @@ function OwnerAppInner({
               })}
             </div>
 
-            <OwnerGuide />
+            {/* Desktop Analytics Guide (hidden on mobile, guide is in sidebar on mobile!) */}
+            <div className="hidden lg:block">
+              <OwnerGuide />
+            </div>
           </div>
         </header>
 

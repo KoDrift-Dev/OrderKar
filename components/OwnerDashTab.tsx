@@ -73,38 +73,41 @@ function ExecutiveKpi({
   return (
     <Card
       onClick={onClick}
-      className={`stat-card-luxury p-5 transition-all duration-300 hover:-translate-y-1 ${borderClass} ${
+      className={`stat-card-luxury flex flex-col justify-between aspect-square sm:aspect-auto p-3 sm:p-5 transition-all duration-300 hover:-translate-y-1 ${borderClass} ${
         onClick ? 'cursor-pointer hover:shadow-lg active:scale-[0.98] group' : ''
       } ${glowClass}`}
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-start justify-between gap-1.5 sm:gap-3">
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5">
-            <p className="text-[12px] font-extrabold uppercase tracking-wider text-muted truncate">
+          <div className="flex items-center gap-1">
+            <p className="text-[10px] min-[390px]:text-[10.5px] sm:text-[12px] font-extrabold uppercase tracking-wider text-muted truncate">
               {label}
             </p>
             {onClick && (
-              <span className="opacity-0 group-hover:opacity-100 transition-opacity text-muted group-hover:text-ink text-[12px] font-black">
+              <span className="hidden sm:inline-block opacity-0 group-hover:opacity-100 transition-opacity text-muted group-hover:text-ink text-[12px] font-black">
                 ↗
               </span>
             )}
           </div>
-          <p className="mt-2 font-mono text-[24px] sm:text-[28px] font-black tracking-tight text-ink leading-tight truncate">
-            {value}
-          </p>
         </div>
         <div
-          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] ${iconBgClass} shadow-md group-hover:scale-105 transition-transform`}
+          className={`flex h-7 w-7 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-[9px] sm:rounded-[14px] ${iconBgClass} shadow-md group-hover:scale-105 transition-transform [&>svg]:w-3.5 [&>svg]:h-3.5 sm:[&>svg]:w-5 sm:[&>svg]:h-5`}
         >
           {icon}
         </div>
       </div>
 
-      <div className="mt-3.5 flex flex-wrap items-center justify-between gap-2 border-t border-line/70 pt-2.5 text-[12px]">
+      <div className="my-auto py-1 sm:py-2">
+        <p className="font-mono text-[17px] min-[390px]:text-[20px] sm:text-[28px] font-black tracking-tight text-ink leading-tight truncate">
+          {value}
+        </p>
+      </div>
+
+      <div className="mt-auto border-t border-line/70 pt-2 sm:pt-2.5 flex items-center justify-between gap-1 text-[10px] sm:text-[12px]">
         {comparison ? (
-          <div className="flex items-center gap-1.5 min-w-0">
+          <div className="flex items-center gap-1 min-w-0">
             <span
-              className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-black tracking-tight ${
+              className={`inline-flex items-center gap-0.5 rounded-full px-1.5 sm:px-2 py-0.5 text-[8.5px] min-[390px]:text-[9.5px] sm:text-[11px] font-black tracking-tight ${
                 comparison.isNeutral
                   ? 'bg-soft text-muted'
                   : comparison.isPositive
@@ -114,17 +117,17 @@ function ExecutiveKpi({
             >
               {comparison.text}
             </span>
-            {sub && <span className="font-medium text-muted truncate text-[11px]">{sub}</span>}
+            {sub && <span className="hidden sm:inline font-medium text-muted truncate text-[11px]">{sub}</span>}
           </div>
         ) : sub ? (
-          <span className="font-medium text-muted truncate">{sub}</span>
+          <span className="font-medium text-muted truncate text-[8.5px] min-[390px]:text-[9.5px] sm:text-[11px]">{sub}</span>
         ) : (
           <div />
         )}
 
         {badge && (
           <span
-            className={`ml-auto shrink-0 rounded-full border px-2 py-0.5 text-[10.5px] font-extrabold ${
+            className={`ml-auto shrink-0 rounded-full border px-1.5 sm:px-2 py-0.5 text-[8px] min-[390px]:text-[9px] sm:text-[10.5px] font-extrabold truncate ${
               toneMap[badge.tone]
             }`}
           >
@@ -178,7 +181,7 @@ export default function OwnerDashTab({
           </span>
         </div>
 
-        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-3.5 lg:grid-cols-4">
           <ExecutiveKpi
             label="Gross Revenue"
             value={fmtPKR(agg.revenue)}
@@ -267,7 +270,7 @@ export default function OwnerDashTab({
           </span>
         </div>
 
-        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-3.5 lg:grid-cols-4">
           <ExecutiveKpi
             label="Net Collected"
             value={fmtPKR(agg.revenue)}

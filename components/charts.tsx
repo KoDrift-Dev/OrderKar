@@ -81,12 +81,12 @@ export function RevenueTrend({ points, labels }: { points: number[]; labels: str
   const gid = useId();
   const [hover, setHover] = useState<number | null>(null);
 
-  const W = 620;
-  const H = 230;
-  const PL = 58;
+  const W = 480;
+  const H = 210;
+  const PL = 76;
   const PR = 16;
-  const PT = 20;
-  const PB = 34;
+  const PT = 18;
+  const PB = 36;
   const iw = W - PL - PR;
   const ih = H - PT - PB;
 
@@ -114,8 +114,8 @@ export function RevenueTrend({ points, labels }: { points: number[]; labels: str
   // y ticks: 0, 33%, 66%, 100%
   const yTicks = [0, 0.33, 0.66, 1].map((f) => ({ v: max * f, y: PT + ih - f * ih }));
 
-  // x ticks: max 6 labels
-  const xCount = Math.min(6, points.length);
+  // x ticks: max 6 or 7 labels
+  const xCount = points.length <= 7 ? points.length : 6;
   const xTicks = Array.from({ length: xCount }, (_, k) => {
     const i = xCount === 1 ? 0 : Math.round((k * (points.length - 1)) / (xCount - 1));
     return { i, x: PL + i * step, label: labels[i] ?? '' };
@@ -160,7 +160,7 @@ export function RevenueTrend({ points, labels }: { points: number[]; labels: str
       <div className="relative">
         <svg
           viewBox={`0 0 ${W} ${H}`}
-          className="h-52 w-full cursor-crosshair overflow-visible"
+          className="h-48 sm:h-56 w-full cursor-crosshair overflow-visible"
           onMouseMove={onMove}
           onMouseLeave={() => setHover(null)}
         >
@@ -184,17 +184,18 @@ export function RevenueTrend({ points, labels }: { points: number[]; labels: str
                 y1={t.y}
                 y2={t.y}
                 stroke="var(--c-line)"
-                strokeWidth="1"
+                strokeWidth="1.2"
                 strokeDasharray={i === 0 ? '' : '3 4'}
-                opacity={i === 0 ? 0.9 : 0.6}
+                opacity={i === 0 ? 0.9 : 0.65}
               />
               <text
                 x={PL - 10}
-                y={t.y + 4}
+                y={t.y + 5}
                 textAnchor="end"
-                fontSize="12.5"
+                fontSize="17"
                 fontWeight="800"
-                fill="var(--c-muted)"
+                fill="var(--c-ink)"
+                fillOpacity="0.85"
                 fontFamily="var(--font-mono)"
               >
                 {compactPKR(t.v)}
@@ -209,9 +210,10 @@ export function RevenueTrend({ points, labels }: { points: number[]; labels: str
               x={t.x}
               y={H - 8}
               textAnchor="middle"
-              fontSize="12"
+              fontSize="16"
               fontWeight="800"
-              fill="var(--c-muted)"
+              fill="var(--c-ink)"
+              fillOpacity="0.85"
             >
               {t.label}
             </text>
@@ -226,7 +228,7 @@ export function RevenueTrend({ points, labels }: { points: number[]; labels: str
               d={smoothLine}
               fill="none"
               stroke="var(--c-brand)"
-              strokeWidth="3"
+              strokeWidth="3.5"
               strokeLinecap="round"
               strokeLinejoin="round"
               filter={`url(#glow-${gid})`}

@@ -90,15 +90,14 @@ export default function OwnerAuditTab({
       </div>
 
       {/* ── 2. Top Summary KPI Cards ── */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
         {/* Total Lost Sales */}
-        <Card className="stat-card-luxury border-2 border-orange-500/40 p-5 shadow-xs hover:border-orange-500 transition-all">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-[12px] font-black uppercase tracking-wider text-muted">Total Lost Sales</p>
-              <p className="mt-2 font-mono text-[26px] font-black text-ink">{fmtPKR(totalLostAmount)}</p>
+        <Card className="stat-card-luxury flex flex-col justify-between aspect-square sm:aspect-auto border-2 border-orange-500/40 p-3 sm:p-5 shadow-xs hover:border-orange-500 transition-all">
+          <div className="flex items-start justify-between gap-1.5 sm:gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] min-[390px]:text-[10.5px] sm:text-[12px] font-black uppercase tracking-wider text-muted truncate">Total Lost Sales</p>
             </div>
-            <div className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-gradient-to-br from-[#f97316] to-[#ea580c] text-white shadow-md shadow-orange-500/25">
+            <div className="flex h-7 w-7 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-[9px] sm:rounded-[14px] bg-gradient-to-br from-[#f97316] to-[#ea580c] text-white shadow-md shadow-orange-500/25 [&>svg]:w-3.5 [&>svg]:h-3.5 sm:[&>svg]:w-5 sm:[&>svg]:h-5">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
                 <line x1="12" y1="9" x2="12" y2="13" />
@@ -106,43 +105,47 @@ export default function OwnerAuditTab({
               </svg>
             </div>
           </div>
-          <div className="mt-3.5 border-t border-line/70 pt-2.5 text-[12px] font-bold text-muted">
+          <div className="my-auto py-1 sm:py-2">
+            <p className="font-mono text-[17px] min-[390px]:text-[20px] sm:text-[26px] font-black text-ink truncate leading-tight">{fmtPKR(totalLostAmount)}</p>
+          </div>
+          <div className="mt-auto border-t border-line/70 pt-2 sm:pt-2.5 text-[8.5px] min-[390px]:text-[9.5px] sm:text-[12px] font-bold text-muted truncate">
             Unrecovered ticket revenue
           </div>
         </Card>
 
         {/* Void Tickets */}
-        <Card className="stat-card-luxury border-2 border-rose-500/40 p-5 shadow-xs hover:border-rose-500 transition-all">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-[12px] font-black uppercase tracking-wider text-muted">Cancelled Tickets</p>
-              <p className="mt-2 font-mono text-[26px] font-black text-ink">{fmtNum(cancelledOrders.length)}</p>
+        <Card className="stat-card-luxury flex flex-col justify-between aspect-square sm:aspect-auto border-2 border-rose-500/40 p-3 sm:p-5 shadow-xs hover:border-rose-500 transition-all">
+          <div className="flex items-start justify-between gap-1.5 sm:gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] min-[390px]:text-[10.5px] sm:text-[12px] font-black uppercase tracking-wider text-muted truncate">Cancelled Tickets</p>
             </div>
-            <div className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-gradient-to-br from-[#ef4444] to-[#dc2626] text-white shadow-md shadow-rose-500/25">
+            <div className="flex h-7 w-7 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-[9px] sm:rounded-[14px] bg-gradient-to-br from-[#ef4444] to-[#dc2626] text-white shadow-md shadow-rose-500/25 [&>svg]:w-3.5 [&>svg]:h-3.5 sm:[&>svg]:w-5 sm:[&>svg]:h-5">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
             </div>
           </div>
-          <div className="mt-3.5 border-t border-line/70 pt-2.5 text-[12px] font-bold text-muted">
-            {cancelledOrders.length === 0 ? 'Optimal: Zero voids' : 'Requires manager review'}
+          <div className="my-auto py-1 sm:py-2">
+            <p className="font-mono text-[17px] min-[390px]:text-[20px] sm:text-[26px] font-black text-ink truncate leading-tight">{fmtNum(cancelledOrders.length)}</p>
+          </div>
+          <div className="mt-auto border-t border-line/70 pt-2 sm:pt-2.5 text-[8.5px] min-[390px]:text-[9.5px] sm:text-[12px] font-bold text-muted truncate">
+            {cancelledOrders.length === 0 ? 'Optimal: Zero voids' : 'Manager review needed'}
           </div>
         </Card>
 
         {/* Void Rate */}
         <Card
-          className={`stat-card-luxury border-2 p-5 shadow-xs transition-all ${
+          className={`stat-card-luxury flex flex-col justify-between aspect-square sm:aspect-auto border-2 p-3 sm:p-5 shadow-xs transition-all ${
             isSafe ? 'border-emerald-500/40 hover:border-emerald-500' : 'border-rose-500/40 hover:border-rose-500'
           }`}
         >
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-[12px] font-black uppercase tracking-wider text-muted">Void Rate</p>
-              <p className="mt-2 font-mono text-[26px] font-black text-ink">{voidRate.toFixed(1)}%</p>
+          <div className="flex items-start justify-between gap-1.5 sm:gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] min-[390px]:text-[10.5px] sm:text-[12px] font-black uppercase tracking-wider text-muted truncate">Void Rate</p>
             </div>
             <div
-              className={`flex h-11 w-11 items-center justify-center rounded-[14px] text-white shadow-md ${
+              className={`flex h-7 w-7 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-[9px] sm:rounded-[14px] text-white shadow-md [&>svg]:w-3.5 [&>svg]:h-3.5 sm:[&>svg]:w-5 sm:[&>svg]:h-5 ${
                 isSafe
                   ? 'bg-gradient-to-br from-[#10b981] to-[#059669] shadow-emerald-500/25'
                   : 'bg-gradient-to-br from-[#ef4444] to-[#b91c1c] shadow-rose-500/25'
@@ -153,25 +156,30 @@ export default function OwnerAuditTab({
               </svg>
             </div>
           </div>
-          <div className="mt-3.5 border-t border-line/70 pt-2.5 text-[12px] font-bold text-muted">
+          <div className="my-auto py-1 sm:py-2">
+            <p className="font-mono text-[17px] min-[390px]:text-[20px] sm:text-[26px] font-black text-ink truncate leading-tight">{voidRate.toFixed(1)}%</p>
+          </div>
+          <div className="mt-auto border-t border-line/70 pt-2 sm:pt-2.5 text-[8.5px] min-[390px]:text-[9.5px] sm:text-[12px] font-bold text-muted truncate">
             Target benchmark &lt; 2.0%
           </div>
         </Card>
 
         {/* Retained Sales */}
-        <Card className="stat-card-luxury border-2 border-emerald-500/40 p-5 shadow-xs hover:border-emerald-500 transition-all">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-[12px] font-black uppercase tracking-wider text-muted">Retained Orders</p>
-              <p className="mt-2 font-mono text-[26px] font-black text-ink">{fmtNum(completedOrders.length)}</p>
+        <Card className="stat-card-luxury flex flex-col justify-between aspect-square sm:aspect-auto border-2 border-emerald-500/40 p-3 sm:p-5 shadow-xs hover:border-emerald-500 transition-all">
+          <div className="flex items-start justify-between gap-1.5 sm:gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] min-[390px]:text-[10.5px] sm:text-[12px] font-black uppercase tracking-wider text-muted truncate">Retained Orders</p>
             </div>
-            <div className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-gradient-to-br from-[#10b981] to-[#059669] text-white shadow-md shadow-emerald-500/25">
+            <div className="flex h-7 w-7 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-[9px] sm:rounded-[14px] bg-gradient-to-br from-[#10b981] to-[#059669] text-white shadow-md shadow-emerald-500/25 [&>svg]:w-3.5 [&>svg]:h-3.5 sm:[&>svg]:w-5 sm:[&>svg]:h-5">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="20 6 9 17 4 12" />
               </svg>
             </div>
           </div>
-          <div className="mt-3.5 border-t border-line/70 pt-2.5 text-[12px] font-bold text-muted">
+          <div className="my-auto py-1 sm:py-2">
+            <p className="font-mono text-[17px] min-[390px]:text-[20px] sm:text-[26px] font-black text-ink truncate leading-tight">{fmtNum(completedOrders.length)}</p>
+          </div>
+          <div className="mt-auto border-t border-line/70 pt-2 sm:pt-2.5 text-[8.5px] min-[390px]:text-[9.5px] sm:text-[12px] font-bold text-muted truncate">
             Successfully prepared & billed
           </div>
         </Card>

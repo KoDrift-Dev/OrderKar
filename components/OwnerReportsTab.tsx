@@ -95,6 +95,7 @@ export default function OwnerReportsTab({
   const [orderSearch, setOrderSearch] = useState('');
   const [orderStatusFilter, setOrderStatusFilter] = useState<'all' | 'completed' | 'active' | 'cancelled'>('all');
   const [orderPaymentFilter, setOrderPaymentFilter] = useState<string>('all');
+  const [orderViewMode, setOrderViewMode] = useState<'list' | 'grid'>('list');
   const [expandedOrderIds, setExpandedOrderIds] = useState<Set<string>>(new Set());
 
   // Column-level sorting
@@ -575,8 +576,8 @@ export default function OwnerReportsTab({
         </div>
       </div>
 
-      {/* ── 2. Segmented Report Type Tabs ── */}
-      <div className="flex items-center gap-2 border-b border-line/60 pb-1 overflow-x-auto no-scrollbar">
+      {/* ── 2. Segmented Report Type Tabs (Compact pills, fits on single screen) ── */}
+      <div className="flex flex-wrap sm:flex-nowrap items-center gap-1.5 sm:gap-2 border-b border-line/60 pb-1.5">
         {[
           { key: 'orders' as const, label: 'Recent Orders', icon: '📋', count: orders.length },
           { key: 'dishes' as const, label: 'Dishes Sold', icon: '🍲', count: totalUnitsSold },
@@ -587,16 +588,16 @@ export default function OwnerReportsTab({
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              className={`inline-flex items-center gap-2.5 rounded-[14px] px-4 py-2 text-[13px] font-black transition-all ${
+              className={`inline-flex items-center gap-1.5 sm:gap-2 rounded-xl px-2.5 sm:px-3.5 py-1.5 text-[11px] sm:text-[12.5px] font-black transition-all whitespace-nowrap ${
                 active
                   ? 'bg-brand text-white shadow-lift ring-1 ring-brand/40'
                   : 'text-muted hover:text-ink hover:bg-soft'
               }`}
             >
-              <span className="text-[13px]">{t.icon}</span>
+              <span className="text-[12px] sm:text-[13px]">{t.icon}</span>
               <span>{t.label}</span>
               <span
-                className={`rounded-full px-2 py-0.5 text-[10.5px] font-bold ${
+                className={`rounded-full px-1.5 py-0.2 text-[9.5px] sm:text-[10px] font-bold ${
                   active ? 'bg-white/20 text-white' : 'bg-soft text-muted'
                 }`}
               >
@@ -666,7 +667,7 @@ export default function OwnerReportsTab({
                 <select
                   value={orderStatusFilter}
                   onChange={(e) => setOrderStatusFilter(e.target.value as any)}
-                  className="rounded-xl border border-line bg-[var(--c-surface-solid)] px-3 py-2 font-bold text-ink outline-none focus:border-brand"
+                  className="rounded-xl border border-line bg-[var(--c-surface-solid)] px-2.5 py-1.5 font-bold text-ink outline-none focus:border-brand text-[11.5px]"
                 >
                   <option value="all">All Statuses</option>
                   <option value="completed">Completed Only</option>
@@ -677,7 +678,7 @@ export default function OwnerReportsTab({
                 <select
                   value={orderPaymentFilter}
                   onChange={(e) => setOrderPaymentFilter(e.target.value)}
-                  className="rounded-xl border border-line bg-[var(--c-surface-solid)] px-3 py-2 font-bold text-ink outline-none focus:border-brand"
+                  className="rounded-xl border border-line bg-[var(--c-surface-solid)] px-2.5 py-1.5 font-bold text-ink outline-none focus:border-brand text-[11.5px]"
                 >
                   <option value="all">All Payments</option>
                   <option value="cash">💵 Cash</option>
@@ -685,6 +686,36 @@ export default function OwnerReportsTab({
                   <option value="jazzcash">📱 JazzCash</option>
                   <option value="easypaisa">📲 EasyPaisa</option>
                 </select>
+
+                {/* View Mode Toggle: Grid vs List */}
+                <div className="flex items-center rounded-xl border border-line bg-[var(--c-surface-solid)] p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setOrderViewMode('list')}
+                    className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all ${
+                      orderViewMode === 'list'
+                        ? 'bg-brand text-white shadow-2xs'
+                        : 'text-muted hover:text-ink'
+                    }`}
+                    title="Compact Table / List View"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                    <span>List</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOrderViewMode('grid')}
+                    className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all ${
+                      orderViewMode === 'grid'
+                        ? 'bg-brand text-white shadow-2xs'
+                        : 'text-muted hover:text-ink'
+                    }`}
+                    title="Grid Cards View"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                    <span>Grid</span>
+                  </button>
+                </div>
               </div>
             </div>
           </Card>
@@ -715,179 +746,262 @@ export default function OwnerReportsTab({
                     </div>
                   </div>
 
-                  {/* Orders Table with Column Sort & Zebra Striping */}
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-[13px]">
-                      <thead className="border-b border-line bg-soft/40 text-[11px] font-black uppercase tracking-wider text-muted">
-                        <tr>
-                          <th
-                            onClick={() => toggleOrderSort('number')}
-                            className="px-5 py-3 cursor-pointer select-none hover:text-brand"
-                          >
-                            Order {renderSortIndicator('number', orderSortField, orderSortAsc)}
-                          </th>
-                          <th
-                            onClick={() => toggleOrderSort('time')}
-                            className="px-4 py-3 cursor-pointer select-none hover:text-brand"
-                          >
-                            Time {renderSortIndicator('time', orderSortField, orderSortAsc)}
-                          </th>
-                          <th
-                            onClick={() => toggleOrderSort('table')}
-                            className="px-4 py-3 cursor-pointer select-none hover:text-brand"
-                          >
-                            Table / Channel {renderSortIndicator('table', orderSortField, orderSortAsc)}
-                          </th>
-                          <th
-                            onClick={() => toggleOrderSort('staff')}
-                            className="px-4 py-3 cursor-pointer select-none hover:text-brand"
-                          >
-                            Staff {renderSortIndicator('staff', orderSortField, orderSortAsc)}
-                          </th>
-                          <th
-                            onClick={() => toggleOrderSort('status')}
-                            className="px-4 py-3 cursor-pointer select-none hover:text-brand"
-                          >
-                            Status {renderSortIndicator('status', orderSortField, orderSortAsc)}
-                          </th>
-                          <th
-                            onClick={() => toggleOrderSort('payment')}
-                            className="px-4 py-3 cursor-pointer select-none hover:text-brand"
-                          >
-                            Payment {renderSortIndicator('payment', orderSortField, orderSortAsc)}
-                          </th>
-                          <th
-                            onClick={() => toggleOrderSort('amount')}
-                            className="px-5 py-3 text-right cursor-pointer select-none hover:text-brand"
-                          >
-                            Total Amount {renderSortIndicator('amount', orderSortField, orderSortAsc)}
-                          </th>
-                          <th className="px-4 py-3 text-center">Items</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {sheet.orders.map((o, idx) => {
-                          const isExpanded = expandedOrderIds.has(o.id);
-                          const orderItems = itemsByOrder.get(o.id) ?? [];
-                          const tbl = o.table_id
-                            ? `Table ${tableMap.get(o.table_id) ?? '?'}`
-                            : o.order_type === 'takeaway'
-                            ? 'Takeaway'
-                            : 'Delivery';
-                          const waiterName = o.waiter_id ? staffMap.get(o.waiter_id) ?? 'Staff' : 'Self/Counter';
+                  {/* Render based on View Mode (Grid vs List) */}
+                  {orderViewMode === 'grid' ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 p-3 sm:p-4">
+                      {sheet.orders.map((o) => {
+                        const isExpanded = expandedOrderIds.has(o.id);
+                        const orderItems = itemsByOrder.get(o.id) ?? [];
+                        const tbl = o.table_id
+                          ? `Table ${tableMap.get(o.table_id) ?? '?'}`
+                          : o.order_type === 'takeaway'
+                          ? 'Takeaway'
+                          : 'Delivery';
+                        const waiterName = o.waiter_id ? staffMap.get(o.waiter_id) ?? 'Staff' : 'Self/Counter';
 
-                          const statusColor =
-                            o.status === 'completed'
-                              ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
-                              : o.status === 'cancelled'
-                              ? 'bg-rose-500/10 text-rose-600 border-rose-500/20'
-                              : 'bg-amber-500/10 text-amber-600 border-amber-500/20';
+                        const statusColor =
+                          o.status === 'completed'
+                            ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
+                            : o.status === 'cancelled'
+                            ? 'bg-rose-500/10 text-rose-600 border-rose-500/20'
+                            : 'bg-amber-500/10 text-amber-600 border-amber-500/20';
 
-                          // Ultra subtle alternating row tint (not dark grey, just barely distinct)
-                          const rowBg = idx % 2 === 0 ? 'bg-white' : 'bg-slate-500/[0.025] dark:bg-white/[0.02]';
-
-                          return (
-                            <Fragment key={o.id}>
-                              <tr
-                                onClick={() => toggleExpandOrder(o.id)}
-                                className={`cursor-pointer transition-colors border-b border-line/50 hover:bg-brand/5 ${rowBg}`}
-                              >
-                                <td className="px-5 py-3.5 font-mono font-black text-ink">
-                                  #{o.order_number}
-                                </td>
-                                <td className="px-4 py-3.5 font-medium text-muted whitespace-nowrap">
-                                  {new Date(o.created_at).toLocaleTimeString('en-US', {
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                  })}
-                                </td>
-                                <td className="px-4 py-3.5 font-bold text-ink whitespace-nowrap">
-                                  {tbl}
-                                </td>
-                                <td className="px-4 py-3.5 font-medium text-muted">
-                                  {waiterName}
-                                </td>
-                                <td className="px-4 py-3.5">
-                                  <span
-                                    className={`inline-block rounded-full border px-2.5 py-0.5 text-[11px] font-black uppercase ${statusColor}`}
-                                  >
-                                    {o.status}
+                        return (
+                          <div
+                            key={o.id}
+                            className="rounded-2xl border border-line/80 bg-[var(--c-surface-solid)] p-3 shadow-2xs hover:border-brand/40 transition-all flex flex-col justify-between gap-2.5"
+                          >
+                            <div>
+                              {/* Top row: Order # + Time + Status */}
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-mono text-[13px] font-black text-ink">#{o.order_number}</span>
+                                  <span className="text-[10.5px] font-medium text-muted">
+                                    {new Date(o.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                                   </span>
-                                </td>
-                                <td className="px-4 py-3.5 font-medium text-muted capitalize">
-                                  {o.payment_method ?? 'Cash'}
-                                </td>
-                                <td className="px-5 py-3.5 text-right font-mono font-black text-ink whitespace-nowrap">
-                                  {fmtPKR(Number(o.total_amount))}
-                                </td>
-                                <td className="px-4 py-3.5 text-center">
+                                </div>
+                                <span className={`rounded-full border px-2 py-0.2 text-[9.5px] font-black uppercase ${statusColor}`}>
+                                  {o.status}
+                                </span>
+                              </div>
+
+                              {/* Station & Staff */}
+                              <div className="mt-1.5 flex items-center justify-between text-[11px] font-bold text-muted border-b border-line/40 pb-2">
+                                <span>🍽️ {tbl}</span>
+                                <span className="truncate max-w-[120px]">👤 {waiterName}</span>
+                              </div>
+
+                              {/* Items list preview */}
+                              <div className="mt-2 space-y-1">
+                                {orderItems.slice(0, isExpanded ? undefined : 2).map((it, idx) => (
+                                  <div key={idx} className="flex items-center justify-between text-[11px]">
+                                    <span className="truncate text-ink font-bold">
+                                      <span className="font-mono text-brand font-black">{it.quantity}×</span> {it.item_name}
+                                    </span>
+                                    <span className="font-mono text-muted text-[10.5px]">
+                                      {fmtPKR(it.quantity * Number(it.unit_price))}
+                                    </span>
+                                  </div>
+                                ))}
+                                {orderItems.length > 2 && (
                                   <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      toggleExpandOrder(o.id);
-                                    }}
-                                    className={`rounded-lg border px-2.5 py-1 text-[11px] font-extrabold transition-all ${
-                                      isExpanded
-                                        ? 'bg-brand text-white border-brand'
-                                        : 'bg-[var(--c-surface-solid)] border-line text-brand hover:bg-brand hover:text-white'
-                                    }`}
+                                    type="button"
+                                    onClick={() => toggleExpandOrder(o.id)}
+                                    className="text-[10px] font-extrabold text-brand hover:underline mt-0.5"
                                   >
-                                    {isExpanded ? 'Hide ▲' : `${orderItems.length} items ▾`}
+                                    {isExpanded ? 'Hide items ▲' : `+${orderItems.length - 2} more items ▾`}
                                   </button>
-                                </td>
-                              </tr>
+                                )}
+                              </div>
+                            </div>
 
-                              {/* IN-PLACE ACCORDION EXPANSION ROW DIRECTLY UNDER THE CURRENT ORDER */}
-                              {isExpanded && (
-                                <tr className="bg-brand/5 border-b border-brand/20">
-                                  <td colSpan={8} className="p-4 sm:p-5">
-                                    <div className="rounded-2xl border border-brand/25 bg-[var(--c-surface-solid)] p-4 shadow-sm animate-in fade-in duration-150">
-                                      <div className="flex items-center justify-between pb-3 border-b border-line">
-                                        <div className="flex items-center gap-2">
-                                          <span className="text-base">🍲</span>
-                                          <p className="font-display text-[13.5px] font-black text-ink">
-                                            Order #{o.order_number} Items Breakdown ({orderItems.length} items)
-                                          </p>
-                                        </div>
-                                        <span className="font-mono text-[12px] font-bold text-muted">
-                                          Total: {fmtPKR(Number(o.total_amount))}
-                                        </span>
-                                      </div>
+                            {/* Bottom row: Payment & Total Amount */}
+                            <div className="flex items-center justify-between pt-2 border-t border-line/50">
+                              <span className="text-[10.5px] font-bold text-muted capitalize">
+                                💳 {o.payment_method ?? 'Cash'}
+                              </span>
+                              <span className="font-mono text-[13px] sm:text-[14px] font-black text-ink">
+                                {fmtPKR(Number(o.total_amount))}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    /* Compact Orders Table (List View) */
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-[11px] sm:text-[12.5px]">
+                        <thead className="border-b border-line bg-soft/40 text-[9.5px] sm:text-[10.5px] font-black uppercase tracking-wider text-muted">
+                          <tr>
+                            <th
+                              onClick={() => toggleOrderSort('number')}
+                              className="px-2.5 sm:px-3.5 py-2 cursor-pointer select-none hover:text-brand"
+                            >
+                              Order {renderSortIndicator('number', orderSortField, orderSortAsc)}
+                            </th>
+                            <th
+                              onClick={() => toggleOrderSort('time')}
+                              className="px-2 sm:px-3 py-2 cursor-pointer select-none hover:text-brand"
+                            >
+                              Time {renderSortIndicator('time', orderSortField, orderSortAsc)}
+                            </th>
+                            <th
+                              onClick={() => toggleOrderSort('table')}
+                              className="px-2 sm:px-3 py-2 cursor-pointer select-none hover:text-brand"
+                            >
+                              Table {renderSortIndicator('table', orderSortField, orderSortAsc)}
+                            </th>
+                            <th
+                              onClick={() => toggleOrderSort('staff')}
+                              className="px-2 sm:px-3 py-2 cursor-pointer select-none hover:text-brand"
+                            >
+                              Staff {renderSortIndicator('staff', orderSortField, orderSortAsc)}
+                            </th>
+                            <th
+                              onClick={() => toggleOrderSort('status')}
+                              className="px-2 sm:px-3 py-2 cursor-pointer select-none hover:text-brand"
+                            >
+                              Status {renderSortIndicator('status', orderSortField, orderSortAsc)}
+                            </th>
+                            <th
+                              onClick={() => toggleOrderSort('payment')}
+                              className="px-2 sm:px-3 py-2 cursor-pointer select-none hover:text-brand"
+                            >
+                              Payment {renderSortIndicator('payment', orderSortField, orderSortAsc)}
+                            </th>
+                            <th
+                              onClick={() => toggleOrderSort('amount')}
+                              className="px-2 sm:px-3 py-2 text-right cursor-pointer select-none hover:text-brand"
+                            >
+                              Amount {renderSortIndicator('amount', orderSortField, orderSortAsc)}
+                            </th>
+                            <th className="px-2 sm:px-3 py-2 text-center">Items</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {sheet.orders.map((o, idx) => {
+                            const isExpanded = expandedOrderIds.has(o.id);
+                            const orderItems = itemsByOrder.get(o.id) ?? [];
+                            const tbl = o.table_id
+                              ? `Table ${tableMap.get(o.table_id) ?? '?'}`
+                              : o.order_type === 'takeaway'
+                              ? 'Takeaway'
+                              : 'Delivery';
+                            const waiterName = o.waiter_id ? staffMap.get(o.waiter_id) ?? 'Staff' : 'Self/Counter';
 
-                                      {orderItems.length === 0 ? (
-                                        <p className="py-3 text-center text-xs font-bold text-muted">
-                                          No item records attached to this order.
-                                        </p>
-                                      ) : (
-                                        <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                                          {orderItems.map((it, itemIdx) => (
-                                            <div
-                                              key={itemIdx}
-                                              className="flex items-center justify-between rounded-xl bg-soft/50 p-2.5 border border-line text-xs"
-                                            >
-                                              <div>
-                                                <p className="font-black text-ink text-[12.5px]">{it.item_name}</p>
-                                                <p className="font-medium text-muted mt-0.5">
-                                                  Qty: <span className="font-bold text-ink">{it.quantity}</span> &times; {fmtPKR(Number(it.unit_price))}
-                                                </p>
-                                              </div>
-                                              <span className="font-mono font-black text-ink text-[12.5px]">
-                                                {fmtPKR(it.quantity * Number(it.unit_price))}
-                                              </span>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      )}
-                                    </div>
+                            const statusColor =
+                              o.status === 'completed'
+                                ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
+                                : o.status === 'cancelled'
+                                ? 'bg-rose-500/10 text-rose-600 border-rose-500/20'
+                                : 'bg-amber-500/10 text-amber-600 border-amber-500/20';
+
+                            const rowBg = idx % 2 === 0 ? 'bg-white' : 'bg-slate-500/[0.025] dark:bg-white/[0.02]';
+
+                            return (
+                              <Fragment key={o.id}>
+                                <tr
+                                  onClick={() => toggleExpandOrder(o.id)}
+                                  className={`cursor-pointer transition-colors border-b border-line/50 hover:bg-brand/5 ${rowBg}`}
+                                >
+                                  <td className="px-2.5 sm:px-3.5 py-2 font-mono font-black text-ink whitespace-nowrap">
+                                    #{o.order_number}
+                                  </td>
+                                  <td className="px-2 sm:px-3 py-2 font-medium text-muted whitespace-nowrap">
+                                    {new Date(o.created_at).toLocaleTimeString('en-US', {
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                    })}
+                                  </td>
+                                  <td className="px-2 sm:px-3 py-2 font-bold text-ink whitespace-nowrap">
+                                    {tbl}
+                                  </td>
+                                  <td className="px-2 sm:px-3 py-2 font-medium text-muted truncate max-w-[90px]">
+                                    {waiterName}
+                                  </td>
+                                  <td className="px-2 sm:px-3 py-2 whitespace-nowrap">
+                                    <span
+                                      className={`inline-block rounded-full border px-1.5 sm:px-2 py-0.2 text-[9.5px] sm:text-[10px] font-black uppercase ${statusColor}`}
+                                    >
+                                      {o.status}
+                                    </span>
+                                  </td>
+                                  <td className="px-2 sm:px-3 py-2 font-medium text-muted capitalize whitespace-nowrap">
+                                    {o.payment_method ?? 'Cash'}
+                                  </td>
+                                  <td className="px-2 sm:px-3 py-2 text-right font-mono font-black text-ink whitespace-nowrap">
+                                    {fmtPKR(Number(o.total_amount))}
+                                  </td>
+                                  <td className="px-2 sm:px-3 py-2 text-center whitespace-nowrap">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleExpandOrder(o.id);
+                                      }}
+                                      className={`rounded-md border px-1.5 py-0.5 text-[10px] font-extrabold transition-all ${
+                                        isExpanded
+                                          ? 'bg-brand text-white border-brand'
+                                          : 'bg-[var(--c-surface-solid)] border-line text-brand hover:bg-brand hover:text-white'
+                                      }`}
+                                    >
+                                      {isExpanded ? 'Hide ▲' : `${orderItems.length}▾`}
+                                    </button>
                                   </td>
                                 </tr>
-                              )}
-                            </Fragment>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
+
+                                {/* IN-PLACE ACCORDION EXPANSION ROW DIRECTLY UNDER THE CURRENT ORDER */}
+                                {isExpanded && (
+                                  <tr className="bg-brand/5 border-b border-brand/20">
+                                    <td colSpan={8} className="p-2.5 sm:p-4">
+                                      <div className="rounded-xl border border-brand/25 bg-[var(--c-surface-solid)] p-3 shadow-2xs animate-in fade-in duration-150">
+                                        <div className="flex items-center justify-between pb-2 border-b border-line">
+                                          <div className="flex items-center gap-1.5">
+                                            <span className="text-sm">🍲</span>
+                                            <p className="font-display text-[12px] sm:text-[13px] font-black text-ink">
+                                              Order #{o.order_number} ({orderItems.length} items)
+                                            </p>
+                                          </div>
+                                          <span className="font-mono text-[11px] font-bold text-muted">
+                                            Total: {fmtPKR(Number(o.total_amount))}
+                                          </span>
+                                        </div>
+
+                                        {orderItems.length === 0 ? (
+                                          <p className="py-2 text-center text-xs font-bold text-muted">
+                                            No item records attached to this order.
+                                          </p>
+                                        ) : (
+                                          <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5">
+                                            {orderItems.map((it, itemIdx) => (
+                                              <div
+                                                key={itemIdx}
+                                                className="flex items-center justify-between rounded-lg bg-soft/50 p-2 border border-line text-[11px]"
+                                              >
+                                                <div>
+                                                  <p className="font-black text-ink">{it.item_name}</p>
+                                                  <p className="font-medium text-muted text-[10px]">
+                                                    Qty: <span className="font-bold text-ink">{it.quantity}</span> &times; {fmtPKR(Number(it.unit_price))}
+                                                  </p>
+                                                </div>
+                                                <span className="font-mono font-black text-ink">
+                                                  {fmtPKR(it.quantity * Number(it.unit_price))}
+                                                </span>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </td>
+                                  </tr>
+                                )}
+                              </Fragment>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </Card>
               ))}
             </div>
@@ -929,33 +1043,69 @@ export default function OwnerReportsTab({
           </div>
 
           {/* Filters Toolbar */}
-          <Card className="p-3.5">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="relative flex-1 min-w-[220px]">
+          <Card className="p-3 sm:p-3.5 space-y-2.5">
+            <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="relative flex-1 min-w-[200px]">
                 <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted text-[13px]">🔍</span>
                 <input
                   type="text"
                   placeholder="Search dish by name..."
                   value={dishSearch}
                   onChange={(e) => setDishSearch(e.target.value)}
-                  className="w-full rounded-xl border border-line bg-soft/50 pl-10 pr-4 py-2 text-[12.5px] font-bold text-ink outline-none focus:border-brand transition-colors"
+                  className="w-full rounded-xl border border-line bg-soft/50 pl-10 pr-4 py-1.5 text-[12px] font-bold text-ink outline-none focus:border-brand transition-colors"
                 />
               </div>
 
-              <div className="flex items-center gap-2 text-[12px]">
+              <div className="flex items-center gap-2 text-[11.5px]">
                 <select
                   value={dishCategoryFilter}
                   onChange={(e) => setDishCategoryFilter(e.target.value)}
-                  className="rounded-xl border border-line bg-[var(--c-surface-solid)] px-3 py-2 font-bold text-ink outline-none focus:border-brand"
+                  className="rounded-xl border border-line bg-[var(--c-surface-solid)] px-2.5 py-1.5 font-bold text-ink outline-none focus:border-brand"
                 >
-                  <option value="all">All Categories</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
+                  <option value="all">All Categories ({dishSales.length})</option>
+                  {categories.map((c) => {
+                    const count = dishSales.filter((d) => d.categoryId === c.id).length;
+                    return (
+                      <option key={c.id} value={c.id}>
+                        {c.name} ({count})
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
+            </div>
+
+            {/* Category Pills (Compact, wrap, no scroll needed) */}
+            <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 pt-2 border-t border-line/50">
+              <button
+                type="button"
+                onClick={() => setDishCategoryFilter('all')}
+                className={`rounded-full px-2 py-0.5 text-[10px] sm:text-[11px] font-bold transition-all ${
+                  dishCategoryFilter === 'all'
+                    ? 'bg-brand text-white shadow-2xs'
+                    : 'bg-soft text-muted hover:text-ink'
+                }`}
+              >
+                All ({dishSales.length})
+              </button>
+              {categories.map((c) => {
+                const count = dishSales.filter((d) => d.categoryId === c.id).length;
+                const active = dishCategoryFilter === c.id;
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => setDishCategoryFilter(c.id)}
+                    className={`rounded-full px-2 py-0.5 text-[10px] sm:text-[11px] font-bold transition-all ${
+                      active
+                        ? 'bg-brand text-white shadow-2xs'
+                        : 'bg-soft text-muted hover:text-ink'
+                    }`}
+                  >
+                    {c.name} ({count})
+                  </button>
+                );
+              })}
             </div>
           </Card>
 
@@ -969,48 +1119,48 @@ export default function OwnerReportsTab({
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-[13px]">
-                  <thead className="border-b border-line bg-soft/50 text-[11px] font-black uppercase tracking-wider text-muted">
+                <table className="w-full text-left text-[11.5px] sm:text-[12.5px]">
+                  <thead className="border-b border-line bg-soft/50 text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-muted">
                     <tr>
                       <th
                         onClick={() => toggleDishSort('rank')}
-                        className="px-5 py-3 cursor-pointer select-none hover:text-brand"
+                        className="px-3 sm:px-4 py-2.5 cursor-pointer select-none hover:text-brand"
                       >
                         # Rank {renderSortIndicator('rank', dishSortField, dishSortAsc)}
                       </th>
                       <th
                         onClick={() => toggleDishSort('name')}
-                        className="px-4 py-3 cursor-pointer select-none hover:text-brand"
+                        className="px-2.5 sm:px-3 py-2.5 cursor-pointer select-none hover:text-brand"
                       >
                         Dish Item {renderSortIndicator('name', dishSortField, dishSortAsc)}
                       </th>
                       <th
                         onClick={() => toggleDishSort('category')}
-                        className="px-4 py-3 cursor-pointer select-none hover:text-brand"
+                        className="px-2.5 sm:px-3 py-2.5 cursor-pointer select-none hover:text-brand"
                       >
                         Category {renderSortIndicator('category', dishSortField, dishSortAsc)}
                       </th>
                       <th
                         onClick={() => toggleDishSort('qty')}
-                        className="px-4 py-3 text-right cursor-pointer select-none hover:text-brand"
+                        className="px-2.5 sm:px-3 py-2.5 text-right cursor-pointer select-none hover:text-brand"
                       >
                         Units Sold {renderSortIndicator('qty', dishSortField, dishSortAsc)}
                       </th>
                       <th
                         onClick={() => toggleDishSort('price')}
-                        className="px-4 py-3 text-right cursor-pointer select-none hover:text-brand"
+                        className="px-2.5 sm:px-3 py-2.5 text-right cursor-pointer select-none hover:text-brand"
                       >
                         Unit Price {renderSortIndicator('price', dishSortField, dishSortAsc)}
                       </th>
                       <th
                         onClick={() => toggleDishSort('revenue')}
-                        className="px-5 py-3 text-right cursor-pointer select-none hover:text-brand"
+                        className="px-3 sm:px-4 py-2.5 text-right cursor-pointer select-none hover:text-brand"
                       >
                         Gross Sales {renderSortIndicator('revenue', dishSortField, dishSortAsc)}
                       </th>
                       <th
                         onClick={() => toggleDishSort('share')}
-                        className="px-5 py-3 cursor-pointer select-none hover:text-brand"
+                        className="px-3 sm:px-4 py-2.5 cursor-pointer select-none hover:text-brand"
                       >
                         Share % {renderSortIndicator('share', dishSortField, dishSortAsc)}
                       </th>
@@ -1024,35 +1174,35 @@ export default function OwnerReportsTab({
 
                       return (
                         <tr key={d.name} className={`border-b border-line/50 hover:bg-brand/5 transition-colors ${rowBg}`}>
-                          <td className="px-5 py-3 font-mono font-bold text-muted">
+                          <td className="px-3 sm:px-4 py-2 font-mono font-bold text-muted">
                             #{index + 1}
                           </td>
-                          <td className="px-4 py-3 font-bold text-ink">
+                          <td className="px-2.5 sm:px-3 py-2 font-bold text-ink whitespace-nowrap">
                             {d.name}
                           </td>
-                          <td className="px-4 py-3">
-                            <span className="rounded-full bg-soft px-2.5 py-0.5 text-[11px] font-bold text-muted">
+                          <td className="px-2.5 sm:px-3 py-2">
+                            <span className="rounded-full bg-soft px-2 py-0.2 text-[10px] sm:text-[11px] font-bold text-muted whitespace-nowrap">
                               {catName}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-right font-mono font-black text-teal">
+                          <td className="px-2.5 sm:px-3 py-2 text-right font-mono font-black text-teal">
                             {fmtNum(d.qty)}
                           </td>
-                          <td className="px-4 py-3 text-right font-mono font-medium text-muted">
+                          <td className="px-2.5 sm:px-3 py-2 text-right font-mono font-medium text-muted">
                             {fmtPKR(d.price)}
                           </td>
-                          <td className="px-5 py-3 text-right font-mono font-black text-ink">
+                          <td className="px-3 sm:px-4 py-2 text-right font-mono font-black text-ink whitespace-nowrap">
                             {fmtPKR(d.revenue)}
                           </td>
-                          <td className="px-5 py-3">
+                          <td className="px-3 sm:px-4 py-2">
                             <div className="flex items-center gap-2">
-                              <div className="h-2 flex-1 rounded-full bg-soft overflow-hidden min-w-[50px]">
+                              <div className="h-1.5 flex-1 rounded-full bg-soft overflow-hidden min-w-[40px]">
                                 <div
                                   className="h-full rounded-full bg-brand"
                                   style={{ width: `${Math.min(100, Math.max(4, Number(sharePercent)))}%` }}
                                 />
                               </div>
-                              <span className="font-mono text-[11.5px] font-bold text-muted w-9 text-right">
+                              <span className="font-mono text-[10.5px] sm:text-[11.5px] font-bold text-muted w-9 text-right">
                                 {sharePercent}%
                               </span>
                             </div>
@@ -1113,54 +1263,54 @@ export default function OwnerReportsTab({
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-[13px]">
-                  <thead className="border-b border-line bg-soft/50 text-[11px] font-black uppercase tracking-wider text-muted">
+                <table className="w-full text-left text-[11.5px] sm:text-[12.5px]">
+                  <thead className="border-b border-line bg-soft/50 text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-muted">
                     <tr>
                       <th
                         onClick={() => toggleRevenueSort('date')}
-                        className="px-5 py-3 cursor-pointer select-none hover:text-brand"
+                        className="px-3 sm:px-4 py-2.5 cursor-pointer select-none hover:text-brand"
                       >
                         Date / Period {renderSortIndicator('date', revenueSortField, revenueSortAsc)}
                       </th>
                       <th
                         onClick={() => toggleRevenueSort('orders')}
-                        className="px-4 py-3 text-center cursor-pointer select-none hover:text-brand"
+                        className="px-2.5 sm:px-3 py-2.5 text-center cursor-pointer select-none hover:text-brand"
                       >
-                        Fulfilled Orders {renderSortIndicator('orders', revenueSortField, revenueSortAsc)}
+                        Orders {renderSortIndicator('orders', revenueSortField, revenueSortAsc)}
                       </th>
                       <th
                         onClick={() => toggleRevenueSort('gross')}
-                        className="px-4 py-3 text-right cursor-pointer select-none hover:text-brand"
+                        className="px-2.5 sm:px-3 py-2.5 text-right cursor-pointer select-none hover:text-brand"
                       >
                         Gross Billed {renderSortIndicator('gross', revenueSortField, revenueSortAsc)}
                       </th>
                       <th
                         onClick={() => toggleRevenueSort('net')}
-                        className="px-5 py-3 text-right text-emerald-600 cursor-pointer select-none hover:text-brand"
+                        className="px-3 sm:px-4 py-2.5 text-right text-emerald-600 cursor-pointer select-none hover:text-brand"
                       >
                         Net Collected {renderSortIndicator('net', revenueSortField, revenueSortAsc)}
                       </th>
                       <th
                         onClick={() => toggleRevenueSort('lost')}
-                        className="px-4 py-3 text-right text-rose-600 cursor-pointer select-none hover:text-brand"
+                        className="px-2.5 sm:px-3 py-2.5 text-right text-rose-600 cursor-pointer select-none hover:text-brand"
                       >
-                        Lost to Voids {renderSortIndicator('lost', revenueSortField, revenueSortAsc)}
+                        Lost {renderSortIndicator('lost', revenueSortField, revenueSortAsc)}
                       </th>
                       <th
                         onClick={() => toggleRevenueSort('cash')}
-                        className="px-4 py-3 text-right cursor-pointer select-none hover:text-brand"
+                        className="px-2.5 sm:px-3 py-2.5 text-right cursor-pointer select-none hover:text-brand"
                       >
-                        Cash Share {renderSortIndicator('cash', revenueSortField, revenueSortAsc)}
+                        Cash {renderSortIndicator('cash', revenueSortField, revenueSortAsc)}
                       </th>
                       <th
                         onClick={() => toggleRevenueSort('card')}
-                        className="px-4 py-3 text-right cursor-pointer select-none hover:text-brand"
+                        className="px-2.5 sm:px-3 py-2.5 text-right cursor-pointer select-none hover:text-brand"
                       >
-                        Card / Digital {renderSortIndicator('card', revenueSortField, revenueSortAsc)}
+                        Card {renderSortIndicator('card', revenueSortField, revenueSortAsc)}
                       </th>
                       <th
                         onClick={() => toggleRevenueSort('aov')}
-                        className="px-5 py-3 text-right cursor-pointer select-none hover:text-brand"
+                        className="px-3 sm:px-4 py-2.5 text-right cursor-pointer select-none hover:text-brand"
                       >
                         Avg Ticket {renderSortIndicator('aov', revenueSortField, revenueSortAsc)}
                       </th>
@@ -1173,28 +1323,28 @@ export default function OwnerReportsTab({
 
                       return (
                         <tr key={r.date} className={`border-b border-line/50 hover:bg-brand/5 transition-colors ${rowBg}`}>
-                          <td className="px-5 py-3 font-bold text-ink whitespace-nowrap">
+                          <td className="px-3 sm:px-4 py-2 font-bold text-ink whitespace-nowrap">
                             {r.displayDate}
                           </td>
-                          <td className="px-4 py-3 text-center font-mono font-bold text-ink">
+                          <td className="px-2.5 sm:px-3 py-2 text-center font-mono font-bold text-ink">
                             {r.completedOrders}
                           </td>
-                          <td className="px-4 py-3 text-right font-mono font-medium text-muted whitespace-nowrap">
+                          <td className="px-2.5 sm:px-3 py-2 text-right font-mono font-medium text-muted whitespace-nowrap">
                             {fmtPKR(r.grossRevenue)}
                           </td>
-                          <td className="px-5 py-3 text-right font-mono font-black text-emerald-600 whitespace-nowrap">
+                          <td className="px-3 sm:px-4 py-2 text-right font-mono font-black text-emerald-600 whitespace-nowrap">
                             {fmtPKR(r.netRevenue)}
                           </td>
-                          <td className="px-4 py-3 text-right font-mono font-bold text-rose-500 whitespace-nowrap">
+                          <td className="px-2.5 sm:px-3 py-2 text-right font-mono font-bold text-rose-500 whitespace-nowrap">
                             {r.lostSales > 0 ? fmtPKR(r.lostSales) : '—'}
                           </td>
-                          <td className="px-4 py-3 text-right font-mono font-medium text-muted whitespace-nowrap">
+                          <td className="px-2.5 sm:px-3 py-2 text-right font-mono font-medium text-muted whitespace-nowrap">
                             {fmtPKR(r.cashRevenue)}
                           </td>
-                          <td className="px-4 py-3 text-right font-mono font-medium text-muted whitespace-nowrap">
+                          <td className="px-2.5 sm:px-3 py-2 text-right font-mono font-medium text-muted whitespace-nowrap">
                             {fmtPKR(r.cardRevenue)}
                           </td>
-                          <td className="px-5 py-3 text-right font-mono font-black text-ink whitespace-nowrap">
+                          <td className="px-3 sm:px-4 py-2 text-right font-mono font-black text-ink whitespace-nowrap">
                             {fmtPKR(dailyAov)}
                           </td>
                         </tr>
