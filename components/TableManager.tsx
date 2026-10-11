@@ -6,6 +6,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { logActivity, ACT } from '@/lib/activity';
 import { tableQr } from '@/lib/qr';
 import { useT } from '@/lib/i18n';
 import { qrSvg, downloadPng } from './QrSection';
@@ -136,6 +137,13 @@ export default function TableManager({
   const guard = useGuard();
   const del = useUndoDelete<DiningTable>(async (tb) => {
     await createClient().from('tables').delete().eq('id', tb.id);
+    logActivity(createClient(), {
+      restaurantId,
+      action: ACT.TABLE_REMOVED,
+      entityType: 'table',
+      entityId: tb.id,
+      details: { table_number: tb.table_number },
+    });
   });
 
   const sorted = useMemo(() => [...tables].sort((a, b) => a.table_number - b.table_number), [tables]);
@@ -204,10 +212,24 @@ export default function TableManager({
           const { data, error } = await supabase.from('tables').insert(payload).select().single();
           if (error) throw error;
           onChange([...tables, data as DiningTable]);
+          logActivity(supabase, {
+            restaurantId,
+            action: ACT.TABLE_ADDED,
+            entityType: 'table',
+            entityId: data.id,
+            details: { table_number: num, capacity: cap },
+          });
         } else if (editing) {
           const { data, error } = await supabase.from('tables').update(payload).eq('id', editing.id).select().single();
           if (error) throw error;
           onChange(tables.map((tb) => (tb.id === editing.id ? (data as DiningTable) : tb)));
+          logActivity(supabase, {
+            restaurantId,
+            action: ACT.TABLE_UPDATED,
+            entityType: 'table',
+            entityId: editing.id,
+            details: { table_number: num },
+          });
         }
         setEditing(null);
       } catch (err) {
@@ -339,7 +361,16 @@ export default function TableManager({
     setBusyId(null);
     // Order leaves the active list on the next realtime/heartbeat refresh;
     // close the popup so the table panel doesn't show a stale bill.
-    if (!error) setDetailOrderId(null);
+    if (!error) {
+      setDetailOrderId(null);
+      logActivity(createClient(), {
+        restaurantId,
+        action: ACT.PAYMENT_COLLECTED,
+        entityType: 'order',
+        entityId: detailOrderFull.id,
+        details: { payment_method: method },
+      });
+    }
   };
   const detailOrderFull = detailOrderId ? orders.find((o) => o.id === detailOrderId) ?? null : null;
   const detailMenuById = useMemo(() => {

@@ -13,6 +13,7 @@ import { fmtPKR } from '@/lib/format';
 import { categoryEmoji, categoryImage } from '@/lib/food-images';
 import { cdnUrl } from '@/lib/images';
 import { useT } from '@/lib/i18n';
+import { logActivity, ACT } from '@/lib/activity';
 import { Btn, Card, Empty, Pill, Textarea } from './ui';
 
 // Real uploaded photo first, bundled category photo as fallback.
@@ -416,6 +417,13 @@ export default function MenuOrder({
       setCartOpen(false);
       setOrderNotes('');
       onPlaced(orderId, trackingToken);
+      logActivity(supabase, {
+        restaurantId,
+        action: ACT.ORDER_CREATED,
+        entityType: 'order',
+        entityId: orderId,
+        details: { total, items: cart.length, table_id: table.id },
+      });
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (e) {
       setError(e instanceof Error ? e.message : t('mnu_order_failed'));
