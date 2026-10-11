@@ -203,7 +203,7 @@ export default function OwnerOrdersList({
           ) : (
             <div className="overflow-hidden rounded-[18px] border border-line/60 bg-[var(--c-surface-solid)] shadow-sm">
               {/* header (desktop) */}
-              <div className="hidden grid-cols-12 gap-2 border-b border-line px-4 py-2.5 text-[10.5px] font-extrabold uppercase tracking-wider text-muted md:grid">
+              <div className="hidden grid-cols-12 gap-2 border-b border-line/12 px-4 py-2.5 text-[10.5px] font-extrabold uppercase tracking-wider text-muted md:grid">
                 <p className="col-span-2">Order #</p>
                 <p className="col-span-2">Table</p>
                 <p className="col-span-4">Items</p>
@@ -290,7 +290,7 @@ export default function OwnerOrdersList({
                           {menuOpenId === o.id && (
                             <>
                               <div className="fixed inset-0 z-30" onClick={() => setMenuOpenId(null)} />
-                              <div className="absolute right-0 z-40 mt-1 w-44 overflow-hidden rounded-[14px] border border-line bg-[var(--c-surface-solid)] p-1 shadow-xl">
+                              <div className="absolute right-0 z-40 mt-1 w-44 overflow-hidden rounded-[14px] border border-line/12 bg-[var(--c-surface-solid)] p-1 shadow-xl">
                                 {next && (
                                   <button
                                     onClick={() => advance(o)}

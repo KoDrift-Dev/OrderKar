@@ -34,7 +34,7 @@ function AreaChart({ days, vals }: { days: string[]; vals: number[] }) {
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img">
       {ticks.map((t, i) => (
         <g key={i}>
-          <line x1={PL} x2={W - PR} y1={t.y} y2={t.y} className="stroke-line" strokeWidth="1" opacity="0.5" />
+          <line x1={PL} x2={W - PR} y1={t.y} y2={t.y} className="stroke-line/12" strokeWidth="1" opacity="0.5" />
           <text x={PL - 8} y={t.y + 4} textAnchor="end" fontSize="10" className="fill-muted font-mono">
             {t.v >= 1000 ? `${Math.round(t.v / 1000)}k` : Math.round(t.v)}
           </text>
