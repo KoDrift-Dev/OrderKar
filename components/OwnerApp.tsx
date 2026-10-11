@@ -767,7 +767,7 @@ function OwnerAppInner({
                               className={`ml-auto rounded-full px-2 py-0.5 text-[10.5px] font-extrabold ${
                                 active
                                   ? 'bg-white/20 text-white'
-                                  : 'bg-amber-500 text-white shadow-xs'
+                                  : 'bg-amber text-white shadow-xs'
                               }`}
                             >
                               {item.badge}
@@ -795,7 +795,7 @@ function OwnerAppInner({
                 className="group flex cursor-pointer items-center justify-between rounded-[16px] border border-white/10 bg-white/[0.05] p-3 transition-all hover:bg-white/[0.1] hover:border-white/20"
               >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] bg-gradient-to-br from-amber-500 to-orange-600 text-white text-base shadow-sm">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] bg-gradient-to-br from-amber to-orange-600 text-white text-base shadow-sm">
                     🍽️
                   </div>
                   <div className="min-w-0">
@@ -924,7 +924,7 @@ function OwnerAppInner({
 
             {/* User Profile Capsule (Ahmed Hassan, Restaurant Manager) */}
             <div className="flex items-center gap-2.5 rounded-full border border-line bg-[var(--c-surface-solid)] pl-1.5 pr-3 py-1 shadow-2xs">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand to-amber-500 text-[12.5px] font-black text-white shadow-xs">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand to-amber text-[12.5px] font-black text-white shadow-xs">
                 {viewerName.charAt(0).toUpperCase()}
               </div>
               <div className="hidden sm:block text-left min-w-0">
@@ -977,7 +977,7 @@ function OwnerAppInner({
             </div>
           )}
           {subState?.kind === 'past_due' && (
-            <div className="mx-4 sm:mx-6 lg:mx-8 mt-3 flex items-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-2.5 text-[12.5px] font-medium text-amber-700 dark:text-amber-300">
+            <div className="mx-4 sm:mx-6 lg:mx-8 mt-3 flex items-center gap-2 rounded-xl border border-amber/40 bg-amber/10 px-4 py-2.5 text-[12.5px] font-medium text-amber dark:text-amber">
               <span aria-hidden>⚠️</span>
               <span>
                 Last payment failed.{' '}
@@ -989,7 +989,7 @@ function OwnerAppInner({
             </div>
           )}
           {ordersTruncated && (
-            <div className="mx-4 sm:mx-6 lg:mx-8 mt-3 flex items-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-2.5 text-[12.5px] font-medium text-amber-700 dark:text-amber-300">
+            <div className="mx-4 sm:mx-6 lg:mx-8 mt-3 flex items-center gap-2 rounded-xl border border-amber/40 bg-amber/10 px-4 py-2.5 text-[12.5px] font-medium text-amber dark:text-amber">
               <span aria-hidden>⚠️</span>
               <span>
                 Showing the most recent 3,000 orders only — older orders in the
