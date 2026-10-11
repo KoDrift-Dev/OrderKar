@@ -25,6 +25,7 @@ export const ACT = {
   MENU_ITEM_CREATED: 'menu_item_created',
   MENU_ITEM_UPDATED: 'menu_item_updated',
   MENU_ITEM_DELETED: 'menu_item_deleted',
+  MENU_BULK_IMPORTED: 'menu_bulk_imported',
   MENU_ITEM_AVAILABILITY: 'menu_item_availability',
   CATEGORY_CREATED: 'category_created',
   CATEGORY_UPDATED: 'category_updated',

@@ -13,6 +13,7 @@ import { categoryImage } from '@/lib/food-images';
 import { cdnUrl } from '@/lib/images';
 import { Btn, Card, Empty, Input, Label, Pill, Select, Textarea } from './ui';
 import PhotoDropzone, { useUploadState } from './PhotoDropzone';
+import MenuScanner from './MenuScanner';
 import { useGuard, useUndoDelete, DeleteConfirm, UndoToast } from './DeleteFlow';
 import SmartImage from './SmartImage';
 
@@ -56,6 +57,7 @@ export default function MenuManager({ restaurantId }: { restaurantId: string }) 
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [sortBy, setSortBy] = useState<SortKey>('name');
   const [editing, setEditing] = useState<MenuItem | 'new' | null>(null);
+  const [scannerOpen, setScannerOpen] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const fUp = useUploadState(); // item photo upload tracker
@@ -252,6 +254,7 @@ export default function MenuManager({ restaurantId }: { restaurantId: string }) 
           <button onClick={load} className="rounded-btn border border-line bg-[var(--c-surface-solid)] px-4 py-2.5 text-[13px] font-bold text-muted hover:text-ink">
             ⟳ Refresh
           </button>
+          <Btn variant="secondary" onClick={() => setScannerOpen(true)}>📷 Scan Menu</Btn>
           <Btn onClick={openNew}>+ Add New Item</Btn>
         </div>
       </div>
@@ -392,6 +395,13 @@ export default function MenuManager({ restaurantId }: { restaurantId: string }) 
       )}
 
       {/* Add / Edit modal */}
+      {scannerOpen && (
+        <MenuScanner
+          restaurantId={restaurantId}
+          onClose={() => setScannerOpen(false)}
+          onImported={load}
+        />
+      )}
       {editing && (
         <div className="fixed inset-0 z-50" role="dialog" aria-modal="true">
           <div className="absolute inset-0 bg-ink/45 backdrop-blur-[2px]" onClick={() => !saving && setEditing(null)} />
