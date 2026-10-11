@@ -32,7 +32,7 @@ export default function OwnerAuditTab({
     [orders]
   );
 
-  const completedOrders = useMemo(() => orders.filter((o) => o.status !== 'cancelled'), [orders]);
+  const completedOrders = useMemo(() => orders.filter((o) => o.status === 'completed'), [orders]);
 
   const totalLostAmount = useMemo(
     () => cancelledOrders.reduce((sum, o) => sum + Number(o.total_amount), 0),
@@ -223,7 +223,7 @@ export default function OwnerAuditTab({
               return (
                 <div
                   key={reason}
-                  className="rounded-[14px] border border-line bg-[var(--c-surface-solid)] p-4 transition-all hover:border-brand/40"
+                  className="rounded-[14px] border border-line/12 bg-[var(--c-surface-solid)] p-4 transition-all hover:border-brand/40"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                     <div className="flex items-center gap-2">
@@ -274,7 +274,7 @@ export default function OwnerAuditTab({
           <div className="overflow-x-auto no-scrollbar">
             <table className="w-full text-left text-[13px]">
               <thead>
-                <tr className="border-b border-line text-[11.5px] font-black uppercase tracking-wider text-muted">
+                <tr className="border-b border-line/12 text-[11.5px] font-black uppercase tracking-wider text-muted">
                   <th className="pb-3 pr-4">Order #</th>
                   <th className="pb-3 pr-4">Time</th>
                   <th className="pb-3 pr-4">Server / Waiter</th>

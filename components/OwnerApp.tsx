@@ -290,7 +290,7 @@ function OwnerAppInner({
     return () => {
       live = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line/12 react-hooks/exhaustive-deps
   }, [restaurantId]);
 
   // ── Realtime: orders / order_items / tables → silent refresh, no page reload. ──
@@ -624,7 +624,7 @@ function OwnerAppInner({
         window.history.replaceState(null, '', url.toString());
       })
       .catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line/12 react-hooks/exhaustive-deps
   }, []);
 
   const selectTab = (k: TabKey, sub?: ReportSubTab) => {
@@ -829,7 +829,7 @@ function OwnerAppInner({
       {/* ── 2. MAIN FULL-SCREEN APPLICATION CANVAS ── */}
       <div className="flex-1 min-w-0 flex flex-col">
         {/* Sticky Top Utility Command Bar (Restora Topbar Layout) */}
-        <header className="sticky top-0 z-30 flex h-[72px] shrink-0 items-center justify-between border-b border-line bg-[var(--c-surface)] px-4 sm:px-6 lg:px-8 backdrop-blur-xl gap-3">
+        <header className="sticky top-0 z-30 flex h-[72px] shrink-0 items-center justify-between border-b border-line/12 bg-[var(--c-surface)] px-4 sm:px-6 lg:px-8 backdrop-blur-xl gap-3">
           {/* Left: Search Bar (Search orders, tables, menu...) */}
           <div className="flex items-center gap-3 min-w-0 flex-1 max-w-md">
             <div className="relative w-full">
@@ -862,7 +862,7 @@ function OwnerAppInner({
                   setBellOpen((v) => !v);
                   loadAlerts();
                 }}
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-line bg-[var(--c-surface-solid)] text-muted hover:text-ink hover:border-brand/40 transition-colors shadow-2xs relative"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-line/12 bg-[var(--c-surface-solid)] text-muted hover:text-ink hover:border-brand/40 transition-colors shadow-2xs relative"
                 aria-label="Notifications"
                 aria-expanded={bellOpen}
                 title="Notifications"
@@ -880,8 +880,8 @@ function OwnerAppInner({
               {bellOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setBellOpen(false)} aria-hidden />
-                  <div className="absolute right-0 z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-line bg-[var(--c-surface-solid)] shadow-2xl">
-                    <div className="flex items-center justify-between border-b border-line px-4 py-3">
+                  <div className="absolute right-0 z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-line/12 bg-[var(--c-surface-solid)] shadow-2xl">
+                    <div className="flex items-center justify-between border-b border-line/12 px-4 py-3">
                       <p className="text-[13px] font-extrabold text-ink">Stock Alerts</p>
                       <button
                         onClick={() => {
@@ -923,7 +923,7 @@ function OwnerAppInner({
             </div>
 
             {/* User Profile Capsule (Ahmed Hassan, Restaurant Manager) */}
-            <div className="flex items-center gap-2.5 rounded-full border border-line bg-[var(--c-surface-solid)] pl-1.5 pr-3 py-1 shadow-2xs">
+            <div className="flex items-center gap-2.5 rounded-full border border-line/12 bg-[var(--c-surface-solid)] pl-1.5 pr-3 py-1 shadow-2xs">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand to-amber text-[12.5px] font-black text-white shadow-xs">
                 {viewerName.charAt(0).toUpperCase()}
               </div>
@@ -948,7 +948,7 @@ function OwnerAppInner({
             {/* Mobile Navigation Toggle Button */}
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line bg-[var(--c-surface-solid)] text-ink lg:hidden shadow-2xs active:scale-95 transition-all hover:bg-soft"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line/12 bg-[var(--c-surface-solid)] text-ink lg:hidden shadow-2xs active:scale-95 transition-all hover:bg-soft"
               aria-label="Open Navigation Menu"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -1002,7 +1002,7 @@ function OwnerAppInner({
         {/* Full-Center Screen Refresh Loading Indicator */}
         {ordersLoading && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-xs transition-all animate-in fade-in duration-150">
-            <div className="flex flex-col items-center gap-3.5 rounded-[24px] border border-line bg-[var(--c-surface-solid)]/95 px-8 py-6 shadow-2xl backdrop-blur-xl animate-in zoom-in-95 duration-150">
+            <div className="flex flex-col items-center gap-3.5 rounded-[24px] border border-line/12 bg-[var(--c-surface-solid)]/95 px-8 py-6 shadow-2xl backdrop-blur-xl animate-in zoom-in-95 duration-150">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand/10 text-brand shadow-inner">
                 <svg className="animate-spin" width="28" height="28" viewBox="0 0 24 24" fill="none">
                   <circle cx="12" cy="12" r="10" stroke="currentColor" strokeOpacity="0.25" strokeWidth="3" />
@@ -1185,7 +1185,7 @@ function OwnerAppInner({
                       className={`rounded-full px-4 py-2 text-[12.5px] font-bold transition-all ${
                         invSub === t.key
                           ? 'bg-brand text-white shadow-md'
-                          : 'border border-line bg-[var(--c-surface-solid)] text-muted hover:text-ink'
+                          : 'border border-line/12 bg-[var(--c-surface-solid)] text-muted hover:text-ink'
                       }`}
                     >
                       {t.label}
@@ -1233,7 +1233,7 @@ function OwnerAppInner({
               {/* 9. Live Previews of Staff Roles */}
               <div className={tab === 'previews' ? '' : 'hidden'}>
                 <div className="space-y-6">
-                  <div className="rounded-[20px] border border-line bg-[var(--c-surface)] p-5">
+                  <div className="rounded-[20px] border border-line/12 bg-[var(--c-surface)] p-5">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                       <div>
                         <h2 className="font-display text-lg font-extrabold text-ink">
@@ -1244,7 +1244,7 @@ function OwnerAppInner({
                         </p>
                       </div>
 
-                      <div className="flex items-center gap-1.5 rounded-[14px] border border-line bg-[var(--c-surface-solid)] p-1 shadow-sm">
+                      <div className="flex items-center gap-1.5 rounded-[14px] border border-line/12 bg-[var(--c-surface-solid)] p-1 shadow-sm">
                         {[
                           { key: 'kitchen', label: 'Kitchen KDS', icon: '👨‍🍳' },
                           { key: 'waiter', label: 'Waiter App', icon: '🤵' },
