@@ -85,7 +85,7 @@ export default function StaffShell({
 
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-40 border-b border-line bg-[var(--c-surface)] backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-line/12 bg-[var(--c-surface)] backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <span className="shrink-0">
@@ -107,7 +107,7 @@ export default function StaffShell({
             {isKitchenPage && canGoConsole && (
               <Link
                 href={`/r/${tenant.slug}/owner`}
-                className="inline-flex items-center gap-1.5 rounded-btn border border-line bg-[var(--c-surface-solid)] px-3 py-1.5 text-[12.5px] font-bold text-muted shadow-sm transition-all hover:border-brand/40 hover:text-ink"
+                className="inline-flex items-center gap-1.5 rounded-btn border border-line/12 bg-[var(--c-surface-solid)] px-3 py-1.5 text-[12.5px] font-bold text-muted shadow-sm transition-all hover:border-brand/40 hover:text-ink"
               >
                 ← Console
               </Link>
@@ -115,7 +115,7 @@ export default function StaffShell({
             <ThemeToggle />
             <button
               onClick={logout}
-              className="inline-flex items-center gap-1.5 rounded-btn border border-line bg-[var(--c-surface-solid)] px-3 py-1.5 text-[12.5px] font-bold text-muted hover:text-ink hover:border-line-strong transition-all shadow-sm"
+              className="inline-flex items-center gap-1.5 rounded-btn border border-line/12 bg-[var(--c-surface-solid)] px-3 py-1.5 text-[12.5px] font-bold text-muted hover:text-ink hover:border-line-strong transition-all shadow-sm"
               title="Sign out of account"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -131,7 +131,7 @@ export default function StaffShell({
           <nav className="mx-auto flex max-w-7xl items-center gap-1 overflow-x-auto px-4 pb-2 sm:px-6">
             {visibleRoleTabs.map(renderTab)}
             {visibleRoleTabs.length > 0 && visibleManageTabs.length > 0 && (
-              <span className="mx-1.5 h-5 w-px shrink-0 bg-line" aria-hidden="true" />
+              <span className="mx-1.5 h-5 w-px shrink-0 bg-line/12" aria-hidden="true" />
             )}
             {visibleManageTabs.map(renderTab)}
           </nav>

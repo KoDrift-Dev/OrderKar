@@ -54,11 +54,11 @@ export function ReceiptPreview({ data }: { data: ReceiptDataT }) {
   const total = data.items.reduce((s, i) => s + i.qty * i.price, 0);
   const change = data.tendered != null ? data.tendered - total : null;
   return (
-    <div className="mx-auto w-full max-w-[340px] rounded-[16px] border border-line bg-[var(--c-surface-solid)] p-6 text-ink">
+    <div className="mx-auto w-full max-w-[340px] rounded-[16px] border border-line/12 bg-[var(--c-surface-solid)] p-6 text-ink">
       <h3 className="text-center font-display text-[19px] font-extrabold">{data.restaurant.name}</h3>
       {data.restaurant.address && <p className="mt-0.5 text-center text-[12px] text-muted">{data.restaurant.address}</p>}
       {data.restaurant.phone && <p className="text-center text-[12px] text-muted">{data.restaurant.phone}</p>}
-      <div className="my-3 border-t border-dashed border-line" />
+      <div className="my-3 border-t border-dashed border-line/12" />
       <div className="flex justify-between text-[12.5px] text-muted">
         <span>
           {t('rct_order')} <b className="text-ink">#{data.orderNo}</b>
@@ -74,7 +74,7 @@ export function ReceiptPreview({ data }: { data: ReceiptDataT }) {
         {data.cashier && <span>{t('rct_cashier', { name: data.cashier })}</span>}
       </div>
       {data.customerName && <p className="mt-1 text-[12.5px] text-muted">{t('rct_customer', { name: data.customerName })}</p>}
-      <div className="my-3 border-t border-dashed border-line" />
+      <div className="my-3 border-t border-dashed border-line/12" />
       <div className="space-y-1.5">
         {data.items.map((i, k) => (
           <div key={k} className="flex justify-between text-[13.5px]">
@@ -85,7 +85,7 @@ export function ReceiptPreview({ data }: { data: ReceiptDataT }) {
           </div>
         ))}
       </div>
-      <div className="my-3 border-t border-dashed border-line" />
+      <div className="my-3 border-t border-dashed border-line/12" />
       <div className="flex justify-between font-display text-[17px] font-extrabold">
         <span>{t('rct_total')}</span>
         <span className="font-mono">{pkr(total)}</span>

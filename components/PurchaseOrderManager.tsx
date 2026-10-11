@@ -188,7 +188,7 @@ export default function PurchaseOrderManager({ restaurantId }: { restaurantId: s
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line/12 react-hooks/exhaustive-deps
   }, [restaurantId]);
 
   const filtered = useMemo(
@@ -531,7 +531,7 @@ export default function PurchaseOrderManager({ restaurantId }: { restaurantId: s
                 </button>
 
                 {expanded && (
-                  <div className="border-t border-line px-4 py-3">
+                  <div className="border-t border-line/12 px-4 py-3">
                     {(po.items ?? []).length === 0 ? (
                       <p className="text-[12.5px] text-muted">No lines on this order.</p>
                     ) : (
@@ -547,7 +547,7 @@ export default function PurchaseOrderManager({ restaurantId }: { restaurantId: s
                             </span>
                           </div>
                         ))}
-                        <div className="flex items-center justify-between border-t border-line pt-2 text-[13.5px]">
+                        <div className="flex items-center justify-between border-t border-line/12 pt-2 text-[13.5px]">
                           <span className="font-bold text-muted">Total</span>
                           <span className="font-display text-[15px] font-extrabold text-ink">
                             {fmtPKR(Number(po.total_amount))}
@@ -615,7 +615,7 @@ export default function PurchaseOrderManager({ restaurantId }: { restaurantId: s
         <div className="fixed inset-0 z-50" role="dialog" aria-modal="true">
           <div className="absolute inset-0 bg-ink/45 backdrop-blur-[2px]" onClick={() => !saving && setModalOpen(false)} />
           <div className="absolute inset-0 m-auto flex h-fit max-h-[92dvh] w-[calc(100%-2rem)] max-w-2xl flex-col rounded-[24px] bg-[var(--c-surface-solid)] shadow-2xl">
-            <div className="flex items-center justify-between border-b border-line p-4 sm:px-6">
+            <div className="flex items-center justify-between border-b border-line/12 p-4 sm:px-6">
               <h2 className="font-display text-[17px] font-extrabold text-ink">New Purchase Order</h2>
               <button onClick={() => !saving && setModalOpen(false)} aria-label="Close" className="glass flex h-8 w-8 items-center justify-center !rounded-full text-muted">
                 ✕
@@ -628,7 +628,7 @@ export default function PurchaseOrderManager({ restaurantId }: { restaurantId: s
                   value={supplierId}
                   onChange={(e) => setSupplierId(e.target.value)}
                   aria-label="Supplier"
-                  className="mt-1.5 w-full rounded-btn border border-line bg-[var(--c-surface-solid)] px-3 py-2.5 text-[13.5px] text-ink"
+                  className="mt-1.5 w-full rounded-btn border border-line/12 bg-[var(--c-surface-solid)] px-3 py-2.5 text-[13.5px] text-ink"
                 >
                   <option value="">No supplier</option>
                   {suppliers.map((s) => (
@@ -656,14 +656,14 @@ export default function PurchaseOrderManager({ restaurantId }: { restaurantId: s
                 </div>
                 <div className="space-y-2">
                   {lines.map((l) => (
-                    <div key={l.key} className="grid grid-cols-12 items-end gap-2 rounded-[14px] border border-line p-2.5">
+                    <div key={l.key} className="grid grid-cols-12 items-end gap-2 rounded-[14px] border border-line/12 p-2.5">
                       <div className="col-span-12 sm:col-span-5">
                         <Label>Item</Label>
                         <select
                           value={l.inventory_item_id}
                           onChange={(e) => onLineItem(l.key, e.target.value)}
                           aria-label="Inventory item"
-                          className="mt-1 w-full rounded-btn border border-line bg-[var(--c-surface-solid)] px-2.5 py-2 text-[13px] text-ink"
+                          className="mt-1 w-full rounded-btn border border-line/12 bg-[var(--c-surface-solid)] px-2.5 py-2 text-[13px] text-ink"
                         >
                           <option value="">Select item…</option>
                           {items
@@ -737,7 +737,7 @@ export default function PurchaseOrderManager({ restaurantId }: { restaurantId: s
 
               {modalError && <p className="text-[13px] font-bold text-danger">{modalError}</p>}
             </div>
-            <div className="flex flex-wrap justify-end gap-2 border-t border-line p-4 sm:px-6">
+            <div className="flex flex-wrap justify-end gap-2 border-t border-line/12 p-4 sm:px-6">
               <button
                 onClick={() => setModalOpen(false)}
                 disabled={saving}

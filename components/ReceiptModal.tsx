@@ -152,8 +152,8 @@ export default function ReceiptModal({
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative flex max-h-[92vh] w-full max-w-sm flex-col overflow-hidden rounded-[20px] border border-line bg-[var(--c-surface-solid)] shadow-2xl">
-        <div className="flex items-center justify-between border-b border-line px-5 py-3.5 print:hidden">
+      <div className="relative flex max-h-[92vh] w-full max-w-sm flex-col overflow-hidden rounded-[20px] border border-line/12 bg-[var(--c-surface-solid)] shadow-2xl">
+        <div className="flex items-center justify-between border-b border-line/12 px-5 py-3.5 print:hidden">
           <h3 className="font-display text-[16px] font-black text-ink">🧾 Receipt</h3>
           <button
             onClick={onClose}
@@ -170,7 +170,7 @@ export default function ReceiptModal({
         </div>
 
         {/* Method picker (screen only) */}
-        <div className="border-t border-line px-5 pt-3 print:hidden">
+        <div className="border-t border-line/12 px-5 pt-3 print:hidden">
           <p className="text-[10.5px] font-extrabold uppercase tracking-wider text-muted">Payment method</p>
           <div className="mt-1.5 grid grid-cols-4 gap-1.5">
             {PAY_METHODS.map((m) => (

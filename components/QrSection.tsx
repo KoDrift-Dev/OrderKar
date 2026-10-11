@@ -59,13 +59,13 @@ function QrCard({ qr, svg, restaurantName }: { qr: QrDef; svg?: string; restaura
     <Card className="flex flex-col items-center p-4 text-center">
       {svg ? (
         <div
-          className="h-36 w-36 overflow-hidden rounded-[12px] border border-line bg-white p-1.5 [&>svg]:h-full [&>svg]:w-full"
+          className="h-36 w-36 overflow-hidden rounded-[12px] border border-line/12 bg-white p-1.5 [&>svg]:h-full [&>svg]:w-full"
           dangerouslySetInnerHTML={{ __html: svg }}
           role="img"
           aria-label={t('qr_aria', { label: qr.label })}
         />
       ) : (
-        <div className="flex h-36 w-36 items-center justify-center rounded-[12px] border border-line bg-white">
+        <div className="flex h-36 w-36 items-center justify-center rounded-[12px] border border-line/12 bg-white">
           <span className="text-xs font-semibold text-muted">{t('qr_loading')}</span>
         </div>
       )}
@@ -83,7 +83,7 @@ function QrCard({ qr, svg, restaurantName }: { qr: QrDef; svg?: string; restaura
             setBusy(false);
           }
         }}
-        className="mt-3 inline-flex select-none items-center gap-1.5 rounded-btn bg-[var(--c-surface-solid)] px-3.5 py-1.5 text-[12.5px] font-bold text-ink border border-line shadow-lift hover:-translate-y-px active:translate-y-0 transition-all disabled:opacity-50"
+        className="mt-3 inline-flex select-none items-center gap-1.5 rounded-btn bg-[var(--c-surface-solid)] px-3.5 py-1.5 text-[12.5px] font-bold text-ink border border-line/12 shadow-lift hover:-translate-y-px active:translate-y-0 transition-all disabled:opacity-50"
       >
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M12 3v12m0 0l-4.5-4.5M12 15l4.5-4.5M4 20h16" />

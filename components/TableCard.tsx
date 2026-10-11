@@ -46,7 +46,7 @@ const STATE_STYLE: Record<TableState, StateStyle> = {
     pill: 'bg-soft text-muted',
     title: 'text-ink',
     sub: 'text-muted',
-    metaWrap: 'border-line',
+    metaWrap: 'border-line/12',
     metaText: 'text-ink',
   },
   seated: {

@@ -57,7 +57,7 @@ export default function SupplierManager({ restaurantId }: { restaurantId: string
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line/12 react-hooks/exhaustive-deps
   }, [restaurantId]);
 
   const openNew = () => {
@@ -183,7 +183,7 @@ export default function SupplierManager({ restaurantId }: { restaurantId: string
           </div>
         ) : (
           <>
-            <div className="hidden grid-cols-12 gap-2 border-b border-line px-4 py-2.5 text-[10.5px] font-extrabold uppercase tracking-wider text-muted md:grid">
+            <div className="hidden grid-cols-12 gap-2 border-b border-line/12 px-4 py-2.5 text-[10.5px] font-extrabold uppercase tracking-wider text-muted md:grid">
               <p className="col-span-4">Name</p>
               <p className="col-span-3">Phone</p>
               <p className="col-span-3">Email</p>
@@ -242,7 +242,7 @@ export default function SupplierManager({ restaurantId }: { restaurantId: string
       {editing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50" onClick={() => setEditing(null)} />
-          <div className="relative w-full max-w-md rounded-[20px] border border-line bg-[var(--c-surface-solid)] p-5 shadow-2xl">
+          <div className="relative w-full max-w-md rounded-[20px] border border-line/12 bg-[var(--c-surface-solid)] p-5 shadow-2xl">
             <h3 className="font-display text-[16px] font-black text-ink">
               {editing === 'new' ? 'Add Supplier' : 'Edit Supplier'}
             </h3>
