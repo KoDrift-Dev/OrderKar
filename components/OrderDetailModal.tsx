@@ -9,18 +9,12 @@ import { useEffect, useState } from 'react';
 import type { Order, OrderItem } from '@/lib/types';
 import { fmtElapsed, fmtPKR } from '@/lib/format';
 import StatusPill from './StatusPill';
+import ReceiptModal from './ReceiptModal';
 
 export interface ModalMenuInfo {
   image_url: string | null;
   ingredients: string | null;
 }
-
-const PAY_METHODS = [
-  { value: 'cash', label: 'Cash', icon: '💵' },
-  { value: 'card', label: 'Card', icon: '💳' },
-  { value: 'jazzcash', label: 'JazzCash', icon: '📱' },
-  { value: 'easypaisa', label: 'EasyPaisa', icon: '📱' },
-];
 
 export default function OrderDetailModal({
   order,
@@ -35,6 +29,7 @@ export default function OrderDetailModal({
   busy,
   onCollectPayment,
   payBusy,
+  restaurantId,
 }: {
   order: Order;
   items: OrderItem[];
@@ -48,6 +43,7 @@ export default function OrderDetailModal({
   busy?: boolean;
   onCollectPayment?: (method: string) => void | Promise<void>;
   payBusy?: boolean;
+  restaurantId?: string;
 }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -62,14 +58,12 @@ export default function OrderDetailModal({
   }, [onClose]);
 
   const subtotal = items.reduce((s, i) => s + i.quantity * Number(i.unit_price), 0);
-  const [payOpen, setPayOpen] = useState(false);
-  const [payMethod, setPayMethod] = useState('cash');
+  const [receiptOpen, setReceiptOpen] = useState(false);
   useEffect(() => {
-    setPayOpen(false);
-    setPayMethod('cash');
+    setReceiptOpen(false);
   }, [order.id]);
   const collectable =
-    !!onCollectPayment && order.payment_status !== 'paid' && order.status !== 'cancelled';
+    !!onCollectPayment && !!restaurantId && order.payment_status !== 'paid' && order.status !== 'cancelled';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -213,60 +207,34 @@ export default function OrderDetailModal({
                 <span>{advanceLabel}</span>
               </button>
             )}
-            {collectable &&
-              (payOpen ? (
-                <div className="rounded-[13px] border border-emerald-500/30 bg-emerald-500/[0.06] p-3">
-                  <p className="text-[11px] font-extrabold uppercase tracking-wider text-muted">
-                    Payment method
-                  </p>
-                  <div className="mt-2 grid grid-cols-4 gap-1.5">
-                    {PAY_METHODS.map((m) => (
-                      <button
-                        key={m.value}
-                        onClick={() => setPayMethod(m.value)}
-                        className={`rounded-[10px] border px-1 py-2 text-[11px] font-extrabold transition-all ${
-                          payMethod === m.value
-                            ? 'border-emerald-500 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
-                            : 'border-line/70 text-muted hover:text-ink'
-                        }`}
-                      >
-                        <span className="block text-[16px]">{m.icon}</span>
-                        {m.label}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="mt-2.5 flex gap-2">
-                    <button
-                      onClick={() => onCollectPayment?.(payMethod)}
-                      disabled={payBusy}
-                      className="flex flex-1 items-center justify-center gap-1.5 rounded-[11px] bg-emerald-600 px-4 py-2.5 text-[13px] font-black text-white shadow-lift transition-all hover:bg-emerald-700 active:scale-[0.99] disabled:opacity-60"
-                    >
-                      {payBusy ? (
-                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                      ) : (
-                        <span>✓</span>
-                      )}
-                      Mark Paid · {fmtPKR(Number(order.total_amount) || subtotal)}
-                    </button>
-                    <button
-                      onClick={() => setPayOpen(false)}
-                      className="shrink-0 rounded-[11px] border border-line px-3.5 py-2.5 text-[13px] font-bold text-muted transition-colors hover:text-ink"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setPayOpen(true)}
-                  className="flex w-full items-center justify-center gap-1.5 rounded-[13px] bg-emerald-600/10 px-4 py-2.5 text-[13.5px] font-black text-emerald-700 transition-all hover:bg-emerald-600/20 dark:text-emerald-300"
-                >
-                  <span>💰</span>
-                  <span>Collect Payment · {fmtPKR(Number(order.total_amount) || subtotal)}</span>
-                </button>
-              ))}
+            {collectable && (
+              <button
+                onClick={() => setReceiptOpen(true)}
+                className="flex w-full items-center justify-center gap-1.5 rounded-[13px] bg-emerald-600/10 px-4 py-2.5 text-[13.5px] font-black text-emerald-700 transition-all hover:bg-emerald-600/20 dark:text-emerald-300"
+              >
+                <span>🧾</span>
+                <span>Receipt / Collect Payment · {fmtPKR(Number(order.total_amount) || subtotal)}</span>
+              </button>
+            )}
           </div>
         ) : null}
+
+        {/* Receipt popup — payment method, download, and Paid live here */}
+        {receiptOpen && collectable && (
+          <ReceiptModal
+            restaurantId={restaurantId as string}
+            order={order}
+            items={items}
+            tableNo={tableNo}
+            waiterName={waiterName}
+            onClose={() => setReceiptOpen(false)}
+            onPaid={async (method) => {
+              await onCollectPayment?.(method);
+              setReceiptOpen(false);
+            }}
+            payBusy={payBusy}
+          />
+        )}
       </div>
     </div>
   );

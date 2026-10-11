@@ -14,6 +14,7 @@ import { LangProvider, normalizeLang, useT, type Lang } from '@/lib/i18n';
 import MenuOrder from './MenuOrder';
 import TableCard, { tableState } from './TableCard';
 import StatusPill from './StatusPill';
+import ReceiptModal from './ReceiptModal';
 import { Card, Empty, PageHeader, Tabs, Btn } from './ui';
 
 type View = 'take' | 'orders';
@@ -49,17 +50,20 @@ function WaiterAppInner({ restaurantId, waiterId }: { restaurantId: string; wait
   const [activeTable, setActiveTable] = useState<DiningTable | null>(null);
   const [addingTo, setAddingTo] = useState<OrderWithItems | null>(null);
   const [placedTick, setPlacedTick] = useState(0);
-  const [payFor, setPayFor] = useState<string | null>(null);
-  const [payMethod, setPayMethod] = useState('cash');
+  const [receiptFor, setReceiptFor] = useState<OrderWithItems | null>(null);
+  const [paying, setPaying] = useState(false);
 
-  const collectPayment = async (orderId: string) => {
-    const supabase = createClient();
-    await supabase
+  const collectPayment = async (orderId: string, method: string) => {
+    setPaying(true);
+    const { error } = await createClient()
       .from('orders')
-      .update({ status: 'completed', payment_status: 'paid', payment_method: payMethod })
+      .update({ status: 'completed', payment_status: 'paid', payment_method: method })
       .eq('id', orderId);
-    setPayFor(null);
-    load();
+    setPaying(false);
+    if (!error) {
+      setReceiptFor(null);
+      load();
+    }
   };
 
   const completeOrder = async (orderId: string) => {
@@ -193,25 +197,11 @@ function WaiterAppInner({ restaurantId, waiterId }: { restaurantId: string; wait
               {t('wtr_add_items')}
             </button>
           )}
-          {o.status === 'ready' && o.payment_status !== 'paid' &&
-            (payFor === o.id ? (
-              <>
-                <select value={payMethod} onChange={(e) => setPayMethod(e.target.value)} className="min-w-0 flex-1 rounded-btn border border-line bg-[var(--c-surface-solid)] px-3 py-2 text-[13px] font-bold text-ink">
-                  <option value="cash">💵 Cash</option>
-                  <option value="card">💳 Card</option>
-                  <option value="jazzcash">📱 JazzCash</option>
-                  <option value="easypaisa">📱 EasyPaisa</option>
-                </select>
-                <button onClick={() => collectPayment(o.id)} className="btn-3d shrink-0 rounded-btn px-4 py-2 text-[13px] font-extrabold text-white">
-                  Paid ✓
-                </button>
-                <button onClick={() => setPayFor(null)} className="shrink-0 rounded-btn border border-line px-3 py-2 text-[13px] font-bold text-muted">✕</button>
-              </>
-            ) : (
-              <button onClick={() => { setPayFor(o.id); setPayMethod('cash'); }} className="flex-1 rounded-btn bg-ok/10 py-2 text-[13.5px] font-extrabold text-ok hover:bg-ok/20">
-                {t('wtr_collect_payment', { amount: fmtPKR(o.total_amount) })}
-              </button>
-            ))}
+          {o.status === 'ready' && o.payment_status !== 'paid' && (
+            <button onClick={() => setReceiptFor(o)} className="flex-1 rounded-btn bg-ok/10 py-2 text-[13.5px] font-extrabold text-ok hover:bg-ok/20">
+              🧾 {t('wtr_collect_payment', { amount: fmtPKR(o.total_amount) })}
+            </button>
+          )}
           {o.status === 'ready' && o.payment_status === 'paid' && (
             <button onClick={() => completeOrder(o.id)} className="flex-1 rounded-btn bg-brand/10 py-2 text-[13.5px] font-extrabold text-brand hover:bg-brand/20">
               {t('wtr_complete_order')}
@@ -341,6 +331,19 @@ function WaiterAppInner({ restaurantId, waiterId }: { restaurantId: string; wait
             </>
           )}
         </div>
+      )}
+
+      {/* Receipt popup — method, download, and Paid live here */}
+      {receiptFor && (
+        <ReceiptModal
+          restaurantId={restaurantId}
+          order={receiptFor}
+          items={receiptFor.order_items}
+          tableNo={receiptFor.tables?.table_number != null ? String(receiptFor.tables.table_number) : null}
+          onClose={() => setReceiptFor(null)}
+          onPaid={(method) => collectPayment(receiptFor.id, method)}
+          payBusy={paying}
+        />
       )}
     </div>
   );

@@ -393,3 +393,24 @@ body {
 .pos-items-scroll::-webkit-scrollbar-thumb:hover {
   background: var(--c-brand-deep);
 }
+
+/* ── Receipt printing: only the receipt area prints ── */
+@media print {
+  body.receipt-printing * {
+    visibility: hidden !important;
+  }
+  body.receipt-printing .receipt-print-area,
+  body.receipt-printing .receipt-print-area * {
+    visibility: visible !important;
+  }
+  body.receipt-printing .receipt-print-area {
+    position: absolute !important;
+    inset: 0 auto auto 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+}
