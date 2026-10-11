@@ -363,7 +363,7 @@ export default function TableManager({
         </div>
 
         {/* Stat cards */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
           {[
             { label: 'Occupied', count: liveCounts.seated + liveCounts.bill, total: liveTotal, bar: 'from-teal to-emerald-600', icon: '🪑' },
             { label: 'Available', count: liveCounts.free, total: liveTotal, bar: 'from-emerald-400 to-green-500', icon: '✅' },
@@ -371,19 +371,19 @@ export default function TableManager({
           ].map((c) => {
             const pct = c.total > 0 ? Math.round((c.count / c.total) * 100) : 0;
             return (
-              <div key={c.label} className="rounded-[18px] border border-line/60 bg-[var(--c-surface-solid)] p-4 shadow-sm">
-                <div className="flex items-center gap-2.5">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-soft text-[17px]">{c.icon}</span>
-                  <p className="text-[12.5px] font-bold text-muted">{c.label}</p>
+              <div key={c.label} className="rounded-[14px] border border-line/60 bg-[var(--c-surface-solid)] p-2.5 shadow-sm sm:rounded-[18px] sm:p-4">
+                <div className="flex items-center gap-1.5 sm:gap-2.5">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[10px] bg-soft text-[14px] sm:h-9 sm:w-9 sm:rounded-[12px] sm:text-[17px]">{c.icon}</span>
+                  <p className="truncate text-[10.5px] font-bold text-muted sm:text-[12.5px]">{c.label}</p>
                 </div>
-                <p className="mt-2 font-mono text-[22px] font-black text-ink">
+                <p className="mt-1.5 font-mono text-[18px] font-black text-ink sm:mt-2 sm:text-[22px]">
                   {c.count}
-                  <span className="text-[13px] font-bold text-muted"> / {c.total}</span>
+                  <span className="text-[11px] font-bold text-muted sm:text-[13px]"> / {c.total}</span>
                 </p>
-                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-soft">
+                <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-soft sm:mt-2">
                   <div className={`h-full rounded-full bg-gradient-to-r ${c.bar}`} style={{ width: `${pct}%` }} />
                 </div>
-                <p className="mt-1 text-right font-mono text-[11px] font-bold text-muted">{pct}%</p>
+                <p className="mt-1 text-right font-mono text-[10px] font-bold text-muted sm:text-[11px]">{pct}%</p>
               </div>
             );
           })}
