@@ -907,6 +907,9 @@ function OwnerAppInner({
               </span>
               <input
                 type="text"
+                name="orderkar-global-search"
+                autoComplete="off"
+                data-lpignore="true"
                 placeholder="Search orders, tables, menu..."
                 className="w-full rounded-full border border-line/70 bg-soft/60 pl-9 pr-4 py-2 text-[12.5px] font-medium text-ink outline-none transition-all placeholder:text-muted/70 hover:bg-soft focus:border-brand/50 focus:bg-[var(--c-surface-solid)] focus:ring-2 focus:ring-brand/20 shadow-2xs"
               />
