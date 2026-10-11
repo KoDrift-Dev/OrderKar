@@ -51,18 +51,20 @@ export function Btn({ variant = 'primary', size = 'md', className = '', ...rest 
 }
 
 /* ── Neumorphic input ───────────────────────────────────────── */
-export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
+export function Input({ autoComplete = 'off', ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
+      autoComplete={autoComplete}
       {...props}
       className={`input-neu w-full px-4 py-2.5 text-[15px] text-ink placeholder:text-muted ${props.className ?? ''}`}
     />
   );
 }
 
-export function Textarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+export function Textarea({ autoComplete = 'off', ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return (
     <textarea
+      autoComplete={autoComplete}
       {...props}
       className={`input-neu w-full px-4 py-2.5 text-[15px] text-ink placeholder:text-muted ${props.className ?? ''}`}
     />

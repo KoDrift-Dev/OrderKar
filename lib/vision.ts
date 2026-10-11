@@ -29,6 +29,7 @@ Rules:
 - "category" is the menu section heading the item sits under (e.g. "BBQ", "Beverages", "Desi"). If no section is visible, use "General".
 - "description" is the short dish description if printed, else null.
 - Skip non-item text: addresses, phone numbers, slogans, timings, delivery info.
+- NEVER put email addresses, phone numbers, URLs, or social media handles in ANY field.
 - If an item's price is unreadable, omit that item.
 - Keep names exactly as printed (Roman Urdu / English as-is).`;
 
@@ -69,6 +70,18 @@ export async function extractMenuFromImage(imageUrl: string): Promise<ExtractedI
   return parseItems(text);
 }
 
+// Defensive cleanup: the model sometimes leaks contact info printed on the
+// menu (email / phone / url) into a field. Strip it — it never belongs there.
+function stripContact(s: string): string {
+  return s
+    .replace(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g, '')
+    .replace(/https?:\/\/\S+/gi, '')
+    .replace(/www\.\S+/gi, '')
+    .replace(/\+?\d[\d\s-]{7,}\d/g, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
 function parseItems(text: string): ExtractedItem[] {
   const clean = text
     .replace(/```json/gi, '')
@@ -90,8 +103,10 @@ function parseItems(text: string): ExtractedItem[] {
     const category =
       typeof row.category === 'string' && row.category.trim() ? row.category.trim() : 'General';
     const description =
-      typeof row.description === 'string' && row.description.trim() ? row.description.trim() : null;
-    items.push({ name, description, price: Math.round(price * 100) / 100, category });
+      typeof row.description === 'string' && row.description.trim()
+        ? stripContact(row.description) || null
+        : null;
+    items.push({ name: stripContact(name), description, price: Math.round(price * 100) / 100, category });
   }
   return items;
 }

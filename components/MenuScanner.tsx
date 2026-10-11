@@ -8,10 +8,11 @@ import { createClient } from '@/lib/supabase/client';
 import { logActivity, ACT } from '@/lib/activity';
 import { Btn, Card, Input, Label } from './ui';
 import PhotoDropzone, { useUploadState } from './PhotoDropzone';
+import { uploadPhoto } from '@/lib/images';
 import { useGuard } from './DeleteFlow';
 import type { ExtractedItem } from '@/lib/vision';
 
-type Row = ExtractedItem & { key: number; include: boolean };
+type Row = ExtractedItem & { key: number; include: boolean; image_url: string | null };
 
 export default function MenuScanner({
   restaurantId,
@@ -28,6 +29,7 @@ export default function MenuScanner({
   const [step, setStep] = useState<'upload' | 'scanning' | 'review' | 'importing'>('upload');
   const [rows, setRows] = useState<Row[]>([]);
   const [error, setError] = useState('');
+  const [uploadingPhoto, setUploadingPhoto] = useState<number | null>(null);
   const [notConfigured, setNotConfigured] = useState(false);
 
   const scan = () =>
@@ -56,7 +58,7 @@ export default function MenuScanner({
         }
         if (!res.ok || !j.items) throw new Error(j.error || 'Scan failed');
         if (j.items.length === 0) throw new Error('No items found — try a clearer, well-lit photo.');
-        setRows(j.items.map((it, i) => ({ ...it, key: i, include: true })));
+        setRows(j.items.map((it, i) => ({ ...it, key: i, include: true, image_url: null })));
         setStep('review');
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Scan failed');
@@ -66,6 +68,18 @@ export default function MenuScanner({
 
   const setRow = (key: number, patch: Partial<Row>) =>
     setRows((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
+
+  const uploadRowPhoto = async (key: number, file: File) => {
+    setUploadingPhoto(key);
+    try {
+      const url = await uploadPhoto('menu-images', restaurantId, file);
+      setRow(key, { image_url: url });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Photo upload failed');
+    } finally {
+      setUploadingPhoto(null);
+    }
+  };
 
   const importRows = () =>
     guard(async () => {
@@ -106,6 +120,7 @@ export default function MenuScanner({
           description: r.description,
           price: r.price,
           is_available: true,
+          image_url: r.image_url,
         }));
         const { error } = await supabase.from('menu_items').insert(payload);
         if (error) throw error;
@@ -233,7 +248,7 @@ export default function MenuScanner({
                 {rows.map((r) => (
                   <div
                     key={r.key}
-                    className={`grid grid-cols-[auto_1fr] gap-2 rounded-xl border p-3 sm:grid-cols-[auto_1fr_110px_130px_auto] sm:items-center ${
+                    className={`grid grid-cols-[auto_1fr] gap-2 rounded-xl border p-3 sm:grid-cols-[auto_52px_1fr_110px_130px_auto] sm:items-center ${
                       r.include ? 'border-line bg-soft/40' : 'border-line/60 opacity-50'
                     }`}
                   >
@@ -244,6 +259,31 @@ export default function MenuScanner({
                       aria-label={`Include ${r.name}`}
                       className="mt-1 h-5 w-5 accent-[var(--c-brand)] sm:mt-0"
                     />
+                    <label
+                      className={`relative flex h-[52px] w-[52px] cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-line bg-soft/60 ${uploadingPhoto === r.key ? 'opacity-50' : ''}`}
+                      title={r.image_url ? 'Change dish photo' : 'Upload dish photo'}
+                    >
+                      {r.image_url ? (
+                        <img src={r.image_url} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <span className="text-[22px]" aria-hidden>📷</span>
+                      )}
+                      {uploadingPhoto === r.key && (
+                        <span className="absolute inset-0 flex items-center justify-center bg-ink/40 text-white text-lg" aria-hidden>⏳</span>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        aria-label={`Upload photo for ${r.name || 'dish'}`}
+                        disabled={uploadingPhoto === r.key}
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) uploadRowPhoto(r.key, f);
+                          e.target.value = '';
+                        }}
+                      />
+                    </label>
                     <Input
                       value={r.name}
                       onChange={(e) => setRow(r.key, { name: e.target.value })}
@@ -276,7 +316,7 @@ export default function MenuScanner({
                       onChange={(e) => setRow(r.key, { description: e.target.value || null })}
                       placeholder="Description (optional)"
                       aria-label="Description"
-                      className="col-span-2 sm:col-span-5"
+                      className="col-span-2 sm:col-span-6"
                     />
                   </div>
                 ))}
