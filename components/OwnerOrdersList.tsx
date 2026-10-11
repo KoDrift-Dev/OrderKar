@@ -7,6 +7,7 @@
 
 import { useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { logActivity, ACT } from '@/lib/activity';
 import type { DiningTable, MenuItem, Order, OrderItem, OrderStatus, Profile } from '@/lib/types';
 import { fmtElapsed, fmtPKR } from '@/lib/format';
 import StatusPill from './StatusPill';
@@ -111,7 +112,16 @@ export default function OwnerOrdersList({
     setMenuOpenId(null);
     const { error } = await createClient().from('orders').update({ status: next }).eq('id', o.id);
     setBusyId(null);
-    if (!error) onRefresh?.();
+    if (!error) {
+      onRefresh?.();
+      logActivity(createClient(), {
+        restaurantId,
+        action: ACT.ORDER_STATUS_CHANGED,
+        entityType: 'order',
+        entityId: o.id,
+        details: { status: next },
+      });
+    }
   };
 
   const collectPayment = async (orderId: string, method: string) => {
@@ -121,7 +131,16 @@ export default function OwnerOrdersList({
       .update({ status: 'completed', payment_status: 'paid', payment_method: method })
       .eq('id', orderId);
     setBusyId(null);
-    if (!error) onRefresh?.();
+    if (!error) {
+      onRefresh?.();
+      logActivity(createClient(), {
+        restaurantId,
+        action: ACT.PAYMENT_COLLECTED,
+        entityType: 'order',
+        entityId: orderId,
+        details: { payment_method: method },
+      });
+    }
   };
 
   return (

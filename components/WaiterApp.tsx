@@ -8,6 +8,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { logActivity, ACT } from '@/lib/activity';
 import type { DiningTable, OrderWithItems } from '@/lib/types';
 import { fmtPKR, fmtAgo } from '@/lib/format';
 import { LangProvider, normalizeLang, useT, type Lang } from '@/lib/i18n';
@@ -65,6 +66,13 @@ function WaiterAppInner({ restaurantId, waiterId }: { restaurantId: string; wait
     if (!error) {
       setReceiptFor(null);
       load();
+      logActivity(createClient(), {
+        restaurantId,
+        action: ACT.PAYMENT_COLLECTED,
+        entityType: 'order',
+        entityId: orderId,
+        details: { payment_method: method },
+      });
     }
   };
 
