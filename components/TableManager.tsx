@@ -543,6 +543,7 @@ export default function TableManager({
           onClose={() => setDetailOrderId(null)}
           onCollectPayment={collectDetailPayment}
           payBusy={busyId === detailOrderFull.id}
+          restaurantId={restaurantId}
         />
       )}
 

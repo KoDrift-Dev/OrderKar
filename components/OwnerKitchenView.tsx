@@ -498,6 +498,7 @@ export default function OwnerKitchenView({
             busy={busyId === modalOrder.id}
             onCollectPayment={(method) => collectPayment(modalOrder.id, method)}
             payBusy={busyId === modalOrder.id}
+            restaurantId={restaurantId}
           />
         );
       })()}
