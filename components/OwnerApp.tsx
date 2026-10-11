@@ -28,9 +28,8 @@ import TeamManager from './TeamManager';
 import OwnerAuditTab from './OwnerAuditTab';
 import OwnerReportsTab, { type ReportSubTab } from './OwnerReportsTab';
 import PosTab from './PosTab';
-import type { KpiComparisons, MetricComparison } from './OwnerDashTab';
+import { useSectionData, RANGE_KEYS, type Range } from './useRangeAnalytics';
 
-type Range = 'today' | '7d' | '30d' | '12m' | 'custom';
 type TabKey =
   | 'dashboard'
   | 'reports'
@@ -47,183 +46,6 @@ type TabKey =
   | 'settings';
 type PreviewKey = 'kitchen' | 'waiter';
 
-function isoDay(d: Date): string {
-  return d.toLocaleDateString('en-CA');
-}
-
-function defaultCustom(): { from: string; to: string } {
-  const to = new Date();
-  const from = new Date();
-  from.setDate(from.getDate() - 6);
-  return { from: isoDay(from), to: isoDay(to) };
-}
-
-function rangeBoundsWithPrev(
-  r: Range,
-  custom: { from: string; to: string }
-): { start: Date; end: Date; prevStart: Date; prevEnd: Date; compLabel: string } {
-  const now = new Date();
-  const endOfDay = new Date(now);
-  endOfDay.setHours(23, 59, 59, 999);
-
-  if (r === 'today') {
-    const s = new Date(now);
-    s.setHours(0, 0, 0, 0);
-    const prevS = new Date(s);
-    prevS.setDate(prevS.getDate() - 1);
-    const prevE = new Date(s);
-    prevE.setMilliseconds(-1);
-    return {
-      start: s,
-      end: endOfDay,
-      prevStart: prevS,
-      prevEnd: prevE,
-      compLabel: 'vs yesterday',
-    };
-  }
-  if (r === 'custom') {
-    const s = new Date(custom.from + 'T00:00:00');
-    const e = new Date(custom.to + 'T23:59:59');
-    const dur = e.getTime() - s.getTime();
-    const prevS = new Date(s.getTime() - dur);
-    const prevE = new Date(s.getTime() - 1);
-    return {
-      start: s,
-      end: e,
-      prevStart: prevS,
-      prevEnd: prevE,
-      compLabel: 'vs prior period',
-    };
-  }
-  const s = new Date(now);
-  s.setHours(0, 0, 0, 0);
-  let durDays = 7;
-  let compLabel = 'vs prev 7 days';
-  if (r === '7d') {
-    durDays = 7;
-    compLabel = 'vs prev 7 days';
-    s.setDate(s.getDate() - 6);
-  } else if (r === '30d') {
-    durDays = 30;
-    compLabel = 'vs prev 30 days';
-    s.setDate(s.getDate() - 29);
-  } else {
-    durDays = 365;
-    compLabel = 'vs prev year';
-    s.setMonth(s.getMonth() - 12);
-  }
-  const prevS = new Date(s);
-  prevS.setDate(prevS.getDate() - durDays);
-  const prevE = new Date(s);
-  prevE.setMilliseconds(-1);
-  return {
-    start: s,
-    end: endOfDay,
-    prevStart: prevS,
-    prevEnd: prevE,
-    compLabel,
-  };
-}
-
-interface Agg {
-  revenue: number;
-  orders: number;
-  itemsSold: number;
-  trend: { label: string; value: number }[];
-  hours: number[];
-  weekdays: number[];
-  topItems: { name: string; qty: number; revenue: number }[];
-  cats: { name: string; revenue: number }[];
-}
-
-function aggregate(orders: Order[], items: OrderItem[], range: Range, start: Date, end: Date): Agg {
-  const done = orders.filter((o) => o.status !== 'cancelled');
-  const revenue = done.reduce((s, o) => s + Number(o.total_amount), 0);
-  const itemsSold = items.reduce((s, i) => s + i.quantity, 0);
-
-  const hourly = range === 'today';
-  const monthly = range === '12m';
-  const bucketKey = (d: Date): string => {
-    if (hourly) {
-      const h = d.getHours();
-      const ampm = h >= 12 ? 'PM' : 'AM';
-      const num = h % 12 === 0 ? 12 : h % 12;
-      return `${num} ${ampm}`;
-    }
-    if (monthly) return d.toLocaleDateString('en-PK', { month: 'short', year: '2-digit' });
-    return d.toLocaleDateString('en-PK', { day: 'numeric', month: 'short' });
-  };
-
-  const buckets = new Map<string, number>();
-  const orderOf = new Map<string, number>();
-  let bi = 0;
-  const addBucket = (k: string) => {
-    if (!buckets.has(k)) {
-      buckets.set(k, 0);
-      orderOf.set(k, bi++);
-    }
-  };
-
-  if (hourly) {
-    for (let h = 0; h < 24; h++) {
-      const ampm = h >= 12 ? 'PM' : 'AM';
-      const num = h % 12 === 0 ? 12 : h % 12;
-      addBucket(`${num} ${ampm}`);
-    }
-  } else if (monthly) {
-    const d = new Date(start);
-    d.setDate(1);
-    while (d <= end) {
-      addBucket(bucketKey(d));
-      d.setMonth(d.getMonth() + 1);
-    }
-  } else {
-    const d = new Date(start);
-    d.setHours(0, 0, 0, 0);
-    const stop = new Date(end);
-    stop.setHours(0, 0, 0, 0);
-    while (d <= stop) {
-      addBucket(bucketKey(d));
-      d.setDate(d.getDate() + 1);
-    }
-  }
-
-  for (const o of done) {
-    const k = bucketKey(new Date(o.created_at));
-    addBucket(k);
-    buckets.set(k, (buckets.get(k) ?? 0) + Number(o.total_amount));
-  }
-  const trend = [...buckets.entries()]
-    .sort((a, b) => (orderOf.get(a[0]) ?? 0) - (orderOf.get(b[0]) ?? 0))
-    .map(([label, value]) => ({ label, value }));
-
-  const hours = new Array(24).fill(0) as number[];
-  const weekdays = new Array(7).fill(0) as number[];
-  for (const o of done) {
-    const d = new Date(o.created_at);
-    hours[d.getHours()] += 1;
-    weekdays[(d.getDay() + 6) % 7] += 1;
-  }
-
-  const itemAgg = new Map<string, { name: string; qty: number; revenue: number }>();
-  for (const i of items) {
-    const e = itemAgg.get(i.item_name) ?? { name: i.item_name, qty: 0, revenue: 0 };
-    e.qty += i.quantity;
-    e.revenue += i.quantity * Number(i.unit_price);
-    itemAgg.set(i.item_name, e);
-  }
-  const topItems = [...itemAgg.values()].sort((a, b) => b.qty - a.qty);
-
-  return { revenue, orders: done.length, itemsSold, trend, hours, weekdays, topItems, cats: [] };
-}
-
-const RANGE_KEYS: Record<Range, TKey> = {
-  today: 'own_rnglbl_today',
-  '7d': 'own_rnglbl_7d',
-  '30d': 'own_rnglbl_30d',
-  '12m': 'own_rnglbl_12m',
-  custom: 'own_rnglbl_custom',
-};
 
 interface NavItemDef {
   key: TabKey;
@@ -309,9 +131,12 @@ function OwnerAppInner({
   const t = useT();
   const router = useRouter();
 
-  const [mounted, setMounted] = useState(false);
-  const [range, setRange] = useState<Range>('today');
-  const [custom, setCustom] = useState(defaultCustom);
+  // Per-section ranges — NO global page filter. Each section owns its own.
+  const [dashRange, setDashRange] = useState<Range>('today');
+  const [salesRange, setSalesRange] = useState<Range>('today');
+  const [reportsRange, setReportsRange] = useState<Range>('today');
+  const [staffRange, setStaffRange] = useState<Range>('7d');
+  const [auditRange, setAuditRange] = useState<Range>('7d');
   const [tab, setTab] = useState<TabKey>('dashboard');
   const [reportSubTab, setReportSubTab] = useState<ReportSubTab>('orders');
   const [preview, setPreview] = useState<PreviewKey>('kitchen');
@@ -329,14 +154,9 @@ function OwnerAppInner({
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [displayName, setDisplayName] = useState(restaurantName);
 
-  const { start, end, prevStart, compLabel } = useMemo(
-    () => rangeBoundsWithPrev(range, custom),
-    [range, custom]
-  );
-
   const ORDER_COLS =
-    'id,order_number,table_id,waiter_id,order_type,status,total_amount,payment_method,cancel_reason,created_at,updated_at';
-  const ITEM_COLS = 'id,order_id,menu_item_id,item_name,quantity,unit_price';
+    'id,order_number,table_id,waiter_id,order_type,status,total_amount,payment_status,payment_method,cancel_reason,notes,customer_name,created_at,updated_at';
+  const ITEM_COLS = 'id,order_id,menu_item_id,item_name,quantity,unit_price,notes';
 
   const loadStatic = async () => {
     const supabase = createClient();
@@ -359,16 +179,15 @@ function OwnerAppInner({
     if (rv) setReviews(rv as Review[]);
   };
 
-  const loadOrders = async (
-    targetRange: Range,
-    targetCustom: { from: string; to: string },
-    showCenterSpinner: boolean
-  ) => {
+  // Fixed fetch window: last 61 days. Every section filters its own range
+  // locally via useSectionData — no refetch needed when a section changes range.
+  const loadOrders = async (showCenterSpinner: boolean) => {
     const supabase = createClient();
     if (showCenterSpinner) setOrdersLoading(true);
     try {
-      const bounds = rangeBoundsWithPrev(targetRange, targetCustom);
-      const iso = bounds.prevStart.toISOString();
+      const since = new Date();
+      since.setDate(since.getDate() - 61);
+      const iso = since.toISOString();
       const { data: o } = await supabase
         .from('orders')
         .select(ORDER_COLS)
@@ -395,32 +214,15 @@ function OwnerAppInner({
     }
   };
 
-  const changeRange = (newRange: Range) => {
-    setRange(newRange);
-    try {
-      window.localStorage.setItem('orderkar_owner_range', newRange);
-    } catch {}
-    loadOrders(newRange, custom, true);
-  };
+  // Ref shared with the realtime channel (always calls the latest loader).
+  const loadOrdersRef = useRef<() => Promise<void>>(async () => {});
+  loadOrdersRef.current = () => loadOrders(false);
 
   useEffect(() => {
-    let initialRange: Range = 'today';
-    try {
-      const saved = window.localStorage.getItem('orderkar_owner_range') as Range | null;
-      if (saved && ['today', '7d', '30d', '12m', 'custom'].includes(saved)) {
-        initialRange = saved;
-        setRange(saved);
-      }
-    } catch {}
-    setMounted(true);
-
     let live = true;
     setLoading(true);
     (async () => {
-      await Promise.all([
-        loadStatic(),
-        loadOrders(initialRange, custom, false),
-      ]);
+      await Promise.all([loadStatic(), loadOrders(false)]);
       if (live) {
         setLoading(false);
       }
@@ -429,6 +231,45 @@ function OwnerAppInner({
       live = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restaurantId]);
+
+  // ── Realtime: orders / order_items / tables → silent refresh, no page reload. ──
+  // Debounced so rapid kitchen status taps don't refetch-storm.
+  useEffect(() => {
+    const supabase = createClient();
+    let timer: number | undefined;
+    const reload = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        loadOrdersRef.current();
+      }, 400);
+    };
+    const reloadTables = async () => {
+      const { data } = await supabase
+        .from('tables')
+        .select('*')
+        .eq('restaurant_id', restaurantId)
+        .order('table_number');
+      if (data) setTables(data as DiningTable[]);
+    };
+    const ch = supabase
+      .channel(`owner-live-${restaurantId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders', filter: `restaurant_id=eq.${restaurantId}` },
+        reload
+      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, reload)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'tables', filter: `restaurant_id=eq.${restaurantId}` },
+        reloadTables
+      )
+      .subscribe();
+    return () => {
+      window.clearTimeout(timer);
+      supabase.removeChannel(ch);
+    };
   }, [restaurantId]);
 
   const catName = useMemo(() => {
@@ -445,101 +286,27 @@ function OwnerAppInner({
     return m;
   }, [orders]);
 
-  // Split current period vs previous period
-  const currentOrders = useMemo(
-    () => orders.filter((o) => new Date(o.created_at) >= start && new Date(o.created_at) <= end),
-    [orders, start, end]
+  // Per-section analytics — each section filters its own range (no global filter).
+  const dash = useSectionData(orders, items, catName, dashRange);
+  const sales = useSectionData(orders, items, catName, salesRange);
+  const reports = useSectionData(orders, items, catName, reportsRange);
+  const staffSec = useSectionData(orders, items, catName, staffRange);
+  const auditSec = useSectionData(orders, items, catName, auditRange);
+
+  // Live operational orders (any date) — drives table states, kitchen counts, badges.
+  const activeOrders = useMemo(
+    () => orders.filter((o) => ['pending', 'preparing', 'ready'].includes(o.status)),
+    [orders]
   );
-
-  const prevOrders = useMemo(
-    () => orders.filter((o) => new Date(o.created_at) >= prevStart && new Date(o.created_at) < start),
-    [orders, prevStart, start]
+  const activeOrderIds = useMemo(() => new Set(activeOrders.map((o) => o.id)), [activeOrders]);
+  const activeItems = useMemo(
+    () => items.filter((i) => activeOrderIds.has(i.order_id)),
+    [items, activeOrderIds]
   );
-
-  const currentOrderIds = useMemo(() => new Set(currentOrders.map((o) => o.id)), [currentOrders]);
-  const prevOrderIds = useMemo(() => new Set(prevOrders.map((o) => o.id)), [prevOrders]);
-
-  const currentItems = useMemo(
-    () => items.filter((i) => currentOrderIds.has(i.order_id)),
-    [items, currentOrderIds]
-  );
-
-  const prevItems = useMemo(
-    () => items.filter((i) => prevOrderIds.has(i.order_id)),
-    [items, prevOrderIds]
-  );
-
-  const agg = useMemo(() => {
-    const base = aggregate(currentOrders, currentItems, range, start, end);
-    const catRev = new Map<string, number>();
-    for (const i of currentItems) {
-      const catId = i.menu_item_id ? catName.itemToCat.get(i.menu_item_id) : undefined;
-      const name = (catId && catName.map.get(catId)) || 'Other';
-      catRev.set(name, (catRev.get(name) ?? 0) + i.quantity * Number(i.unit_price));
-    }
-    base.cats = [...catRev.entries()]
-      .map(([name, revenue]) => ({ name, revenue }))
-      .sort((a, b) => b.revenue - a.revenue);
-    return base;
-  }, [currentOrders, currentItems, catName, range, start, end]);
-
-  // Dynamically calculate comparisons based on selected filter
-  const comparisons: KpiComparisons = useMemo(() => {
-    const calcDelta = (cur: number, prev: number, isInverse: boolean = false): MetricComparison => {
-      const diff = cur - prev;
-      if (cur === 0 && prev === 0) {
-        return { text: `0% ${compLabel}`, isPositive: true, isNeutral: true };
-      }
-      let pct = 0;
-      if (prev > 0) {
-        pct = Math.round((diff / prev) * 100);
-      } else if (cur > 0) {
-        pct = 100;
-      }
-      const isPositive = isInverse ? diff <= 0 : diff >= 0;
-      const arrow = diff > 0 ? '▲' : diff < 0 ? '▼' : '•';
-      const sign = diff > 0 ? '+' : '';
-      return {
-        text: `${arrow} ${sign}${pct}% ${compLabel}`,
-        isPositive,
-        isNeutral: diff === 0,
-      };
-    };
-
-    const curDone = currentOrders.filter((o) => o.status !== 'cancelled');
-    const prevDone = prevOrders.filter((o) => o.status !== 'cancelled');
-    const curRev = curDone.reduce((s, o) => s + Number(o.total_amount), 0);
-    const prevRev = prevDone.reduce((s, o) => s + Number(o.total_amount), 0);
-    const curOrdersCount = curDone.length;
-    const prevOrdersCount = prevDone.length;
-    const curAov = curOrdersCount > 0 ? curRev / curOrdersCount : 0;
-    const prevAov = prevOrdersCount > 0 ? prevRev / prevOrdersCount : 0;
-    const curItemsQty = currentItems.reduce((s, i) => s + i.quantity, 0);
-    const prevItemsQty = prevItems.reduce((s, i) => s + i.quantity, 0);
-
-    const curCancels = currentOrders.filter((o) => o.status === 'cancelled');
-    const prevCancels = prevOrders.filter((o) => o.status === 'cancelled');
-    const curLost = curCancels.reduce((s, o) => s + Number(o.total_amount), 0);
-    const prevLost = prevCancels.reduce((s, o) => s + Number(o.total_amount), 0);
-    const curVoidRate = currentOrders.length > 0 ? (curCancels.length / currentOrders.length) * 100 : 0;
-    const prevVoidRate = prevOrders.length > 0 ? (prevCancels.length / prevOrders.length) * 100 : 0;
-
-    return {
-      compLabel,
-      revenue: calcDelta(curRev, prevRev),
-      orders: calcDelta(curOrdersCount, prevOrdersCount),
-      aov: calcDelta(curAov, prevAov),
-      itemsSold: calcDelta(curItemsQty, prevItemsQty),
-      net: calcDelta(curRev, prevRev),
-      cancelled: calcDelta(curCancels.length, prevCancels.length, true),
-      lost: calcDelta(curLost, prevLost, true),
-      voidRate: calcDelta(curVoidRate, prevVoidRate, true),
-    };
-  }, [currentOrders, prevOrders, currentItems, prevItems, compLabel]);
 
   const cancelledCount = useMemo(
-    () => currentOrders.filter((o) => o.status === 'cancelled').length,
-    [currentOrders]
+    () => auditSec.currentOrders.filter((o) => o.status === 'cancelled').length,
+    [auditSec]
   );
 
   const logout = async () => {
@@ -548,9 +315,7 @@ function OwnerAppInner({
     router.refresh();
   };
 
-  const activeOrdersCount = useMemo(() => {
-    return currentOrders.filter((o) => ['pending', 'preparing', 'ready'].includes(o.status)).length;
-  }, [currentOrders]);
+  const activeOrdersCount = activeOrders.length;
 
   // Restora-aligned Clean Navigation
   const NAV_GROUPS: NavGroupDef[] = [
@@ -923,31 +688,6 @@ function OwnerAppInner({
 
           {/* Right Actions: Notification Bell, Profile Capsule, Range Selector, Theme */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            {/* Desktop Range Selector Buttons */}
-            <div className="hidden md:flex items-center gap-1 rounded-full border border-line bg-[var(--c-surface-solid)] p-1 shadow-2xs">
-              {[
-                { key: 'today', label: 'Today' },
-                { key: '7d', label: '7D' },
-                { key: '30d', label: '30D' },
-              ].map((r) => {
-                const active = mounted ? range === r.key : r.key === 'today';
-                return (
-                  <button
-                    key={r.key}
-                    type="button"
-                    onClick={() => changeRange(r.key as Range)}
-                    className={`rounded-full px-3 py-1 text-[12px] font-extrabold transition-all ${
-                      active
-                        ? 'bg-brand text-white shadow-xs'
-                        : 'text-muted hover:text-ink'
-                    }`}
-                  >
-                    {r.label}
-                  </button>
-                );
-              })}
-            </div>
-
             {/* Notification Bell with Red Badge Dot */}
             <div className="relative">
               <button
@@ -1021,39 +761,6 @@ function OwnerAppInner({
           </div>
         )}
 
-        {/* Custom Date Range Popdown on Mobile / Desktop */}
-        {range === 'custom' && (
-          <div className="border-b border-line bg-[var(--c-surface-solid)] px-6 py-2.5">
-            <div className="flex flex-wrap items-center gap-2 text-[12.5px] font-bold">
-              <span className="text-muted">Custom Window:</span>
-              <div className="flex items-center gap-1.5 rounded-[10px] border border-line bg-soft/60 px-3 py-1">
-                <input
-                  type="date"
-                  value={custom.from}
-                  max={custom.to}
-                  onChange={(e) => {
-                    const next = { ...custom, from: e.target.value };
-                    setCustom(next);
-                    if (range === 'custom') loadOrders('custom', next, true);
-                  }}
-                  className="bg-transparent text-ink font-mono text-[12px] outline-none"
-                />
-                <span className="text-muted px-1">→</span>
-                <input
-                  type="date"
-                  value={custom.to}
-                  min={custom.from}
-                  onChange={(e) => {
-                    const next = { ...custom, to: e.target.value };
-                    setCustom(next);
-                    if (range === 'custom') loadOrders('custom', next, true);
-                  }}
-                  className="bg-transparent text-ink font-mono text-[12px] outline-none"
-                />
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Edge-to-Edge Canvas Content */}
         <main className={`flex-1 w-full px-4 sm:px-6 lg:px-8 ${tab === 'pos' ? 'pt-2.5 pb-2 space-y-0 lg:h-[calc(100vh-64px)] lg:overflow-hidden' : 'pt-3.5 pb-8 sm:pt-4 sm:pb-8 space-y-6'}`}>
@@ -1074,35 +781,39 @@ function OwnerAppInner({
               <div className={tab === 'dashboard' ? '' : 'hidden'}>
                 <OwnerDashTab
                   restaurantId={restaurantId}
-                  agg={agg}
-                  orders={currentOrders}
-                  items={currentItems}
+                  agg={dash.agg}
+                  orders={dash.currentOrders}
+                  items={dash.currentItems}
                   staff={staff}
                   itemOrderDate={itemOrderDate}
                   slug={slug}
                   tables={tables}
                   restaurantName={displayName}
-                  comparisons={comparisons}
+                  comparisons={dash.comparisons}
                   onNavigate={selectTab}
                   viewerName={viewerName}
                   viewerRole={viewerRole}
+                  range={dashRange}
+                  onRangeChange={setDashRange}
                 />
               </div>
 
               {/* 2. Detailed Reports Hub */}
               <div className={tab === 'reports' ? '' : 'hidden'}>
                 <OwnerReportsTab
-                  orders={currentOrders}
-                  items={currentItems}
+                  orders={reports.currentOrders}
+                  items={reports.currentItems}
                   tables={tables}
                   staff={staff}
                   categories={cats}
                   menu={menu}
-                  rangeLabel={t(RANGE_KEYS[range])}
+                  rangeLabel={t(RANGE_KEYS[reportsRange])}
                   restaurantName={displayName}
                   logoUrl={logoUrl}
                   activeSubTab={reportSubTab}
                   onSubTabChange={setReportSubTab}
+                  range={reportsRange}
+                  onRangeChange={setReportsRange}
                 />
               </div>
 
@@ -1110,26 +821,32 @@ function OwnerAppInner({
               <div className={tab === 'sales' ? '' : 'hidden'}>
                 <OwnerSalesTab
                   restaurantId={restaurantId}
-                  orders={currentOrders}
-                  items={currentItems}
+                  orders={sales.currentOrders}
+                  items={sales.currentItems}
                   tables={tables}
-                  hours={agg.hours}
-                  weekdays={agg.weekdays}
-                  topItems={agg.topItems}
-                  rangeLabel={t(RANGE_KEYS[range])}
+                  hours={sales.agg.hours}
+                  weekdays={sales.agg.weekdays}
+                  topItems={sales.agg.topItems}
+                  rangeLabel={t(RANGE_KEYS[salesRange])}
                   restaurantName={displayName}
                   logoUrl={logoUrl}
+                  menu={menu}
+                  staff={staff}
                   onNavigate={selectTab}
-                  onRefresh={() => loadOrders(range, custom, false)}
+                  onRefresh={() => loadOrders(false)}
+                  range={salesRange}
+                  onRangeChange={setSalesRange}
                 />
               </div>
 
               {/* 3. Loss Prevention & Risk Audit Tab */}
               <div className={tab === 'audit' ? '' : 'hidden'}>
                 <OwnerAuditTab
-                  orders={currentOrders}
+                  orders={auditSec.currentOrders}
                   staff={staff}
-                  rangeLabel={t(RANGE_KEYS[range])}
+                  rangeLabel={t(RANGE_KEYS[auditRange])}
+                  range={auditRange}
+                  onRangeChange={setAuditRange}
                 />
               </div>
 
@@ -1140,15 +857,21 @@ function OwnerAppInner({
                     restaurantId={restaurantId}
                     restaurant={{ name: displayName }}
                     tables={tables}
-                    orders={currentOrders}
-                    onOrderPlaced={() => loadOrders(range, custom, false)}
+                    orders={activeOrders}
+                    onOrderPlaced={() => loadOrders(false)}
                   />
                 )}
               </div>
 
               {/* 4. Operations Tab */}
               <div className={tab === 'operations' ? '' : 'hidden'}>
-                <OwnerOpsTab restaurantId={restaurantId} orders={currentOrders} tables={tables} />
+                <OwnerOpsTab
+                  restaurantId={restaurantId}
+                  orders={orders}
+                  activeOrders={activeOrders}
+                  tables={tables}
+                  staff={staff}
+                />
               </div>
 
               {/* 4. Customer Reviews Tab */}
@@ -1175,13 +898,19 @@ function OwnerAppInner({
                   restaurantId={restaurantId}
                   slug={slug}
                   tables={tables}
+                  orders={activeOrders}
                   onChange={setTables}
                 />
               </div>
 
               {/* 7. Staff Performance Leaderboard */}
               <div className={tab === 'staff' ? '' : 'hidden'}>
-                <OwnerStaffTab orders={currentOrders} staff={staff} />
+                <OwnerStaffTab
+                  orders={staffSec.currentOrders}
+                  staff={staff}
+                  range={staffRange}
+                  onRangeChange={setStaffRange}
+                />
               </div>
 
               {/* 8. Team Accounts & Permissions */}
