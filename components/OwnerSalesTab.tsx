@@ -283,7 +283,7 @@ export default function OwnerSalesTab({
   return (
     <div className="space-y-8">
       {/* ── Top Header & Report Download Buttons ── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line/12 pb-4">
         <div>
           <div className="flex items-center gap-2">
             <h2 className="font-display text-xl font-extrabold tracking-tight text-ink">
@@ -320,7 +320,7 @@ export default function OwnerSalesTab({
 
           {downloadOpen && (
             <div
-              className="absolute right-0 top-full z-40 mt-2 w-64 rounded-2xl border border-line bg-[var(--c-surface-solid)] p-2 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150"
+              className="absolute right-0 top-full z-40 mt-2 w-64 rounded-2xl border border-line/12 bg-[var(--c-surface-solid)] p-2 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="px-2.5 py-1.5 text-[10px] font-extrabold uppercase tracking-wider text-muted">
@@ -351,7 +351,7 @@ export default function OwnerSalesTab({
                 </div>
               </button>
 
-              <div className="my-1.5 border-t border-line" />
+              <div className="my-1.5 border-t border-line/12" />
 
               <div className="px-2.5 py-1.5 text-[10px] font-extrabold uppercase tracking-wider text-muted">
                 Product Mix Matrix

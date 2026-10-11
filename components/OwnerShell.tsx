@@ -189,7 +189,7 @@ export default function OwnerShell({
 
       {/* ── Main column ─────────────────────────────────── */}
       <div className="min-w-0 flex-1">
-        <header className="sticky top-0 z-30 border-b border-line bg-[var(--c-bg)]/85 backdrop-blur-xl">
+        <header className="sticky top-0 z-30 border-b border-line/12 bg-[var(--c-bg)]/85 backdrop-blur-xl">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2.5 px-4 py-3 sm:px-6 lg:px-8">
             <button
               onClick={() => setNavOpen(true)}

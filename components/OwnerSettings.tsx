@@ -360,7 +360,7 @@ export default function OwnerSettings({
 
   return (
     <div className="space-y-5">
-      <div className="border-b border-line pb-4">
+      <div className="border-b border-line/12 pb-4">
         <h2 className="font-display text-xl font-extrabold tracking-tight text-ink">
           Restaurant & Security Settings
         </h2>
@@ -383,13 +383,13 @@ export default function OwnerSettings({
 
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           {/* Restaurant Logo input & preview */}
-          <div className="sm:col-span-2 rounded-[18px] border border-line bg-soft/40 p-4">
+          <div className="sm:col-span-2 rounded-[18px] border border-line/12 bg-soft/40 p-4">
             <Label>Restaurant Company Logo</Label>
             <p className="text-[12px] text-muted mb-3">
               Official branding logo displayed on PDF reports, receipts, and invoices
             </p>
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-              <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl border-2 border-line bg-[var(--c-surface-solid)] flex items-center justify-center shadow-xs">
+              <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl border-2 border-line/12 bg-[var(--c-surface-solid)] flex items-center justify-center shadow-xs">
                 {logoUrl ? (
                   <SmartImage
                     src={logoUrl}
@@ -418,7 +418,7 @@ export default function OwnerSettings({
             </div>
           </div>
 
-          <div className="sm:col-span-2 rounded-[18px] border border-line bg-soft/40 p-4">
+          <div className="sm:col-span-2 rounded-[18px] border border-line/12 bg-soft/40 p-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <Label>Brand Color</Label>
@@ -427,7 +427,7 @@ export default function OwnerSettings({
                 </p>
               </div>
               <div
-                className="flex rounded-full border border-line bg-[var(--c-surface-solid)] p-0.5 text-[12px] font-extrabold"
+                className="flex rounded-full border border-line/12 bg-[var(--c-surface-solid)] p-0.5 text-[12px] font-extrabold"
                 role="tablist"
                 aria-label="Brand color mode"
               >
@@ -461,7 +461,7 @@ export default function OwnerSettings({
                     aria-label={`Preset color ${c}`}
                     onClick={() => setBrandColor(c)}
                     className={`h-9 w-9 rounded-full transition-transform hover:scale-110 ${
-                      active ? 'ring-2 ring-ink ring-offset-2 ring-offset-[var(--c-surface-solid)]' : 'ring-1 ring-line'
+                      active ? 'ring-2 ring-ink ring-offset-2 ring-offset-[var(--c-surface-solid)]' : 'ring-1 ring-line/12'
                     }`}
                     style={{ backgroundColor: c }}
                   />
@@ -477,7 +477,7 @@ export default function OwnerSettings({
                 value={isHex(brandColor) ? brandColor.trim() : '#6D28D9'}
                 onChange={(e) => setBrandColor(e.target.value)}
                 aria-label="Brand color picker"
-                className="h-10 w-14 cursor-pointer rounded-lg border border-line bg-[var(--c-surface-solid)]"
+                className="h-10 w-14 cursor-pointer rounded-lg border border-line/12 bg-[var(--c-surface-solid)]"
               />
               <Input
                 value={brandColor}
@@ -508,7 +508,7 @@ export default function OwnerSettings({
                     value={isHex(brandColor2) ? brandColor2.trim() : '#0D9488'}
                     onChange={(e) => setBrandColor2(e.target.value)}
                     aria-label="Second brand color picker"
-                    className="h-10 w-14 cursor-pointer rounded-lg border border-line bg-[var(--c-surface-solid)]"
+                    className="h-10 w-14 cursor-pointer rounded-lg border border-line/12 bg-[var(--c-surface-solid)]"
                   />
                   <Input
                     value={brandColor2}
@@ -532,7 +532,7 @@ export default function OwnerSettings({
             )}
 
             {/* Live preview */}
-            <div className="mt-4 rounded-[14px] border border-line bg-[var(--c-surface-solid)] p-3" style={previewVars}>
+            <div className="mt-4 rounded-[14px] border border-line/12 bg-[var(--c-surface-solid)] p-3" style={previewVars}>
               <p className="mb-2 text-[11px] font-extrabold uppercase tracking-wider text-muted">Live preview</p>
               <div className="flex flex-wrap items-center gap-2.5">
                 <span className="btn-3d rounded-btn px-4 py-2 text-[13px] font-bold text-white">Order Now</span>
@@ -560,13 +560,13 @@ export default function OwnerSettings({
             </div>
           </div>
 
-          <div className="sm:col-span-2 rounded-[18px] border border-line bg-soft/40 p-4">
+          <div className="sm:col-span-2 rounded-[18px] border border-line/12 bg-soft/40 p-4">
             <Label>Your Subdomain</Label>
             <p className="text-[12px] text-muted mb-3">
               Your own web address. Works once <span className="font-mono">*.{rootDomain()}</span> points to OrderKar.
             </p>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-lg border border-line bg-[var(--c-surface-solid)] px-3 py-2 font-mono text-[13px] font-bold text-brand">
+              <span className="rounded-lg border border-line/12 bg-[var(--c-surface-solid)] px-3 py-2 font-mono text-[13px] font-bold text-brand">
                 https://{slug}.{rootDomain()}/
               </span>
               <Btn
@@ -603,7 +603,7 @@ export default function OwnerSettings({
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          <span className="rounded-full border border-line bg-soft px-3 py-1 font-mono text-[12px] font-bold text-muted">
+          <span className="rounded-full border border-line/12 bg-soft px-3 py-1 font-mono text-[12px] font-bold text-muted">
             URL: /{slug}
           </span>
           {tier && (
@@ -765,7 +765,7 @@ export default function OwnerSettings({
                 className={`relative flex items-center gap-3.5 rounded-2xl border p-3.5 text-left transition-all ${
                   isSelected
                     ? 'border-brand bg-brand/[0.06] shadow-sm ring-2 ring-brand/20'
-                    : 'border-line bg-[var(--c-surface-solid)] hover:border-brand/40 hover:bg-soft/40'
+                    : 'border-line/12 bg-[var(--c-surface-solid)] hover:border-brand/40 hover:bg-soft/40'
                 }`}
               >
                 <span
@@ -839,7 +839,7 @@ export default function OwnerSettings({
         </div>
 
         <div className="mt-5 grid gap-6 lg:grid-cols-2">
-          <div className="rounded-[16px] border border-line bg-soft/30 p-4">
+          <div className="rounded-[16px] border border-line/12 bg-soft/30 p-4">
             <Label>{t('set_new_email')}</Label>
             <div className="mt-1.5 flex gap-2">
               <Input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="new@email.pk" className="flex-1" maxLength={120} />
@@ -848,7 +848,7 @@ export default function OwnerSettings({
               </Btn>
             </div>
           </div>
-          <div className="rounded-[16px] border border-line bg-soft/30 p-4">
+          <div className="rounded-[16px] border border-line/12 bg-soft/30 p-4">
             <Label>{t('set_new_pass')}</Label>
             <Input type="password" value={newPass} onChange={(e) => setNewPass(e.target.value)} placeholder={t('set_ph_pass')} maxLength={72} />
             <div className="mt-3">
