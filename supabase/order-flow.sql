@@ -66,10 +66,14 @@ declare
   v_total   numeric := 0;
   v_status  text;
   v_locked  boolean;
+  v_rest    uuid;
   it        jsonb;
+  v_mid     uuid;
+  v_qty     int;
+  v_price   numeric;
 begin
-  select o.status, o.ready_for_bill
-    into v_status, v_locked
+  select o.status, o.ready_for_bill, o.restaurant_id
+    into v_status, v_locked, v_rest
     from public.orders o
    where o.id = p_order_id;
 
@@ -87,16 +91,37 @@ begin
   end if;
 
   for it in select * from jsonb_array_elements(p_items) loop
+    v_mid := nullif(it->>'menu_item_id', '')::uuid;
+    v_qty := greatest(1, (it->>'quantity')::int);
+    if v_mid is not null then
+      -- SECURITY: never trust the caller's unit_price for menu items.
+      -- Always use the server-side price (same restaurant, available).
+      select mi.price into v_price
+        from public.menu_items mi
+       where mi.id = v_mid
+         and mi.restaurant_id = v_rest
+         and mi.is_available;
+      if not found then
+        raise exception 'menu item not found or unavailable';
+      end if;
+    else
+      -- Ad-hoc/custom line items (e.g. POS extras) carry their own price.
+      v_price := (it->>'unit_price')::numeric;
+      if v_price is null or v_price < 0 then
+        raise exception 'unit_price is required for custom items';
+      end if;
+    end if;
+
     insert into public.order_items (order_id, menu_item_id, item_name, quantity, unit_price, notes)
     values (
       p_order_id,
-      nullif(it->>'menu_item_id', '')::uuid,
+      v_mid,
       it->>'item_name',
-      greatest(1, (it->>'quantity')::int),
-      (it->>'unit_price')::numeric,
+      v_qty,
+      v_price,
       nullif(it->>'notes', '')
     );
-    v_total := v_total + greatest(1, (it->>'quantity')::int) * (it->>'unit_price')::numeric;
+    v_total := v_total + v_qty * v_price;
   end loop;
 
   update public.orders
