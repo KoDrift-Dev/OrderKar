@@ -9,6 +9,7 @@
 // file Download, Print, and the Paid button. 100% real data.
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { createClient } from '@/lib/supabase/client';
 import type { Order, OrderItem } from '@/lib/types';
 import {
@@ -296,6 +297,14 @@ export default function ReceiptModal({
           </button>
         </div>
       </div>
+
+      {/* Print portal: direct child of <body> so the print CSS can isolate it.
+          Screen: display:none. Print: only this prints — 1 page, no blanks. */}
+      {typeof document !== 'undefined' &&
+        createPortal(
+          <div className="receipt-print-portal" dangerouslySetInnerHTML={{ __html: inner }} />,
+          document.body,
+        )}
     </div>
   );
 }
