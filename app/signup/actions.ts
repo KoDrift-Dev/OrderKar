@@ -72,6 +72,7 @@ export async function signupRestaurant(input: {
     plan_type: 'starter',
     status: 'trial',
     amount: 4999,
+    trial_ends_at: new Date(Date.now() + 14 * 86400000).toISOString(),
   });
 
   return { ok: true, slug };

@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { createClient, isServerConfigured } from '@/lib/supabase/server';
 import { Card, Empty, PageHeader, Pill } from '@/components/ui';
 import AdminPosToggle from '@/components/AdminPosToggle';
+import AdminPlanEditor from '@/components/AdminPlanEditor';
 import AdminLangSelect from '@/components/AdminLangSelect';
 import ThemeToggle from '@/components/ThemeToggle';
 import { fmtPKR } from '@/lib/format';
@@ -80,6 +81,7 @@ export default async function AdminPage() {
                   restaurantId={r.id}
                   initial={(r.theme_config as Record<string, unknown> | null)?.pos_enabled !== false}
                 />
+                <AdminPlanEditor restaurantId={r.id} initialTier={r.subscription_tier ?? 'starter'} />
                 <AdminLangSelect
                   restaurantId={r.id}
                   initial={(r.theme_config as Record<string, unknown> | null)?.language === 'roman' ? 'roman' : 'english'}

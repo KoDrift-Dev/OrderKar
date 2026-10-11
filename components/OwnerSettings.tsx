@@ -11,6 +11,7 @@ import { Btn, Card, SectionHead, Input, Label } from './ui';
 import { useGuard } from './DeleteFlow';
 import { POS_PALETTES, type PosPaletteId } from './PosTab';
 import SmartImage from './SmartImage';
+import SubscriptionCard from './SubscriptionCard';
 
 function msg(text: string, ok: boolean) {
   return (
@@ -374,6 +375,22 @@ export default function OwnerSettings({
           <Btn onClick={saveRestaurant} disabled={saving === 'rest'}>
             {saving === 'rest' ? t('set_saving') : 'Save Profile Changes'}
           </Btn>
+        </div>
+      </Card>
+
+      {/* ── Subscription ── */}
+      <Card className="stat-card-luxury p-5 sm:p-6">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-brand/15 text-brand text-lg shadow-sm">
+            💳
+          </span>
+          <div>
+            <h3 className="font-display text-[15px] font-extrabold text-ink">Subscription & Billing</h3>
+            <p className="text-[12px] text-muted">Your plan, trial status and invoices.</p>
+          </div>
+        </div>
+        <div className="mt-4">
+          <SubscriptionCard restaurantId={restaurantId} />
         </div>
       </Card>
 
