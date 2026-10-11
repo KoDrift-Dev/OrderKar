@@ -12,6 +12,7 @@ import { useGuard } from './DeleteFlow';
 import { POS_PALETTES, type PosPaletteId } from './PosTab';
 import SmartImage from './SmartImage';
 import SubscriptionCard from './SubscriptionCard';
+import { rootDomain } from '@/lib/tenant-url';
 
 function msg(text: string, ok: boolean) {
   return (
@@ -44,6 +45,8 @@ export default function OwnerSettings({
   const [tier, setTier] = useState('');
   const [themeCfg, setThemeCfg] = useState<Record<string, string>>({});
   const [posPalette, setPosPalette] = useState<PosPaletteId>('amber');
+  const [brandColor, setBrandColor] = useState('');
+  const [copied, setCopied] = useState(false);
   const [rMsg, setRMsg] = useState<{ text: string; ok: boolean } | null>(null);
 
   // ── billing (receipt tax + service charges) ──
@@ -99,6 +102,7 @@ export default function OwnerSettings({
         setPhone(tc.phone ?? '');
         setContactEmail(tc.email ?? '');
         setLogoUrl(tc.logo_url ?? '');
+        setBrandColor(typeof tc.brand_color === 'string' ? tc.brand_color : '');
         setTier(r.subscription_tier ?? '');
         if (tc.pos_palette && POS_PALETTES[tc.pos_palette as PosPaletteId]) {
           setPosPalette(tc.pos_palette as PosPaletteId);
@@ -145,6 +149,7 @@ export default function OwnerSettings({
               email: contactEmail.trim(),
               logo_url: logoUrl.trim(),
               pos_palette: posPalette,
+              brand_color: brandColor.trim(),
             },
           })
           .eq('id', restaurantId);
@@ -338,6 +343,63 @@ export default function OwnerSettings({
                 />
                 <p className="text-[11px] text-muted">Paste your image URL (JPG, PNG, WEBP, or SVG)</p>
               </div>
+            </div>
+          </div>
+
+          <div className="sm:col-span-2 rounded-[18px] border border-line bg-soft/40 p-4">
+            <Label>Brand Color</Label>
+            <p className="text-[12px] text-muted mb-3">
+              Your restaurant&apos;s primary color across the app (buttons, highlights)
+            </p>
+            <div className="flex items-center gap-3">
+              <input
+                type="color"
+                value={/^#[0-9a-f]{6}$/i.test(brandColor) ? brandColor : '#6D28D9'}
+                onChange={(e) => setBrandColor(e.target.value)}
+                aria-label="Brand color picker"
+                className="h-10 w-14 cursor-pointer rounded-lg border border-line bg-[var(--c-surface-solid)]"
+              />
+              <Input
+                value={brandColor}
+                onChange={(e) => setBrandColor(e.target.value)}
+                placeholder="#6D28D9 (empty = OrderKar default)"
+                maxLength={7}
+                className="max-w-[220px] font-mono"
+                aria-label="Brand color hex"
+              />
+              {brandColor.trim() && (
+                <button
+                  type="button"
+                  onClick={() => setBrandColor('')}
+                  className="text-[12px] font-bold text-muted underline"
+                >
+                  Reset
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="sm:col-span-2 rounded-[18px] border border-line bg-soft/40 p-4">
+            <Label>Your Subdomain</Label>
+            <p className="text-[12px] text-muted mb-3">
+              Your own web address. Works once <span className="font-mono">*.{rootDomain()}</span> points to OrderKar.
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-lg border border-line bg-[var(--c-surface-solid)] px-3 py-2 font-mono text-[13px] font-bold text-brand">
+                https://{slug}.{rootDomain()}/
+              </span>
+              <Btn
+                variant="secondary"
+                onClick={() => {
+                  try {
+                    navigator.clipboard.writeText(`https://${slug}.${rootDomain()}/`);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  } catch {}
+                }}
+              >
+                {copied ? 'Copied ✓' : 'Copy'}
+              </Btn>
             </div>
           </div>
 
