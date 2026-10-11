@@ -61,7 +61,7 @@ function QrModal({ table, slug, onClose }: { table: DiningTable; slug: string; o
     return () => {
       live = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line/12 react-hooks/exhaustive-deps
   }, [qr.url]);
 
   return (
@@ -74,13 +74,13 @@ function QrModal({ table, slug, onClose }: { table: DiningTable; slug: string; o
         <p className="mt-1 text-[12px] text-muted">{t('tbl_qr_hint')}</p>
         {svg ? (
           <div
-            className="mt-4 h-56 w-56 overflow-hidden rounded-[16px] border border-line bg-white p-2 [&>svg]:h-full [&>svg]:w-full"
+            className="mt-4 h-56 w-56 overflow-hidden rounded-[16px] border border-line/12 bg-white p-2 [&>svg]:h-full [&>svg]:w-full"
             dangerouslySetInnerHTML={{ __html: svg }}
             role="img"
             aria-label={t('tbl_qr_aria', { n: table.table_number })}
           />
         ) : (
-          <div className="mt-4 flex h-56 w-56 items-center justify-center rounded-[16px] border border-line bg-white">
+          <div className="mt-4 flex h-56 w-56 items-center justify-center rounded-[16px] border border-line/12 bg-white">
             <span className="text-xs font-semibold text-muted">{t('tbl_loading')}</span>
           </div>
         )}
@@ -510,7 +510,7 @@ export default function TableManager({
                           </li>
                         ))}
                       </ul>
-                      <div className="mt-2 flex justify-between border-t border-line pt-2">
+                      <div className="mt-2 flex justify-between border-t border-line/12 pt-2">
                         <span className="text-[12.5px] font-extrabold text-ink">Total</span>
                         <span className="font-mono text-[14px] font-black text-ink">{fmtPKR(Number(detailOrder.total_amount))}</span>
                       </div>
@@ -581,7 +581,7 @@ export default function TableManager({
       )}
 
       {/* ── Section 2: Table management ── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line/12 pb-4">
         <div>
           <div className="flex items-center gap-2">
             <h2 className="font-display text-xl font-extrabold tracking-tight text-ink">
@@ -619,7 +619,7 @@ export default function TableManager({
             className={`rounded-[12px] px-3.5 py-1.5 text-[12.5px] font-extrabold transition-all ${
               filterSec === sec.key
                 ? 'bg-brand text-white shadow-sm'
-                : 'border border-line bg-[var(--c-surface-solid)] text-muted hover:text-ink'
+                : 'border border-line/12 bg-[var(--c-surface-solid)] text-muted hover:text-ink'
             }`}
           >
             {sec.label}
@@ -656,7 +656,7 @@ export default function TableManager({
                   onClick={() => toggleActive(tb)}
                   title={tb.is_active ? 'Deactivate Table' : 'Activate Table'}
                   className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
-                    tb.is_active ? 'bg-brand shadow-sm' : 'bg-line'
+                    tb.is_active ? 'bg-brand shadow-sm' : 'bg-line/12'
                   }`}
                 >
                   <span
@@ -671,21 +671,21 @@ export default function TableManager({
                 <button
                   type="button"
                   onClick={() => setQrTable(tb)}
-                  className="flex-1 rounded-[10px] border border-line bg-[var(--c-surface-solid)] px-2 py-1.5 text-[11.5px] font-extrabold text-ink transition-colors hover:border-brand/40 hover:text-brand shadow-xs"
+                  className="flex-1 rounded-[10px] border border-line/12 bg-[var(--c-surface-solid)] px-2 py-1.5 text-[11.5px] font-extrabold text-ink transition-colors hover:border-brand/40 hover:text-brand shadow-xs"
                 >
                   📷 QR
                 </button>
                 <button
                   type="button"
                   onClick={() => openEdit(tb)}
-                  className="flex-1 rounded-[10px] border border-line bg-[var(--c-surface-solid)] px-2 py-1.5 text-[11.5px] font-extrabold text-ink transition-colors hover:border-brand/40 hover:text-brand shadow-xs"
+                  className="flex-1 rounded-[10px] border border-line/12 bg-[var(--c-surface-solid)] px-2 py-1.5 text-[11.5px] font-extrabold text-ink transition-colors hover:border-brand/40 hover:text-brand shadow-xs"
                 >
                   ✏️ Edit
                 </button>
                 <button
                   type="button"
                   onClick={() => askDelete(tb)}
-                  className="rounded-[10px] border border-line bg-[var(--c-surface-solid)] px-2.5 py-1.5 text-[11.5px] font-extrabold text-danger transition-colors hover:bg-danger/10 shadow-xs"
+                  className="rounded-[10px] border border-line/12 bg-[var(--c-surface-solid)] px-2.5 py-1.5 text-[11.5px] font-extrabold text-danger transition-colors hover:bg-danger/10 shadow-xs"
                   title="Delete Table"
                 >
                   🗑
@@ -707,7 +707,7 @@ export default function TableManager({
         <div className="fixed inset-0 z-50" role="dialog" aria-modal="true">
           <div className="absolute inset-0 bg-ink/45 backdrop-blur-[2px]" onClick={() => !saving && setEditing(null)} />
           <div className="absolute inset-0 m-auto flex h-fit max-h-[92dvh] w-[calc(100%-2rem)] max-w-md flex-col rounded-[24px] bg-[var(--c-surface-solid)] shadow-2xl">
-            <div className="flex items-center justify-between border-b border-line p-4 sm:px-6">
+            <div className="flex items-center justify-between border-b border-line/12 p-4 sm:px-6">
               <h2 className="font-display text-[17px] font-extrabold text-ink">
                 {editing === 'new' ? 'Add table' : t('tbl_modal_edit', { n: editing.table_number })}
               </h2>
@@ -736,7 +736,7 @@ export default function TableManager({
                       type="button"
                       onClick={() => setForm((f) => ({ ...f, section: s }))}
                       className={`rounded-full px-3.5 py-1.5 text-[12.5px] font-bold transition-all ${
-                        form.section === s ? 'bg-brand text-white shadow' : 'border border-line text-muted hover:text-ink'
+                        form.section === s ? 'bg-brand text-white shadow' : 'border border-line/12 text-muted hover:text-ink'
                       }`}
                     >
                       {s === 'Custom' ? t('tbl_sec_custom') : sectionName(s, t)}
@@ -763,7 +763,7 @@ export default function TableManager({
                   onChange={(e) => setForm((f) => ({ ...f, capacity: e.target.value }))}
                 />
               </div>
-              <label className="flex cursor-pointer items-center justify-between rounded-[14px] border border-line px-3.5 py-2.5">
+              <label className="flex cursor-pointer items-center justify-between rounded-[14px] border border-line/12 px-3.5 py-2.5">
                 <span className="text-[13.5px] font-bold text-ink">Active</span>
                 <input
                   type="checkbox"
@@ -774,7 +774,7 @@ export default function TableManager({
               </label>
               {formError && <p className="rounded-btn bg-danger/10 p-3 text-[13px] font-bold text-danger">{formError}</p>}
             </div>
-            <div className="grid grid-cols-2 gap-2.5 border-t border-line p-4 sm:px-6">
+            <div className="grid grid-cols-2 gap-2.5 border-t border-line/12 p-4 sm:px-6">
               <Btn variant="secondary" onClick={() => !saving && setEditing(null)} disabled={saving}>
                 Cancel
               </Btn>

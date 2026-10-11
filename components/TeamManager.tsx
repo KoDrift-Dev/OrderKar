@@ -132,7 +132,7 @@ export default function TeamManager({
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line/12 react-hooks/exhaustive-deps
   }, [restaurantId]);
 
   const canManageRole = (targetRole: Role) =>
@@ -307,7 +307,7 @@ export default function TeamManager({
   // (actual delete runs through the confirm modal + undo flow below)
 
   const switchCls = (on: boolean, color: string) =>
-    `relative h-6 w-11 rounded-full transition-colors ${on ? color : 'bg-line'}`;
+    `relative h-6 w-11 rounded-full transition-colors ${on ? color : 'bg-line/12'}`;
 
   const knobCls = (on: boolean) =>
     `absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${on ? 'left-[22px]' : 'left-0.5'}`;
@@ -365,7 +365,7 @@ export default function TeamManager({
                   </div>
                   <button onClick={() => openEdit(p)} title="Edit" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] text-muted hover:bg-brand-soft hover:text-brand">✎</button>
                 </div>
-                <div className="mt-3 space-y-1 border-t border-line pt-3 text-[12.5px]">
+                <div className="mt-3 space-y-1 border-t border-line/12 pt-3 text-[12.5px]">
                   {p.phone && <p className="text-body">📞 <span className="font-bold text-ink">{p.phone}</span></p>}
                   {p.address && <p className="truncate text-muted">📍 {p.address}</p>}
                   <div className="flex items-center justify-between pt-1">
@@ -404,7 +404,7 @@ export default function TeamManager({
                   <button onClick={() => setConfirmDel(s)} title="Remove" className="flex h-8 w-8 items-center justify-center rounded-[9px] text-muted hover:bg-danger/10 hover:text-danger">🗑</button>
                 </div>
               </div>
-              <div className="mt-3 space-y-1 border-t border-line pt-3 text-[12.5px]">
+              <div className="mt-3 space-y-1 border-t border-line/12 pt-3 text-[12.5px]">
                 {s.phone && <p className="text-body">📞 <span className="font-bold text-ink">{s.phone}</span></p>}
                 {s.address && <p className="truncate text-muted">📍 {s.address}</p>}
                 <p className={`pt-1 text-[11.5px] font-bold ${s.is_active ? 'text-ok' : 'text-danger'}`}>
@@ -491,7 +491,7 @@ export default function TeamManager({
               <Label>Address <span className="font-bold text-muted">(optional)</span></Label>
               <Textarea value={cAddress} onChange={(e) => setCAddress(e.target.value)} rows={2} placeholder="House, street, area…" className="mt-1.5" />
             </div>
-            <p className="rounded-btn bg-brand-soft/60 p-3 text-[12px] leading-relaxed text-muted">
+            <p className="rounded-btn bg-brand-soft p-3 text-[12px] leading-relaxed text-muted">
               Account seedha Supabase mein banega — ye shakhs isi email/password se login kar sakega. Tumhara apna session mehfooz rahega.
             </p>
             {cError && <p className="text-[13px] font-bold text-danger">{cError}</p>}
@@ -626,7 +626,7 @@ function Modal({ title, onClose, footer, children }: { title: string; onClose: (
     <div className="fixed inset-0 z-50" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-ink/45 backdrop-blur-[2px]" onClick={onClose} />
       <div className="absolute inset-0 m-auto flex h-fit max-h-[92dvh] w-[calc(100%-2rem)] max-w-lg flex-col rounded-[24px] bg-[var(--c-surface-solid)] shadow-2xl">
-        <div className="flex items-center justify-between border-b border-line p-4 sm:px-6">
+        <div className="flex items-center justify-between border-b border-line/12 p-4 sm:px-6">
           <h2 className="font-display text-[17px] font-extrabold text-ink">{title}</h2>
           <button onClick={onClose} aria-label="Close" className="glass flex h-8 w-8 items-center justify-center !rounded-full text-muted">✕</button>
         </div>
@@ -639,7 +639,7 @@ function Modal({ title, onClose, footer, children }: { title: string; onClose: (
 
 function ModalFooter({ onCancel, onSave, saving, saveLabel }: { onCancel: () => void; onSave: () => void; saving: boolean; saveLabel: string }) {
   return (
-    <div className="flex justify-end gap-2 border-t border-line p-4 sm:px-6">
+    <div className="flex justify-end gap-2 border-t border-line/12 p-4 sm:px-6">
       <button onClick={onCancel} disabled={saving} className="rounded-btn px-4 py-2.5 text-[13.5px] font-bold text-muted hover:text-ink">
         Cancel
       </button>
