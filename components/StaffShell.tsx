@@ -47,6 +47,9 @@ export default function StaffShell({
   const manageTabs = MANAGE_TABS.filter((n) => n.roles.includes(role));
   // On the owner page, OwnerApp provides the full-screen desktop sidebar shell.
   const onOwnerPage = pathname.endsWith('/owner');
+  // Kitchen is a focused display screen — no tab clutter, just brand + actions.
+  const isKitchenPage = pathname.endsWith('/kitchen');
+  const canGoConsole = role === 'owner' || role === 'manager' || role === 'super_admin';
   if (onOwnerPage) {
     return <div className="min-h-screen w-full">{children}</div>;
   }
@@ -92,6 +95,14 @@ export default function StaffShell({
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2.5">
+            {isKitchenPage && canGoConsole && (
+              <Link
+                href={`/r/${tenant.slug}/owner`}
+                className="inline-flex items-center gap-1.5 rounded-btn border border-line bg-[var(--c-surface-solid)] px-3 py-1.5 text-[12.5px] font-bold text-muted shadow-sm transition-all hover:border-brand/40 hover:text-ink"
+              >
+                ← Console
+              </Link>
+            )}
             <ThemeToggle />
             <button
               onClick={logout}
@@ -107,7 +118,7 @@ export default function StaffShell({
             </button>
           </div>
         </div>
-        {(visibleRoleTabs.length > 0 || visibleManageTabs.length > 0) && (
+        {!isKitchenPage && (visibleRoleTabs.length > 0 || visibleManageTabs.length > 0) && (
           <nav className="mx-auto flex max-w-7xl items-center gap-1 overflow-x-auto px-4 pb-2 sm:px-6">
             {visibleRoleTabs.map(renderTab)}
             {visibleRoleTabs.length > 0 && visibleManageTabs.length > 0 && (

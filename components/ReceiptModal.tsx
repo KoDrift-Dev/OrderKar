@@ -217,14 +217,31 @@ export default function ReceiptModal({
   };
 
   const print = () => {
-    document.body.classList.add('receipt-printing');
-    const done = () => {
-      document.body.classList.remove('receipt-printing');
-      window.removeEventListener('afterprint', done);
+    // Dedicated print document: ONLY the receipt exists in it, so the print
+    // preview is always exactly the receipt — 1 page, no blank sheets, no
+    // CSS isolation tricks on the live app.
+    const w = window.open('', '_blank', 'width=380,height=640');
+    if (!w) {
+      // Popup blocked — fall back to in-page print via the portal.
+      document.body.classList.add('receipt-printing');
+      const done = () => {
+        document.body.classList.remove('receipt-printing');
+        window.removeEventListener('afterprint', done);
+      };
+      window.addEventListener('afterprint', done);
+      window.print();
+      window.setTimeout(done, 5000);
+      return;
+    }
+    w.document.write(buildReceiptDoc(inner, order.order_number));
+    w.document.close();
+    w.focus();
+    const doPrint = () => {
+      w.print();
     };
-    window.addEventListener('afterprint', done);
-    window.setTimeout(done, 2000);
-    window.print();
+    // Give the document a beat to render (logo image etc.) before printing.
+    if (w.document.readyState === 'complete') window.setTimeout(doPrint, 350);
+    else w.addEventListener('load', () => window.setTimeout(doPrint, 350));
   };
 
   return (
