@@ -5,6 +5,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { cdnUrl, uploadPhoto } from '@/lib/images';
+import SmartImage from './SmartImage';
 
 // Tracks a photo upload for a form: reactive `uploading` for disabling the
 // Save button, `ref` for checks inside async handlers, and `wait()` so a save
@@ -125,7 +126,7 @@ export default function PhotoDropzone({
             <span className="animate-spin">⏳</span>
           </div>
         ) : value && !imgFailed ? (
-          <img src={cdnUrl(value)} alt="" onError={() => setImgFailed(true)} className="h-20 w-20 shrink-0 rounded-[14px] object-cover" />
+          <SmartImage src={cdnUrl(value)} alt="" onError={() => setImgFailed(true)} width={80} height={80} className="h-20 w-20 shrink-0 rounded-[14px] object-cover" loading="lazy" />
         ) : (
           <div
             className={`flex h-20 w-20 shrink-0 items-center justify-center rounded-[14px] text-[26px] transition-all ${

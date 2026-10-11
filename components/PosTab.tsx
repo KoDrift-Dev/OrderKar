@@ -12,8 +12,9 @@ import { cdnUrl } from '@/lib/images';
 import { categoryImage, categoryEmoji } from '@/lib/food-images';
 import { fmtPKR } from '@/lib/format';
 import { Btn, Card, Input, Empty } from './ui';
-import { ReceiptPreview, printReceipt, type ReceiptData } from './Receipt';
+import { ReceiptPreview, printReceipt, downloadReceipt, type ReceiptData } from './Receipt';
 import { tableState } from './TableCard';
+import SmartImage from './SmartImage';
 import type { DiningTable, MenuCategory, MenuItem, Order } from '@/lib/types';
 
 type PosOrderType = 'dine_in' | 'takeaway' | 'delivery';
@@ -195,6 +196,7 @@ export default function PosTab({
   const [placing, setPlacing] = useState(false);
   const [error, setError] = useState('');
   const [receipt, setReceipt] = useState<ReceiptData | null>(null);
+  const [blockedFormat, setBlockedFormat] = useState<'browser' | 'thermal' | null>(null);
 
   // Load menu items, categories, and tables
   useEffect(() => {
@@ -323,6 +325,7 @@ export default function PosTab({
     setOnlineRef('');
     setError('');
     setReceipt(null);
+    setBlockedFormat(null);
   };
 
   // Charge and save order directly to database
@@ -577,6 +580,7 @@ export default function PosTab({
               </span>
               <input
                 type="text"
+                aria-label="Search items or scan barcode"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => {
@@ -712,9 +716,11 @@ export default function PosTab({
                       {/* Center Icon/Image in rounded soft box */}
                       <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-2xl bg-[#faf5ec] dark:bg-amber-500/10 text-amber-900 dark:text-amber-400 flex items-center justify-center overflow-hidden mb-1.5 shadow-2xs shrink-0 border border-amber-900/5">
                         {item.image_url ? (
-                          <img
+                          <SmartImage
                             src={realImg}
                             alt={item.name}
+                            width={56}
+                            height={56}
                             loading="lazy"
                             onError={(e) => {
                               (e.currentTarget as HTMLImageElement).src = categoryImage(catName);
@@ -834,6 +840,7 @@ export default function PosTab({
                   </label>
                   <div className="flex gap-1">
                     <select
+                      aria-label="Discount type"
                       value={discountType}
                       onChange={(e) => {
                         setDiscountType(e.target.value as DiscountType);
@@ -849,6 +856,7 @@ export default function PosTab({
                       <input
                         type="number"
                         min={0}
+                        aria-label="Discount value"
                         value={discountVal}
                         onChange={(e) => setDiscountVal(e.target.value)}
                         placeholder={discountType === 'percent' ? '%' : 'Rs'}
@@ -902,6 +910,7 @@ export default function PosTab({
                   <input
                     type="number"
                     min={0}
+                    aria-label="Cash given"
                     value={cashGiven}
                     onChange={(e) => setCashGiven(e.target.value)}
                     placeholder={netPayable > 0 ? String(netPayable) : '0.00'}
@@ -932,6 +941,7 @@ export default function PosTab({
                   </div>
                   <input
                     type="text"
+                    aria-label="Transaction reference"
                     value={onlineRef}
                     onChange={(e) => setOnlineRef(e.target.value)}
                     placeholder="Transaction Ref (optional)"
@@ -995,13 +1005,36 @@ export default function PosTab({
             </h2>
             <ReceiptPreview data={receipt} />
             <div className="mt-4 grid grid-cols-2 gap-2">
-              <Btn variant="secondary" onClick={() => printReceipt(receipt, 'browser')}>
+              <Btn
+                variant="secondary"
+                onClick={() => setBlockedFormat(printReceipt(receipt, 'browser') ? null : 'browser')}
+              >
                 🖨️ Browser Print
               </Btn>
-              <Btn variant="secondary" onClick={() => printReceipt(receipt, 'thermal')}>
+              <Btn
+                variant="secondary"
+                onClick={() => setBlockedFormat(printReceipt(receipt, 'thermal') ? null : 'thermal')}
+              >
                 🧾 80mm Thermal
               </Btn>
             </div>
+            {blockedFormat && (
+              <div className="mt-3 rounded-[12px] border border-amber-500/40 bg-amber-500/10 p-3 text-center">
+                <p className="text-[12.5px] font-extrabold text-ink">
+                  Popup was blocked — the receipt couldn&apos;t open for printing.
+                </p>
+                <p className="mt-0.5 text-[12px] text-muted">
+                  Allow popups for this site, or download the receipt file instead.
+                </p>
+                <Btn
+                  variant="secondary"
+                  className="mt-2 w-full"
+                  onClick={() => downloadReceipt(receipt, blockedFormat)}
+                >
+                  ⬇ Download receipt
+                </Btn>
+              </div>
+            )}
             <Btn className="mt-2.5 w-full" onClick={resetOrder}>
               Start New Sale
             </Btn>
