@@ -10,6 +10,7 @@ import type { DiningTable, Profile, MenuCategory, MenuItem } from '@/lib/types';
 import { fmtPKR, fmtNum } from '@/lib/format';
 import { exportAsCsv, printExecutivePdf } from '@/lib/report-export';
 import { Card } from './ui';
+import { RangePills, type Range } from './useRangeAnalytics';
 
 export type ReportSubTab = 'orders' | 'dishes' | 'revenue';
 
@@ -25,6 +26,8 @@ interface OwnerReportsTabProps {
   logoUrl?: string;
   activeSubTab?: ReportSubTab;
   onSubTabChange?: (tab: ReportSubTab) => void;
+  range?: Range;
+  onRangeChange?: (r: Range) => void;
 }
 
 type OrderSortField = 'number' | 'time' | 'table' | 'staff' | 'status' | 'payment' | 'amount';
@@ -43,6 +46,8 @@ export default function OwnerReportsTab({
   logoUrl = '',
   activeSubTab = 'orders',
   onSubTabChange,
+  range,
+  onRangeChange,
 }: OwnerReportsTabProps) {
   const [currentTab, setCurrentTab] = useState<ReportSubTab>(activeSubTab);
   const [downloadMenuOpen, setDownloadMenuOpen] = useState(false);
@@ -532,6 +537,9 @@ export default function OwnerReportsTab({
             Audited records for <span className="font-bold text-ink">{rangeLabel}</span> &middot; {orders.length} total orders
           </p>
         </div>
+        {onRangeChange && (
+          <RangePills value={range ?? 'today'} onChange={onRangeChange} small />
+        )}
 
         {/* Global Download Dropdown (PDF & Excel/CSV Options) */}
         <div className="relative">

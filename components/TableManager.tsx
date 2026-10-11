@@ -11,7 +11,8 @@ import { useT } from '@/lib/i18n';
 import { qrSvg, downloadPng } from './QrSection';
 import { Btn, Card, SectionHead, Input, Label, Empty } from './ui';
 import { useGuard, useUndoDelete, DeleteConfirm, UndoToast } from './DeleteFlow';
-import type { DiningTable } from '@/lib/types';
+import type { DiningTable, Order } from '@/lib/types';
+import TableCard, { tableState } from './TableCard';
 
 const PRESET_SECTIONS = ['Indoor', 'Outdoor', 'Rooftop'];
 
@@ -106,11 +107,13 @@ export default function TableManager({
   restaurantId,
   slug,
   tables,
+  orders = [],
   onChange,
 }: {
   restaurantId: string;
   slug: string;
   tables: DiningTable[];
+  orders?: Order[];
   onChange: (tables: DiningTable[]) => void;
 }) {
   const t = useT();
@@ -233,8 +236,63 @@ export default function TableManager({
     return sorted.filter((tb) => (tb.floor_section || 'indoor').toLowerCase() === filterSec.toLowerCase());
   }, [sorted, filterSec]);
 
+  const liveStates = useMemo(() => {
+    const m = new Map<string, 'free' | 'seated' | 'bill'>();
+    for (const tb of tables) m.set(tb.id, tableState(tb.id, orders));
+    return m;
+  }, [tables, orders]);
+  const liveCounts = useMemo(() => {
+    let free = 0, seated = 0, bill = 0;
+    for (const tb of tables) {
+      if (!tb.is_active) continue;
+      const st = liveStates.get(tb.id) ?? 'free';
+      if (st === 'seated') seated++;
+      else if (st === 'bill') bill++;
+      else free++;
+    }
+    return { free, seated, bill };
+  }, [tables, liveStates]);
+
   return (
     <div className="space-y-6">
+      {/* ── Section 1: Live floor status ── */}
+      <div className="rounded-[20px] border border-line/60 bg-[var(--c-surface-solid)] p-4 sm:p-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="font-display text-[16px] font-extrabold tracking-tight text-ink">
+              Live Floor Status
+            </h2>
+            <p className="mt-0.5 text-[12px] font-medium text-muted">
+              Real-time table occupancy from active orders
+            </p>
+          </div>
+          <div className="flex items-center gap-2 text-[11.5px] font-extrabold">
+            <span className="rounded-full bg-soft px-2.5 py-1 text-muted">{liveCounts.free} Free</span>
+            <span className="rounded-full bg-teal-500/15 px-2.5 py-1 text-teal-700 dark:text-teal-300">
+              {liveCounts.seated} Seated
+            </span>
+            <span className="rounded-full bg-amber-500/15 px-2.5 py-1 text-amber-700 dark:text-amber-300">
+              {liveCounts.bill} Bill Pending
+            </span>
+          </div>
+        </div>
+        {tables.filter((x) => x.is_active).length === 0 ? (
+          <p className="py-6 text-center text-[13px] font-medium text-muted">
+            No active tables yet — add one below.
+          </p>
+        ) : (
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {[...tables]
+              .filter((x) => x.is_active)
+              .sort((a, b) => a.table_number - b.table_number)
+              .map((tb) => (
+                <TableCard key={tb.id} table={tb} state={liveStates.get(tb.id) ?? 'free'} />
+              ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── Section 2: Table management ── */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
         <div>
           <div className="flex items-center gap-2">
