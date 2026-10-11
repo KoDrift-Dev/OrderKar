@@ -10,11 +10,12 @@ const PLACEHOLDER_URL = 'https://placeholder.supabase.co';
 const PLACEHOLDER_KEY = 'placeholder-anon-key';
 
 // route -> minimum role
+// NOTE: owner + manager share one merged console, so /owner allows managers.
 const ROLE_ROUTES: { prefix: string; minRole: string }[] = [
   { prefix: '/waiter', minRole: 'waiter' },
   { prefix: '/kitchen', minRole: 'kitchen' },
   { prefix: '/manager', minRole: 'manager' },
-  { prefix: '/owner', minRole: 'owner' },
+  { prefix: '/owner', minRole: 'manager' },
   { prefix: '/menu', minRole: 'manager' },
   { prefix: '/team', minRole: 'manager' },
 ];
