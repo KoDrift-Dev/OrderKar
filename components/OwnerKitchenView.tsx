@@ -11,7 +11,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { OrderStatus, OrderWithItems, OrderItem } from '@/lib/types';
 import { fmtElapsed, fmtPKR } from '@/lib/format';
-import { cdnUrl } from '@/lib/images';
+import { useMenuMap } from './useMenuMap';
 import StatusPill from './StatusPill';
 import { Empty } from './ui';
 
@@ -56,16 +56,9 @@ function catIcon(name: string): string {
   return '\u{1F37D}\uFE0F';
 }
 
-interface MenuInfo {
-  image_url: string | null;
-  category_id: string | null;
-}
-
 export default function OwnerKitchenView({ restaurantId }: { restaurantId: string }) {
   const [orders, setOrders] = useState<OrderWithItems[]>([]);
-  const [menuById, setMenuById] = useState<Map<string, MenuInfo>>(new Map());
-  const [menuByName, setMenuByName] = useState<Map<string, MenuInfo>>(new Map());
-  const [catNameById, setCatNameById] = useState<Map<string, string>>(new Map());
+  const { thumbOf, stationOf } = useMenuMap(restaurantId);
   const [station, setStation] = useState<string>('all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -101,47 +94,6 @@ export default function OwnerKitchenView({ restaurantId }: { restaurantId: strin
     };
   }, [restaurantId]);
 
-  // ── Menu map for station grouping + thumbnails (one-time) ──
-  useEffect(() => {
-    let live = true;
-    (async () => {
-      const supabase = createClient();
-      const [{ data: items }, { data: cats }] = await Promise.all([
-        supabase.from('menu_items').select('id,name,image_url,category_id').eq('restaurant_id', restaurantId),
-        supabase.from('menu_categories').select('id,name').eq('restaurant_id', restaurantId),
-      ]);
-      if (!live) return;
-      const byId = new Map<string, MenuInfo>();
-      const byName = new Map<string, MenuInfo>();
-      for (const m of items ?? []) {
-        const info = { image_url: m.image_url ?? null, category_id: m.category_id ?? null };
-        byId.set(m.id, info);
-        byName.set(String(m.name).trim().toLowerCase(), info);
-      }
-      setMenuById(byId);
-      setMenuByName(byName);
-      setCatNameById(new Map((cats ?? []).map((c: any) => [c.id, c.name])));
-    })();
-    return () => {
-      live = false;
-    };
-  }, [restaurantId]);
-
-  const stationOf = (item: OrderItem): string => {
-    const info =
-      (item.menu_item_id && menuById.get(item.menu_item_id)) ||
-      menuByName.get(item.item_name.trim().toLowerCase());
-    const cid = info?.category_id;
-    return (cid && catNameById.get(cid)) || 'Other';
-  };
-
-  const thumbOf = (item: OrderItem): string => {
-    const info =
-      (item.menu_item_id && menuById.get(item.menu_item_id)) ||
-      menuByName.get(item.item_name.trim().toLowerCase());
-    return cdnUrl(info?.image_url);
-  };
-
   // ── Station pills with real counts ──
   const stations = useMemo(() => {
     const counts = new Map<string, number>();
@@ -152,16 +104,14 @@ export default function OwnerKitchenView({ restaurantId }: { restaurantId: strin
     return [...counts.entries()]
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orders, menuById, menuByName, catNameById]);
+  }, [orders, stationOf]);
 
   const visibleOrders = useMemo(
     () =>
       station === 'all'
         ? orders
         : orders.filter((o) => o.order_items.some((it) => stationOf(it) === station)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [orders, station, menuById, menuByName, catNameById]
+    [orders, station, stationOf]
   );
 
   const groups = useMemo(() => {

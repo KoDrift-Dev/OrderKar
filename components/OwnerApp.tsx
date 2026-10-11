@@ -1101,14 +1101,18 @@ function OwnerAppInner({
               {/* 3. Sales Tab */}
               <div className={tab === 'sales' ? '' : 'hidden'}>
                 <OwnerSalesTab
+                  restaurantId={restaurantId}
                   orders={currentOrders}
                   items={currentItems}
+                  tables={tables}
                   hours={agg.hours}
                   weekdays={agg.weekdays}
                   topItems={agg.topItems}
                   rangeLabel={t(RANGE_KEYS[range])}
                   restaurantName={displayName}
                   logoUrl={logoUrl}
+                  onNavigate={selectTab}
+                  onRefresh={() => loadOrders(range, custom, false)}
                 />
               </div>
 

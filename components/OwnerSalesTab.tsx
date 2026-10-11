@@ -4,12 +4,13 @@
 // cancellation audits, and one-click financial CSV reports.
 
 import { useState, useMemo } from 'react';
-import type { Order, OrderItem } from '@/lib/types';
+import type { DiningTable, Order, OrderItem } from '@/lib/types';
 import { fmtPKR, fmtNum } from '@/lib/format';
 import { printExecutivePdf, exportAsCsv } from '@/lib/report-export';
 import { HourlyHeatmap, TopItems, WeekdayBars } from './charts';
 import { Card, SectionHead } from './ui';
 import { useT } from '@/lib/i18n';
+import OwnerOrdersList from './OwnerOrdersList';
 
 const PAY_CONFIG: Record<string, { label: string; icon: string; color: string; badge: string }> = {
   cash: { label: 'Cash on Delivery / Counter', icon: '💵', color: '#10b981', badge: 'bg-emerald-500/10 text-emerald-600' },
@@ -88,23 +89,31 @@ function PaymentShareCard({ data }: { data: { key: string; name: string; revenue
 }
 
 export default function OwnerSalesTab({
+  restaurantId,
   orders,
   items,
+  tables,
   hours,
   weekdays,
   topItems,
   rangeLabel,
   restaurantName,
   logoUrl,
+  onNavigate,
+  onRefresh,
 }: {
+  restaurantId: string;
   orders: Order[];
   items: OrderItem[];
+  tables: DiningTable[];
   hours: number[];
   weekdays: number[];
   topItems: { name: string; qty: number; revenue: number }[];
   rangeLabel: string;
   restaurantName?: string;
   logoUrl?: string;
+  onNavigate?: (tab: any) => void;
+  onRefresh?: () => void;
 }) {
   const t = useT();
   const [downloadOpen, setDownloadOpen] = useState(false);
@@ -366,6 +375,16 @@ export default function OwnerSalesTab({
           )}
         </div>
       </div>
+
+      {/* ── Orders list (Pic 3) ── */}
+      <OwnerOrdersList
+        restaurantId={restaurantId}
+        orders={orders}
+        items={items}
+        tables={tables}
+        onNavigate={onNavigate}
+        onRefresh={onRefresh}
+      />
 
       {/* ── Main Analytics Grid ── */}
       <div className="grid gap-4 lg:grid-cols-2">
