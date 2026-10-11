@@ -31,6 +31,9 @@ import OwnerInventoryTab from './OwnerInventoryTab';
 import OwnerHistoryTab from './OwnerHistoryTab';
 import SupplierManager from './SupplierManager';
 import PurchaseOrderManager from './PurchaseOrderManager';
+import SubscriptionCard from './SubscriptionCard';
+import { accessState, isLocked, type AccessState } from '@/lib/subscription';
+import { fetchSubscription } from '@/lib/subscription-client';
 import OwnerFoodCostTab from './OwnerFoodCostTab';
 import PosTab from './PosTab';
 import { useSectionData, RANGE_KEYS, type Range } from './useRangeAnalytics';
@@ -165,6 +168,8 @@ function OwnerAppInner({
   const [alerts, setAlerts] = useState<InvAlert[]>([]);
   const [bellOpen, setBellOpen] = useState(false);
   const [invSub, setInvSub] = useState<'stock' | 'suppliers' | 'pos'>('stock');
+  const [subState, setSubState] = useState<AccessState | null>(null);
+  const [billingMsg, setBillingMsg] = useState('');
   const [displayName, setDisplayName] = useState(restaurantName);
 
   const ORDER_COLS =
@@ -277,6 +282,7 @@ function OwnerAppInner({
     setLoading(true);
     (async () => {
       await Promise.all([loadStatic(), loadOrders(false), loadAlerts()]);
+      fetchSubscription(restaurantId).then((sub) => { if (live) setSubState(accessState(sub)); }).catch(() => {});
       if (live) {
         setLoading(false);
       }
@@ -594,11 +600,59 @@ function OwnerAppInner({
     return 'Dashboard';
   }, [tab]);
 
+  // After Stripe checkout returns, sync the payment into our DB immediately.
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    if (q.get('billing') !== 'success' || !q.get('session_id')) return;
+    fetch('/api/billing/sync-session', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ sessionId: q.get('session_id') }),
+    })
+      .then((r) => r.json().catch(() => ({})))
+      .then((j: { ok?: boolean; plan?: string }) => {
+        if (j.ok) {
+          setBillingMsg(`🎉 Payment successful — welcome to the ${j.plan ?? ''} plan!`.trim());
+          fetchSubscription(restaurantId)
+            .then((sub) => setSubState(accessState(sub)))
+            .catch(() => {});
+        }
+        // Clean the URL so refresh doesn't re-sync.
+        const url = new URL(window.location.href);
+        url.searchParams.delete('billing');
+        url.searchParams.delete('session_id');
+        window.history.replaceState(null, '', url.toString());
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const selectTab = (k: TabKey, sub?: ReportSubTab) => {
     setTab(k);
     if (sub) setReportSubTab(sub);
     setMobileMenuOpen(false);
   };
+
+  if (subState && isLocked(subState) && viewerRole !== 'super_admin') {
+    return (
+      <div className="flex min-h-screen w-full items-center justify-center bg-page p-6">
+        <div className="w-full max-w-4xl">
+          <div className="mb-6 text-center">
+            <p className="text-4xl" aria-hidden>🔒</p>
+            <h1 className="mt-3 font-display text-2xl font-black text-ink">
+              {subState.kind === 'past_due' ? 'Payment failed' : 'Trial ended'}
+            </h1>
+            <p className="mx-auto mt-2 max-w-md text-[13.5px] text-muted">
+              {subState.kind === 'past_due'
+                ? 'We could not charge your last invoice. Update your payment method or pick a plan to reactivate your console.'
+                : 'Your free trial has ended. Pick a plan to reactivate your owner console.'}
+            </p>
+          </div>
+          <SubscriptionCard restaurantId={restaurantId} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen w-full bg-page">
@@ -905,6 +959,35 @@ function OwnerAppInner({
             </button>
           </div>
         </header>
+          {billingMsg && (
+            <div className="mx-4 sm:mx-6 lg:mx-8 mt-3 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-2.5 text-[12.5px] font-medium text-emerald-700 dark:text-emerald-300">
+              {billingMsg}
+            </div>
+          )}
+          {subState?.kind === 'trialing' && subState.daysLeft <= 3 && (
+            <div className="mx-4 sm:mx-6 lg:mx-8 mt-3 flex items-center gap-2 rounded-xl border border-sky-500/40 bg-sky-500/10 px-4 py-2.5 text-[12.5px] font-medium text-sky-700 dark:text-sky-300">
+              <span aria-hidden>🎉</span>
+              <span>
+                Free trial ends in <b>{subState.daysLeft} day{subState.daysLeft === 1 ? '' : 's'}</b> —{' '}
+                <button onClick={() => selectTab('settings')} className="font-bold underline">
+                  pick a plan
+                </button>{' '}
+                to keep everything running.
+              </span>
+            </div>
+          )}
+          {subState?.kind === 'past_due' && (
+            <div className="mx-4 sm:mx-6 lg:mx-8 mt-3 flex items-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-2.5 text-[12.5px] font-medium text-amber-700 dark:text-amber-300">
+              <span aria-hidden>⚠️</span>
+              <span>
+                Last payment failed.{' '}
+                <button onClick={() => selectTab('settings')} className="font-bold underline">
+                  Update payment method
+                </button>{' '}
+                to avoid interruption.
+              </span>
+            </div>
+          )}
           {ordersTruncated && (
             <div className="mx-4 sm:mx-6 lg:mx-8 mt-3 flex items-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-2.5 text-[12.5px] font-medium text-amber-700 dark:text-amber-300">
               <span aria-hidden>⚠️</span>
