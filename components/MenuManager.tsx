@@ -14,6 +14,7 @@ import { cdnUrl } from '@/lib/images';
 import { Btn, Card, Empty, Input, Label, Pill, Select, Textarea } from './ui';
 import PhotoDropzone, { useUploadState } from './PhotoDropzone';
 import { useGuard, useUndoDelete, DeleteConfirm, UndoToast } from './DeleteFlow';
+import SmartImage from './SmartImage';
 
 type StatusFilter = 'all' | 'available' | 'soldout' | 'popular';
 type SortKey = 'name' | 'price-asc' | 'price-desc' | 'category';
@@ -260,6 +261,7 @@ export default function MenuManager({ restaurantId }: { restaurantId: string }) 
         <input
           type="text"
           name="orderkar-menu-search"
+          aria-label="Search menu items"
           autoComplete="off"
           data-lpignore="true"
           data-1p-ignore="true"
@@ -315,7 +317,7 @@ export default function MenuManager({ restaurantId }: { restaurantId: string }) 
           {visible.map((item) => (
             <Card key={item.id} className="group flex flex-col overflow-hidden !p-0">
               <div className="relative">
-                <img src={photoFor(item)} alt={item.name} loading="lazy" className="aspect-[16/10] w-full object-cover" />
+                <SmartImage src={photoFor(item)} alt={item.name} width={640} height={400} loading="lazy" className="aspect-[16/10] w-full object-cover" />
                 {item.tags.includes('bestseller') && (
                   <span className="absolute left-2.5 top-2.5 rounded-md bg-amber px-2 py-1 text-[10px] font-extrabold uppercase tracking-wide text-white shadow">
                     ★ Popular

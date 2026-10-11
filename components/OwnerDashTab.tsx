@@ -10,6 +10,7 @@ import { fmtPKR } from '@/lib/format';
 import { createClient } from '@/lib/supabase/client';
 import QrSection from './QrSection';
 import { RangePills, type Range } from './useRangeAnalytics';
+import SmartImage from './SmartImage';
 
 export interface DashAgg {
   revenue: number;
@@ -343,11 +344,13 @@ export default function OwnerDashTab({
       {/* ── 1. HERO BANNER ── */}
       <div className="relative overflow-hidden rounded-[22px] border border-white/10 bg-[#0d091a] shadow-[0_8px_30px_rgba(0,0,0,0.16)] min-h-[140px] sm:min-h-[160px]">
         {heroImgOk && (
-          <img
+          <SmartImage
             src="https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=1600&q=80"
             alt=""
             aria-hidden
-            className="absolute inset-0 h-full w-full object-cover object-right md:object-center"
+            fill
+            sizes="100vw"
+            className="object-cover object-right md:object-center"
             loading="eager"
             onError={() => setHeroImgOk(false)}
           />
