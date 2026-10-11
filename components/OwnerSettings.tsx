@@ -43,6 +43,13 @@ export default function OwnerSettings({
   const [posPalette, setPosPalette] = useState<PosPaletteId>('amber');
   const [rMsg, setRMsg] = useState<{ text: string; ok: boolean } | null>(null);
 
+  // ── billing (receipt tax + service charges) ──
+  const [taxValue, setTaxValue] = useState('');
+  const [taxType, setTaxType] = useState<'rs' | 'pct'>('pct');
+  const [svcValue, setSvcValue] = useState('');
+  const [svcType, setSvcType] = useState<'rs' | 'pct'>('pct');
+  const [bMsg, setBMsg] = useState<{ text: string; ok: boolean } | null>(null);
+
   // ── my account ──
   const [fullName, setFullName] = useState('');
   const [myPhone, setMyPhone] = useState('');
@@ -76,6 +83,10 @@ export default function OwnerSettings({
         setName(r.name ?? '');
         setThemeCfg(tc);
         setAddress(tc.address ?? '');
+        setTaxValue(tc.tax_value ?? '');
+        setTaxType(tc.tax_type === 'rs' ? 'rs' : 'pct');
+        setSvcValue(tc.svc_value ?? '');
+        setSvcType(tc.svc_type === 'rs' ? 'rs' : 'pct');
         setPhone(tc.phone ?? '');
         setContactEmail(tc.email ?? '');
         setLogoUrl(tc.logo_url ?? '');
@@ -136,6 +147,32 @@ export default function OwnerSettings({
         setRMsg({ text: t('set_saved_rest'), ok: true });
       } catch (err) {
         setRMsg({ text: `❌ ${err instanceof Error ? err.message : t('set_err_default')}`, ok: false });
+      } finally {
+        setSaving(null);
+      }
+    });
+
+  const saveBilling = () =>
+    guard(async () => {
+      setBMsg(null);
+      setSaving('bill');
+      try {
+        const cfg = {
+          ...themeCfg,
+          tax_value: taxValue.trim(),
+          tax_type: taxType,
+          svc_value: svcValue.trim(),
+          svc_type: svcType,
+        };
+        const { error } = await createClient()
+          .from('restaurants')
+          .update({ theme_config: cfg })
+          .eq('id', restaurantId);
+        if (error) throw error;
+        setThemeCfg(cfg);
+        setBMsg({ text: t('set_saved_bill'), ok: true });
+      } catch (err) {
+        setBMsg({ text: `\u274C ${err instanceof Error ? err.message : t('set_err_default')}`, ok: false });
       } finally {
         setSaving(null);
       }
@@ -309,6 +346,65 @@ export default function OwnerSettings({
         <div className="mt-5 border-t border-line/70 pt-4">
           <Btn onClick={saveRestaurant} disabled={saving === 'rest'}>
             {saving === 'rest' ? t('set_saving') : 'Save Profile Changes'}
+          </Btn>
+        </div>
+      </Card>
+
+      {/* ── Billing & Receipt ── */}
+      <Card className="stat-card-luxury p-5 sm:p-6">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-emerald-500/15 text-emerald-600 text-lg shadow-sm">
+            🧾
+          </span>
+          <div>
+            <h3 className="font-display text-[16px] font-extrabold text-ink">{t('set_billing_title')}</h3>
+            <p className="text-[12.5px] font-medium text-muted">{t('set_billing_sub')}</p>
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          {[
+            { label: t('set_tax'), value: taxValue, setValue: setTaxValue, type: taxType, setType: setTaxType },
+            { label: t('set_svc'), value: svcValue, setValue: setSvcValue, type: svcType, setType: setSvcType },
+          ].map((f) => (
+            <div key={f.label} className="rounded-[16px] border border-line/70 bg-soft/40 p-4">
+              <Label>{f.label}</Label>
+              <div className="mt-1.5 flex gap-2">
+                <Input
+                  type="number"
+                  min="0"
+                  inputMode="decimal"
+                  value={f.value}
+                  onChange={(e) => f.setValue(e.target.value)}
+                  placeholder="0"
+                  className="min-w-0 flex-1"
+                />
+                <div className="flex shrink-0 overflow-hidden rounded-btn border border-line/70">
+                  {(['rs', 'pct'] as const).map((k) => (
+                    <button
+                      key={k}
+                      type="button"
+                      onClick={() => f.setType(k)}
+                      className={`px-3.5 py-2 text-[12.5px] font-extrabold transition-colors ${
+                        f.type === k ? 'bg-brand text-white' : 'text-muted hover:text-ink'
+                      }`}
+                    >
+                      {k === 'rs' ? 'Rs' : '%'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <p className="mt-1.5 text-[11.5px] font-medium text-muted">
+                {f.type === 'pct' ? '% of bill subtotal' : 'Flat Rs amount per bill'}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        {bMsg && <div className="mt-3">{msg(bMsg.text, bMsg.ok)}</div>}
+        <div className="mt-5 border-t border-line/70 pt-4">
+          <Btn onClick={saveBilling} disabled={saving === 'bill'}>
+            {saving === 'bill' ? t('set_saving') : 'Save Billing Settings'}
           </Btn>
         </div>
       </Card>
