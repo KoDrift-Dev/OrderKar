@@ -9,6 +9,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { logActivity, ACT } from '@/lib/activity';
 import type { OrderStatus, OrderWithItems, OrderItem, Profile } from '@/lib/types';
 import { fmtElapsed, fmtPKR } from '@/lib/format';
 import { useMenuMap } from './useMenuMap';
@@ -166,6 +167,15 @@ export default function OwnerKitchenView({
     setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status } : o)));
     const { error } = await createClient().from('orders').update({ status }).eq('id', orderId);
     setBusyId(null);
+    if (!error) {
+      logActivity(createClient(), {
+        restaurantId,
+        action: ACT.ORDER_STATUS_CHANGED,
+        entityType: 'order',
+        entityId: orderId,
+        details: { status },
+      });
+    }
     if (error) {
       const { data } = await createClient()
         .from('orders')
@@ -192,6 +202,15 @@ export default function OwnerKitchenView({
       .eq('id', orderId);
     setBusyId(null);
     if (error) setModalId(null);
+    else {
+      logActivity(createClient(), {
+        restaurantId,
+        action: ACT.PAYMENT_COLLECTED,
+        entityType: 'order',
+        entityId: orderId,
+        details: { payment_method: method },
+      });
+    }
   };
 
   // ── Performance strip (real) ──

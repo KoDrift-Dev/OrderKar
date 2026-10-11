@@ -5,6 +5,7 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { logActivity, ACT } from '@/lib/activity';
 import { useT } from '@/lib/i18n';
 import { Btn, Card, SectionHead, Input, Label } from './ui';
 import { useGuard } from './DeleteFlow';
@@ -151,6 +152,13 @@ export default function OwnerSettings({
         } catch {}
         onNameChange(name.trim());
         setRMsg({ text: t('set_saved_rest'), ok: true });
+        logActivity(createClient(), {
+          restaurantId,
+          action: ACT.SETTINGS_UPDATED,
+          entityType: 'restaurant',
+          entityId: restaurantId,
+          details: { section: 'profile', name: name.trim() },
+        });
       } catch (err) {
         setRMsg({ text: `❌ ${err instanceof Error ? err.message : t('set_err_default')}`, ok: false });
       } finally {
@@ -180,6 +188,13 @@ export default function OwnerSettings({
         if (error) throw error;
         setThemeCfg(cfg);
         setBMsg({ text: t('set_saved_bill'), ok: true });
+        logActivity(createClient(), {
+          restaurantId,
+          action: ACT.BILLING_UPDATED,
+          entityType: 'restaurant',
+          entityId: restaurantId,
+          details: { section: 'billing_receipt' },
+        });
       } catch (err) {
         setBMsg({ text: `\u274C ${err instanceof Error ? err.message : t('set_err_default')}`, ok: false });
       } finally {

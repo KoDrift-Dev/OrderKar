@@ -6,6 +6,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { logActivity, ACT } from '@/lib/activity';
 import type { MenuCategory, MenuItem } from '@/lib/types';
 import { fmtPKR } from '@/lib/format';
 import { categoryImage } from '@/lib/food-images';
@@ -61,6 +62,13 @@ export default function MenuManager({ restaurantId }: { restaurantId: string }) 
   const [confirmDel, setConfirmDel] = useState<MenuItem | null>(null);
   const del = useUndoDelete<MenuItem>(async (item) => {
     await createClient().from('menu_items').delete().eq('id', item.id);
+    logActivity(createClient(), {
+      restaurantId,
+      action: ACT.MENU_ITEM_DELETED,
+      entityType: 'menu_item',
+      entityId: item.id,
+      details: { name: item.name },
+    });
   });
   const [error, setError] = useState('');
 
@@ -166,9 +174,22 @@ export default function MenuManager({ restaurantId }: { restaurantId: string }) 
       if (editing === 'new') {
         const { error } = await supabase.from('menu_items').insert(payload);
         if (error) throw new Error(error.message);
+        logActivity(supabase, {
+          restaurantId,
+          action: ACT.MENU_ITEM_CREATED,
+          entityType: 'menu_item',
+          details: { name: payload.name, price: payload.price },
+        });
       } else if (editing) {
         const { error } = await supabase.from('menu_items').update(payload).eq('id', editing.id);
         if (error) throw new Error(error.message);
+        logActivity(supabase, {
+          restaurantId,
+          action: ACT.MENU_ITEM_UPDATED,
+          entityType: 'menu_item',
+          entityId: editing.id,
+          details: { name: payload.name, price: payload.price },
+        });
       }
       setEditing(null);
       await load();
@@ -201,7 +222,16 @@ export default function MenuManager({ restaurantId }: { restaurantId: string }) 
     guard(async () => {
     const supabase = createClient();
     const { error } = await supabase.from('menu_items').update({ is_available: !item.is_available }).eq('id', item.id);
-    if (!error) setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, is_available: !i.is_available } : i)));
+    if (!error) {
+      setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, is_available: !i.is_available } : i)));
+      logActivity(supabase, {
+        restaurantId,
+        action: ACT.MENU_ITEM_AVAILABILITY,
+        entityType: 'menu_item',
+        entityId: item.id,
+        details: { name: item.name, is_available: !item.is_available },
+      });
+    }
     });
 
   const photoFor = (item: MenuItem) =>
