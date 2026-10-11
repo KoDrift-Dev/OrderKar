@@ -10,13 +10,13 @@ const config: Config = {
     extend: {
       colors: {
         page: 'var(--c-page)',
-        soft: 'var(--c-soft)',
+        soft: 'rgb(var(--c-soft-rgb) / <alpha-value>)',
         surface: 'var(--c-surface)',
         // rgb-triplet vars + <alpha-value> so /opacity modifiers work
         ink: 'rgb(var(--c-ink-rgb) / <alpha-value>)',
         body: 'var(--c-body)',
-        muted: 'var(--c-muted)',
-        line: 'var(--c-line)',
+        muted: 'rgb(var(--c-muted-rgb) / <alpha-value>)',
+        line: 'rgb(var(--c-line-rgb) / <alpha-value>)',
         brand: 'rgb(var(--c-brand-rgb) / <alpha-value>)',
         'brand-deep': 'var(--c-brand-deep)',
         'brand-soft': 'var(--c-brand-soft)',

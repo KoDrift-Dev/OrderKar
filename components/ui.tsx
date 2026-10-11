@@ -37,7 +37,7 @@ export function Btn({ variant = 'primary', size = 'md', className = '', ...rest 
   const variants = {
     primary: 'btn-3d text-white font-bold',
     secondary:
-      'bg-[var(--c-surface-solid)] text-ink font-bold border border-line shadow-lift hover:-translate-y-px active:translate-y-0 transition-all',
+      'bg-[var(--c-surface-solid)] text-ink font-bold border border-line/12 shadow-lift hover:-translate-y-px active:translate-y-0 transition-all',
     ghost: 'text-brand font-bold hover:bg-brand-soft transition-colors',
     danger:
       'text-white font-bold bg-gradient-to-br from-red-500 to-red-700 shadow-lift hover:-translate-y-px active:translate-y-0 transition-all',

@@ -149,7 +149,7 @@ export function RevenueTrend({ points, labels }: { points: number[]; labels: str
             <p className="font-mono text-[16px] sm:text-[18px] font-black text-ink">{fmtPKR(avgRev)}</p>
           </div>
           {peakVal > 0 && (
-            <div className="hidden sm:block border-l border-line pl-4">
+            <div className="hidden sm:block border-l border-line/12 pl-4">
               <p className="text-[11.5px] font-black uppercase tracking-wider text-muted">Peak ({peakLabel})</p>
               <p className="font-mono text-[16px] sm:text-[18px] font-black text-brand">{fmtPKR(peakVal)}</p>
             </div>
@@ -273,7 +273,7 @@ export function RevenueTrend({ points, labels }: { points: number[]; labels: str
         {/* Hover Tooltip Popup */}
         {hover !== null && xy[hover] && (
           <div
-            className="pointer-events-none absolute z-20 -translate-x-1/2 -translate-y-full rounded-[14px] border border-line bg-[var(--c-surface-solid)] px-3.5 py-2 text-center shadow-xl backdrop-blur-md"
+            className="pointer-events-none absolute z-20 -translate-x-1/2 -translate-y-full rounded-[14px] border border-line/12 bg-[var(--c-surface-solid)] px-3.5 py-2 text-center shadow-xl backdrop-blur-md"
             style={{
               left: `${Math.min(92, Math.max(8, (xy[hover][0] / W) * 100))}%`,
               top: `${Math.max(10, (xy[hover][1] / H) * 100 - 8)}%`,
@@ -352,7 +352,7 @@ export function HourlyHeatmap({ hours }: { hours: number[] }) {
         </div>
 
         {/* Legend */}
-        <div className="flex items-center justify-between border-t border-line pt-2 text-[11.5px] text-muted">
+        <div className="flex items-center justify-between border-t border-line/12 pt-2 text-[11.5px] text-muted">
           <span>Less active</span>
           <div className="flex items-center gap-1.5">
             <span className="h-2.5 w-6 rounded-[4px] bg-soft" />
@@ -456,7 +456,7 @@ export function TopItems({ items }: { items: { name: string; qty: number; revenu
           return (
             <div
               key={it.name}
-              className="group rounded-[14px] border border-transparent p-2 transition-all duration-200 hover:border-line hover:bg-soft/50"
+              className="group rounded-[14px] border border-transparent p-2 transition-all duration-200 hover:border-line/12 hover:bg-soft/50"
             >
               <div className="mb-1.5 flex items-center justify-between gap-2.5">
                 <div className="flex min-w-0 items-center gap-2.5">

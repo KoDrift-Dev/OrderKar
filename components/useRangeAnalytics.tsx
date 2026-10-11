@@ -287,7 +287,7 @@ export function RangePills({
   ];
   return (
     <div
-      className={`inline-flex items-center gap-0.5 rounded-full border border-line bg-[var(--c-surface-solid)] shadow-2xs ${
+      className={`inline-flex items-center gap-0.5 rounded-full border border-line/12 bg-[var(--c-surface-solid)] shadow-2xs ${
         small ? 'p-0.5' : 'p-1'
       }`}
     >

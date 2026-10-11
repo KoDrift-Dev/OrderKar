@@ -119,7 +119,7 @@ function WaiterAppInner({ restaurantId, waiterId }: { restaurantId: string; wait
       supabase.removeChannel(ch);
       window.clearInterval(poll);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line/12 react-hooks/exhaustive-deps
   }, [restaurantId, placedTick]);
 
   // One active order per table: still open for more items?
@@ -307,7 +307,7 @@ function WaiterAppInner({ restaurantId, waiterId }: { restaurantId: string; wait
                   </div>
                   <StatusPill status={addingTo.status} />
                 </div>
-                <ul className="mt-2 space-y-1 border-t border-line pt-2">
+                <ul className="mt-2 space-y-1 border-t border-line/12 pt-2">
                   {addingTo.order_items.map((it) => (
                     <li key={it.id} className="flex justify-between gap-2 text-[13px]">
                       <span className="text-body"><span className="mr-1.5 font-mono font-bold text-brand">{it.quantity}×</span>{it.item_name}</span>
