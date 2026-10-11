@@ -522,7 +522,7 @@ export default function OwnerReportsTab({
   return (
     <div className="space-y-4 -mt-2 sm:-mt-3">
       {/* ── 1. Compact Header Bar (Eliminated Extra Empty Space) ── */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-line pb-3.5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-line/12 pb-3.5">
         <div>
           <div className="flex items-center gap-2">
             <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand/10 text-brand">
@@ -550,7 +550,7 @@ export default function OwnerReportsTab({
         <div className="relative">
           <button
             onClick={() => setDownloadMenuOpen(!downloadMenuOpen)}
-            className="inline-flex items-center gap-2 rounded-xl border border-line bg-[var(--c-surface-solid)] px-4 py-2 text-[13px] font-black text-ink shadow-sm hover:border-brand/50 hover:text-brand transition-all active:scale-95"
+            className="inline-flex items-center gap-2 rounded-xl border border-line/12 bg-[var(--c-surface-solid)] px-4 py-2 text-[13px] font-black text-ink shadow-sm hover:border-brand/50 hover:text-brand transition-all active:scale-95"
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -562,7 +562,7 @@ export default function OwnerReportsTab({
           </button>
 
           {downloadMenuOpen && (
-            <div className="absolute right-0 top-full mt-1.5 z-40 w-56 rounded-2xl border border-line bg-[var(--c-surface-solid)] p-2 shadow-xl backdrop-blur-xl animate-in zoom-in-95 fade-in duration-150">
+            <div className="absolute right-0 top-full mt-1.5 z-40 w-56 rounded-2xl border border-line/12 bg-[var(--c-surface-solid)] p-2 shadow-xl backdrop-blur-xl animate-in zoom-in-95 fade-in duration-150">
               <button
                 onClick={handleDownloadPdf}
                 className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[13px] font-bold text-ink hover:bg-brand hover:text-white transition-colors group"
@@ -639,17 +639,17 @@ export default function OwnerReportsTab({
         <div className="space-y-4">
           {/* Top Quick Stats */}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <div className="rounded-[18px] border border-line bg-[var(--c-surface-solid)] p-3.5 shadow-xs">
+            <div className="rounded-[18px] border border-line/12 bg-[var(--c-surface-solid)] p-3.5 shadow-xs">
               <p className="text-[11px] font-extrabold uppercase text-muted">Filtered Orders</p>
               <p className="mt-1 font-mono text-xl font-black text-ink">{fmtNum(sortedFilteredOrders.length)}</p>
             </div>
-            <div className="rounded-[18px] border border-line bg-[var(--c-surface-solid)] p-3.5 shadow-xs">
+            <div className="rounded-[18px] border border-line/12 bg-[var(--c-surface-solid)] p-3.5 shadow-xs">
               <p className="text-[11px] font-extrabold uppercase text-muted">Completed Volume</p>
               <p className="mt-1 font-mono text-xl font-black text-emerald-600">
                 {fmtPKR(ordersTotalRevenue)}
               </p>
             </div>
-            <div className="rounded-[18px] border border-line bg-[var(--c-surface-solid)] p-3.5 shadow-xs">
+            <div className="rounded-[18px] border border-line/12 bg-[var(--c-surface-solid)] p-3.5 shadow-xs">
               <p className="text-[11px] font-extrabold uppercase text-muted">Completed Rate</p>
               <p className="mt-1 font-mono text-xl font-black text-brand">
                 {sortedFilteredOrders.length > 0
@@ -657,7 +657,7 @@ export default function OwnerReportsTab({
                   : '100%'}
               </p>
             </div>
-            <div className="rounded-[18px] border border-line bg-[var(--c-surface-solid)] p-3.5 shadow-xs">
+            <div className="rounded-[18px] border border-line/12 bg-[var(--c-surface-solid)] p-3.5 shadow-xs">
               <p className="text-[11px] font-extrabold uppercase text-muted">Cancellations</p>
               <p className="mt-1 font-mono text-xl font-black text-rose-600">
                 {fmtNum(sortedFilteredOrders.filter((o) => o.status === 'cancelled').length)}
@@ -676,7 +676,7 @@ export default function OwnerReportsTab({
                   placeholder="Search order #, table, staff, dish..."
                   value={orderSearch}
                   onChange={(e) => setOrderSearch(e.target.value)}
-                  className="w-full rounded-xl border border-line bg-soft/50 pl-10 pr-4 py-2 text-[12.5px] font-bold text-ink outline-none focus:border-brand transition-colors"
+                  className="w-full rounded-xl border border-line/12 bg-soft/50 pl-10 pr-4 py-2 text-[12.5px] font-bold text-ink outline-none focus:border-brand transition-colors"
                 />
                 {orderSearch && (
                   <button
@@ -692,7 +692,7 @@ export default function OwnerReportsTab({
                 <select
                   value={orderStatusFilter}
                   onChange={(e) => setOrderStatusFilter(e.target.value as any)}
-                  className="rounded-xl border border-line bg-[var(--c-surface-solid)] px-2.5 py-1.5 font-bold text-ink outline-none focus:border-brand text-[11.5px]"
+                  className="rounded-xl border border-line/12 bg-[var(--c-surface-solid)] px-2.5 py-1.5 font-bold text-ink outline-none focus:border-brand text-[11.5px]"
                 >
                   <option value="all">All Statuses</option>
                   <option value="completed">Completed Only</option>
@@ -703,7 +703,7 @@ export default function OwnerReportsTab({
                 <select
                   value={orderPaymentFilter}
                   onChange={(e) => setOrderPaymentFilter(e.target.value)}
-                  className="rounded-xl border border-line bg-[var(--c-surface-solid)] px-2.5 py-1.5 font-bold text-ink outline-none focus:border-brand text-[11.5px]"
+                  className="rounded-xl border border-line/12 bg-[var(--c-surface-solid)] px-2.5 py-1.5 font-bold text-ink outline-none focus:border-brand text-[11.5px]"
                 >
                   <option value="all">All Payments</option>
                   <option value="cash">💵 Cash</option>
@@ -713,7 +713,7 @@ export default function OwnerReportsTab({
                 </select>
 
                 {/* View Mode Toggle: Grid vs List */}
-                <div className="flex items-center rounded-xl border border-line bg-[var(--c-surface-solid)] p-0.5">
+                <div className="flex items-center rounded-xl border border-line/12 bg-[var(--c-surface-solid)] p-0.5">
                   <button
                     type="button"
                     onClick={() => setOrderViewMode('list')}
@@ -757,7 +757,7 @@ export default function OwnerReportsTab({
               {dateSheets.map((sheet) => (
                 <Card key={sheet.key} className="overflow-hidden p-0 border border-line/80 shadow-sm">
                   {/* Sheet Header */}
-                  <div className="flex flex-wrap items-center justify-between border-b border-line bg-soft/50 px-5 py-3">
+                  <div className="flex flex-wrap items-center justify-between border-b border-line/12 bg-soft/50 px-5 py-3">
                     <div className="flex items-center gap-2">
                       <span className="text-[13px] text-muted">📅</span>
                       <h3 className="font-display text-[14.5px] font-black text-ink">
@@ -857,7 +857,7 @@ export default function OwnerReportsTab({
                     /* Compact Orders Table (List View) */
                     <div className="overflow-x-auto">
                       <table className="w-full text-left text-[11px] sm:text-[12.5px]">
-                        <thead className="border-b border-line bg-soft/40 text-[9.5px] sm:text-[10.5px] font-black uppercase tracking-wider text-muted">
+                        <thead className="border-b border-line/12 bg-soft/40 text-[9.5px] sm:text-[10.5px] font-black uppercase tracking-wider text-muted">
                           <tr>
                             <th
                               onClick={() => toggleOrderSort('number')}
@@ -967,7 +967,7 @@ export default function OwnerReportsTab({
                                       className={`rounded-md border px-1.5 py-0.5 text-[10px] font-extrabold transition-all ${
                                         isExpanded
                                           ? 'bg-brand text-white border-brand'
-                                          : 'bg-[var(--c-surface-solid)] border-line text-brand hover:bg-brand hover:text-white'
+                                          : 'bg-[var(--c-surface-solid)] border-line/12 text-brand hover:bg-brand hover:text-white'
                                       }`}
                                     >
                                       {isExpanded ? 'Hide ▲' : `${orderItems.length}▾`}
@@ -980,7 +980,7 @@ export default function OwnerReportsTab({
                                   <tr className="bg-brand/5 border-b border-brand/20">
                                     <td colSpan={8} className="p-2.5 sm:p-4">
                                       <div className="rounded-xl border border-brand/25 bg-[var(--c-surface-solid)] p-3 shadow-2xs animate-in fade-in duration-150">
-                                        <div className="flex items-center justify-between pb-2 border-b border-line">
+                                        <div className="flex items-center justify-between pb-2 border-b border-line/12">
                                           <div className="flex items-center gap-1.5">
                                             <span className="text-sm">🍲</span>
                                             <p className="font-display text-[12px] sm:text-[13px] font-black text-ink">
@@ -1001,7 +1001,7 @@ export default function OwnerReportsTab({
                                             {orderItems.map((it, itemIdx) => (
                                               <div
                                                 key={itemIdx}
-                                                className="flex items-center justify-between rounded-lg bg-soft/50 p-2 border border-line text-[11px]"
+                                                className="flex items-center justify-between rounded-lg bg-soft/50 p-2 border border-line/12 text-[11px]"
                                               >
                                                 <div>
                                                   <p className="font-black text-ink">{it.item_name}</p>
@@ -1041,25 +1041,25 @@ export default function OwnerReportsTab({
         <div className="space-y-4">
           {/* Top Quick Stats */}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <div className="rounded-[18px] border border-line bg-[var(--c-surface-solid)] p-3.5 shadow-xs">
+            <div className="rounded-[18px] border border-line/12 bg-[var(--c-surface-solid)] p-3.5 shadow-xs">
               <p className="text-[11px] font-extrabold uppercase text-muted">Total Units Sold</p>
               <p className="mt-1 font-mono text-xl font-black text-teal">
                 {fmtNum(totalUnitsSold)}
               </p>
             </div>
-            <div className="rounded-[18px] border border-line bg-[var(--c-surface-solid)] p-3.5 shadow-xs">
+            <div className="rounded-[18px] border border-line/12 bg-[var(--c-surface-solid)] p-3.5 shadow-xs">
               <p className="text-[11px] font-extrabold uppercase text-muted">Food Revenue</p>
               <p className="mt-1 font-mono text-xl font-black text-emerald-600">
                 {fmtPKR(totalFoodRevenue)}
               </p>
             </div>
-            <div className="rounded-[18px] border border-line bg-[var(--c-surface-solid)] p-3.5 shadow-xs">
+            <div className="rounded-[18px] border border-line/12 bg-[var(--c-surface-solid)] p-3.5 shadow-xs">
               <p className="text-[11px] font-extrabold uppercase text-muted">Active Menu Dishes</p>
               <p className="mt-1 font-mono text-xl font-black text-ink">
                 {fmtNum(dishSales.length)}
               </p>
             </div>
-            <div className="rounded-[18px] border border-line bg-[var(--c-surface-solid)] p-3.5 shadow-xs">
+            <div className="rounded-[18px] border border-line/12 bg-[var(--c-surface-solid)] p-3.5 shadow-xs">
               <p className="text-[11px] font-extrabold uppercase text-muted">Top Performer</p>
               <p className="mt-1 font-display text-[14px] font-black text-brand truncate">
                 {dishSales[0]?.name ?? 'N/A'}
@@ -1078,7 +1078,7 @@ export default function OwnerReportsTab({
                   placeholder="Search dish by name..."
                   value={dishSearch}
                   onChange={(e) => setDishSearch(e.target.value)}
-                  className="w-full rounded-xl border border-line bg-soft/50 pl-10 pr-4 py-1.5 text-[12px] font-bold text-ink outline-none focus:border-brand transition-colors"
+                  className="w-full rounded-xl border border-line/12 bg-soft/50 pl-10 pr-4 py-1.5 text-[12px] font-bold text-ink outline-none focus:border-brand transition-colors"
                 />
               </div>
 
@@ -1086,7 +1086,7 @@ export default function OwnerReportsTab({
                 <select
                   value={dishCategoryFilter}
                   onChange={(e) => setDishCategoryFilter(e.target.value)}
-                  className="rounded-xl border border-line bg-[var(--c-surface-solid)] px-2.5 py-1.5 font-bold text-ink outline-none focus:border-brand"
+                  className="rounded-xl border border-line/12 bg-[var(--c-surface-solid)] px-2.5 py-1.5 font-bold text-ink outline-none focus:border-brand"
                 >
                   <option value="all">All Categories ({dishSales.length})</option>
                   {categories.map((c) => {
@@ -1146,7 +1146,7 @@ export default function OwnerReportsTab({
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-[11.5px] sm:text-[12.5px]">
-                  <thead className="border-b border-line bg-soft/50 text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-muted">
+                  <thead className="border-b border-line/12 bg-soft/50 text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-muted">
                     <tr>
                       <th
                         onClick={() => toggleDishSort('rank')}
@@ -1257,19 +1257,19 @@ export default function OwnerReportsTab({
                 {fmtPKR(totalLedgerNet)}
               </p>
             </div>
-            <div className="rounded-[18px] border border-line bg-[var(--c-surface-solid)] p-3.5 shadow-xs">
+            <div className="rounded-[18px] border border-line/12 bg-[var(--c-surface-solid)] p-3.5 shadow-xs">
               <p className="text-[11px] font-extrabold uppercase text-muted">Total Gross Billed</p>
               <p className="mt-1 font-mono text-xl sm:text-2xl font-black text-ink">
                 {fmtPKR(totalLedgerGross)}
               </p>
             </div>
-            <div className="rounded-[18px] border border-line bg-[var(--c-surface-solid)] p-3.5 shadow-xs">
+            <div className="rounded-[18px] border border-line/12 bg-[var(--c-surface-solid)] p-3.5 shadow-xs">
               <p className="text-[11px] font-extrabold uppercase text-muted">Lost to Cancellations</p>
               <p className="mt-1 font-mono text-xl sm:text-2xl font-black text-rose-600">
                 {fmtPKR(totalLedgerLost)}
               </p>
             </div>
-            <div className="rounded-[18px] border border-line bg-[var(--c-surface-solid)] p-3.5 shadow-xs">
+            <div className="rounded-[18px] border border-line/12 bg-[var(--c-surface-solid)] p-3.5 shadow-xs">
               <p className="text-[11px] font-extrabold uppercase text-muted">Avg Daily Ticket (AOV)</p>
               <p className="mt-1 font-mono text-xl sm:text-2xl font-black text-amber">
                 {totalLedgerCompletedOrders > 0
@@ -1290,7 +1290,7 @@ export default function OwnerReportsTab({
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-[11.5px] sm:text-[12.5px]">
-                  <thead className="border-b border-line bg-soft/50 text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-muted">
+                  <thead className="border-b border-line/12 bg-soft/50 text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-muted">
                     <tr>
                       <th
                         onClick={() => toggleRevenueSort('date')}
