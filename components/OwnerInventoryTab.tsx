@@ -183,7 +183,7 @@ export default function OwnerInventoryTab({ restaurantId }: { restaurantId: stri
     return () => {
       supabase.removeChannel(ch);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line/12 react-hooks/exhaustive-deps
   }, [restaurantId]);
 
   const cats = useMemo(() => {
@@ -435,7 +435,7 @@ export default function OwnerInventoryTab({ restaurantId }: { restaurantId: stri
         {/* Items table */}
         <div className="xl:col-span-8">
           <Card className="overflow-hidden p-0">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-4 py-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line/12 px-4 py-3">
               <h3 className="font-display text-[15px] font-extrabold text-ink">Inventory Items</h3>
               <input
                 value={q}
@@ -445,7 +445,7 @@ export default function OwnerInventoryTab({ restaurantId }: { restaurantId: stri
                 className="w-44 rounded-full border border-line/70 bg-soft/60 px-3.5 py-1.5 text-[12px] font-medium text-ink outline-none placeholder:text-muted/70 focus:border-brand/50"
               />
             </div>
-            <div className="flex gap-2 overflow-x-auto border-b border-line px-4 py-2.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex gap-2 overflow-x-auto border-b border-line/12 px-4 py-2.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <button
                 onClick={() => setCat('all')}
                 className={`shrink-0 rounded-[12px] px-3 py-1.5 text-[12px] font-extrabold transition-all ${
@@ -485,7 +485,7 @@ export default function OwnerInventoryTab({ restaurantId }: { restaurantId: stri
               </div>
             ) : (
               <>
-                <div className="hidden grid-cols-12 gap-2 border-b border-line px-4 py-2.5 text-[10.5px] font-extrabold uppercase tracking-wider text-muted md:grid">
+                <div className="hidden grid-cols-12 gap-2 border-b border-line/12 px-4 py-2.5 text-[10.5px] font-extrabold uppercase tracking-wider text-muted md:grid">
                   <p className="col-span-4">Item</p>
                   <p className="col-span-2">Category</p>
                   <p className="col-span-2">Current Stock</p>
@@ -539,7 +539,7 @@ export default function OwnerInventoryTab({ restaurantId }: { restaurantId: stri
                             {menuOpenId === r.id && (
                               <>
                                 <div className="fixed inset-0 z-30" onClick={() => setMenuOpenId(null)} />
-                                <div className="absolute right-0 z-40 mt-1 w-44 overflow-hidden rounded-[14px] border border-line bg-[var(--c-surface-solid)] p-1 shadow-xl">
+                                <div className="absolute right-0 z-40 mt-1 w-44 overflow-hidden rounded-[14px] border border-line/12 bg-[var(--c-surface-solid)] p-1 shadow-xl">
                                   <button
                                     onClick={() => { setMenuOpenId(null); setAdjusting(r); setAdjustQty(''); }}
                                     className="flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-left text-[12.5px] font-bold text-ink hover:bg-brand/10 hover:text-brand"
@@ -627,7 +627,7 @@ export default function OwnerInventoryTab({ restaurantId }: { restaurantId: stri
       {editing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50" onClick={() => setEditing(null)} />
-          <div className="relative w-full max-w-md rounded-[20px] border border-line bg-[var(--c-surface-solid)] p-5 shadow-2xl">
+          <div className="relative w-full max-w-md rounded-[20px] border border-line/12 bg-[var(--c-surface-solid)] p-5 shadow-2xl">
             <h3 className="font-display text-[16px] font-black text-ink">
               {editing === 'new' ? 'Add Inventory Item' : 'Edit Item'}
             </h3>
@@ -717,7 +717,7 @@ export default function OwnerInventoryTab({ restaurantId }: { restaurantId: stri
       {adjusting && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50" onClick={() => setAdjusting(null)} />
-          <div className="relative w-full max-w-xs rounded-[20px] border border-line bg-[var(--c-surface-solid)] p-5 shadow-2xl">
+          <div className="relative w-full max-w-xs rounded-[20px] border border-line/12 bg-[var(--c-surface-solid)] p-5 shadow-2xl">
             <h3 className="font-display text-[16px] font-black text-ink">Adjust Stock</h3>
             <p className="mt-1 text-[12.5px] font-medium text-muted">
               {adjusting.name} · currently {fmtNum(Number(adjusting.current_stock))} {adjusting.unit}
@@ -755,7 +755,7 @@ export default function OwnerInventoryTab({ restaurantId }: { restaurantId: stri
       {wasting && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50" onClick={() => setWasting(null)} />
-          <div className="relative w-full max-w-md rounded-[20px] border border-line bg-[var(--c-surface-solid)] p-5 shadow-2xl">
+          <div className="relative w-full max-w-md rounded-[20px] border border-line/12 bg-[var(--c-surface-solid)] p-5 shadow-2xl">
             <h3 className="font-display text-[16px] font-black text-ink">Log Waste</h3>
             <p className="mt-1 text-[12.5px] font-medium text-muted">
               {wasting.name} · currently {fmtNum(Number(wasting.current_stock))} {wasting.unit} in stock

@@ -254,7 +254,7 @@ export default function OwnerOpsTab({
   return (
     <div className="space-y-8">
       {/* Live Kitchen Kanban Monitor */}
-      <div className="rounded-[24px] border border-line bg-[var(--c-surface)] p-1 shadow-sm">
+      <div className="rounded-[24px] border border-line/12 bg-[var(--c-surface)] p-1 shadow-sm">
         <OwnerKitchenView restaurantId={restaurantId} staff={staff} />
       </div>
 

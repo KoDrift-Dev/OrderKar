@@ -347,7 +347,7 @@ export default function OwnerKitchenView({
                           <p className="mt-0.5 text-[11.5px] font-bold text-brand">
                             {o.tables ? `Table ${o.tables.table_number}` : o.order_type} · {n} item{n !== 1 ? 's' : ''}
                           </p>
-                          <ul className="mt-2 space-y-1.5 border-t border-line pt-2">
+                          <ul className="mt-2 space-y-1.5 border-t border-line/12 pt-2">
                             {o.order_items.slice(0, 3).map((it) => {
                               const thumb = thumbOf(it);
                               return (
@@ -416,7 +416,7 @@ export default function OwnerKitchenView({
                         <span className={`text-[9.5px] font-bold ${i <= stepIdx ? 'text-ink' : 'text-muted'}`}>{s}</span>
                       </div>
                       {i < steps.length - 1 && (
-                        <div className={`mb-4 h-0.5 flex-1 rounded ${i < stepIdx ? 'bg-emerald-500' : 'bg-line'}`} />
+                        <div className={`mb-4 h-0.5 flex-1 rounded ${i < stepIdx ? 'bg-emerald-500' : 'bg-line/12'}`} />
                       )}
                     </div>
                   ))}
