@@ -48,6 +48,9 @@ export default function OwnerSettings({
   const [taxType, setTaxType] = useState<'rs' | 'pct'>('pct');
   const [svcValue, setSvcValue] = useState('');
   const [svcType, setSvcType] = useState<'rs' | 'pct'>('pct');
+  const [fbrValue, setFbrValue] = useState('');
+  const [ntn, setNtn] = useState('');
+  const [strn, setStrn] = useState('');
   const [bMsg, setBMsg] = useState<{ text: string; ok: boolean } | null>(null);
 
   // ── my account ──
@@ -87,6 +90,9 @@ export default function OwnerSettings({
         setTaxType(tc.tax_type === 'rs' ? 'rs' : 'pct');
         setSvcValue(tc.svc_value ?? '');
         setSvcType(tc.svc_type === 'rs' ? 'rs' : 'pct');
+        setFbrValue(tc.fbr_value ?? '');
+        setNtn(tc.ntn ?? '');
+        setStrn(tc.strn ?? '');
         setPhone(tc.phone ?? '');
         setContactEmail(tc.email ?? '');
         setLogoUrl(tc.logo_url ?? '');
@@ -163,6 +169,9 @@ export default function OwnerSettings({
           tax_type: taxType,
           svc_value: svcValue.trim(),
           svc_type: svcType,
+          fbr_value: fbrValue.trim(),
+          ntn: ntn.trim(),
+          strn: strn.trim(),
         };
         const { error } = await createClient()
           .from('restaurants')
@@ -399,6 +408,44 @@ export default function OwnerSettings({
               </p>
             </div>
           ))}
+        </div>
+
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <div className="rounded-[16px] border border-line/70 bg-soft/40 p-4">
+            <Label>FBR POS Charges (Rs)</Label>
+            <Input
+              type="number"
+              min="0"
+              inputMode="decimal"
+              value={fbrValue}
+              onChange={(e) => setFbrValue(e.target.value)}
+              placeholder="0"
+              className="mt-1.5"
+            />
+            <p className="mt-1.5 text-[11.5px] font-medium text-muted">Flat Rs per bill, added after tax</p>
+          </div>
+          <div className="rounded-[16px] border border-line/70 bg-soft/40 p-4">
+            <Label>NTN #</Label>
+            <Input
+              value={ntn}
+              onChange={(e) => setNtn(e.target.value)}
+              placeholder="2211544-7"
+              maxLength={30}
+              className="mt-1.5"
+            />
+            <p className="mt-1.5 text-[11.5px] font-medium text-muted">Printed on the receipt header</p>
+          </div>
+          <div className="rounded-[16px] border border-line/70 bg-soft/40 p-4">
+            <Label>STRN #</Label>
+            <Input
+              value={strn}
+              onChange={(e) => setStrn(e.target.value)}
+              placeholder="0701980106655"
+              maxLength={30}
+              className="mt-1.5"
+            />
+            <p className="mt-1.5 text-[11.5px] font-medium text-muted">Printed on the receipt header</p>
+          </div>
         </div>
 
         {bMsg && <div className="mt-3">{msg(bMsg.text, bMsg.ok)}</div>}

@@ -9,6 +9,8 @@ export interface BillingConfig {
   taxType: ChargeType;
   svcValue: number;
   svcType: ChargeType;
+  /** FBR POS charges — flat Rs added after tax (reference receipt line). */
+  fbrValue: number;
 }
 
 export const DEFAULT_BILLING: BillingConfig = {
@@ -16,6 +18,7 @@ export const DEFAULT_BILLING: BillingConfig = {
   taxType: 'pct',
   svcValue: 0,
   svcType: 'pct',
+  fbrValue: 0,
 };
 
 function num(v: unknown): number {
@@ -34,22 +37,40 @@ export function parseBillingConfig(tc: Record<string, unknown> | null | undefine
     taxType: ctype(tc.tax_type),
     svcValue: num(tc.svc_value),
     svcType: ctype(tc.svc_type),
+    fbrValue: num(tc.fbr_value),
   };
 }
 
 export interface BillBreakdown {
   subtotal: number;
   tax: number;
+  fbr: number;
+  grandTotal: number;
   svc: number;
+  /** G. Total — everything included. */
   total: number;
 }
 
 export function calcBill(subtotal: number, cfg: BillingConfig): BillBreakdown {
   const sub = Math.max(0, subtotal);
   const tax = cfg.taxType === 'pct' ? (sub * cfg.taxValue) / 100 : Math.min(cfg.taxValue, sub * 10);
+  const fbr = Math.min(cfg.fbrValue, sub * 10 + 1000);
+  const grandTotal = sub + tax + fbr;
   const svc = cfg.svcType === 'pct' ? (sub * cfg.svcValue) / 100 : Math.min(cfg.svcValue, sub * 10);
   const round = (n: number) => Math.round(n * 100) / 100;
-  return { subtotal: round(sub), tax: round(tax), svc: round(svc), total: round(sub + tax + svc) };
+  return {
+    subtotal: round(sub),
+    tax: round(tax),
+    fbr: round(fbr),
+    grandTotal: round(grandTotal),
+    svc: round(svc),
+    total: round(grandTotal + svc),
+  };
+}
+
+/** Receipt-style amount: 2,582.59 */
+export function fmtReceipt(n: number): string {
+  return new Intl.NumberFormat('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 }
 
 export function chargeLabel(value: number, type: ChargeType): string {

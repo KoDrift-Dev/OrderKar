@@ -1,22 +1,126 @@
 'use client';
 
-// Receipt popup — opened from "Collect Payment" anywhere (Orders, Kitchen,
-// Tables, Waiter). Shows the full bill: every item with its amount, subtotal,
-// tax + service charges from Settings (Rs or %), and the total. Includes a
-// payment-method picker, a Download/Print button, and the Paid button.
-// 100% real data; nothing is faked.
+// Thermal receipt popup — opened from "Collect Payment" anywhere (Orders,
+// Kitchen, Tables, Waiter). Layout mirrors a real 80mm thermal bill:
+// logo, restaurant header, meta rows, item table (Description / Rate / Qty /
+// Amount), Sub Total, Tax, FBR POS Charges, Grand Total, Service Charges,
+// G. Total. Tax / service charges / FBR / NTN / STRN come from Settings →
+// Billing & Receipt (each Rs or %). Includes payment-method picker, a real
+// file Download, Print, and the Paid button. 100% real data.
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { Order, OrderItem } from '@/lib/types';
-import { fmtPKR } from '@/lib/format';
 import {
   parseBillingConfig,
   calcBill,
   chargeLabel,
+  fmtReceipt,
   PAY_METHODS,
   type BillingConfig,
+  type BillBreakdown,
 } from '@/lib/billing';
+
+interface BizInfo {
+  name: string;
+  address: string;
+  phone: string;
+  ntn: string;
+  strn: string;
+  logoUrl: string;
+}
+
+function esc(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function fmtTime(d: Date): string {
+  let h = d.getHours();
+  const m = String(d.getMinutes()).padStart(2, '0');
+  const s2 = String(d.getSeconds()).padStart(2, '0');
+  const ap = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  return `${String(h).padStart(2, '0')}:${m}:${s2}${ap}`;
+}
+
+/** Single source of truth for the receipt markup (screen + download + print). */
+function buildReceiptInner(
+  biz: BizInfo,
+  order: Order,
+  items: OrderItem[],
+  bill: BillBreakdown,
+  cfg: BillingConfig,
+  meta: { date: string; time: string; cashier: string; tableNo: string | null; waiterName: string | null; method: string },
+): string {
+  const dash = `<div style="border-top:1px dashed #000;margin:7px 0"></div>`;
+  const row = (label: string, value: string, bold = false) =>
+    `<div style="display:flex;justify-content:space-between;${bold ? 'font-weight:900;' : ''}"><span>${label}</span><span>${value}</span></div>`;
+
+  const itemRows = items
+    .map((it) => {
+      const amt = it.quantity * Number(it.unit_price);
+      return (
+        `<div style="display:flex;align-items:baseline;gap:6px;margin:2px 0">` +
+        `<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(it.item_name.toUpperCase())}</span>` +
+        `<span style="width:64px;text-align:right;flex-shrink:0">${fmtReceipt(Number(it.unit_price))}</span>` +
+        `<span style="width:34px;text-align:right;flex-shrink:0">${fmtReceipt(it.quantity)}</span>` +
+        `<span style="width:76px;text-align:right;flex-shrink:0;font-weight:700">${fmtReceipt(amt)}</span>` +
+        `</div>` +
+        (it.notes ? `<div style="font-size:10px;margin:-1px 0 2px">&gt; ${esc(it.notes)}</div>` : '')
+      );
+    })
+    .join('');
+
+  const totals =
+    row(`Items: ${items.reduce((s, i) => s + i.quantity, 0)}`, `Sub Total&nbsp;&nbsp;&nbsp;&nbsp;${fmtReceipt(bill.subtotal)}`) +
+    (bill.tax > 0
+      ? row('', `Tax ${chargeLabel(cfg.taxValue, cfg.taxType)}&nbsp;&nbsp;&nbsp;&nbsp;${fmtReceipt(bill.tax)}`)
+      : '') +
+    (bill.fbr > 0 ? row('', `FBR POS CHARGES&nbsp;&nbsp;&nbsp;&nbsp;${fmtReceipt(bill.fbr)}`) : '') +
+    (bill.tax > 0 || bill.fbr > 0 ? row('', `Grand Total&nbsp;&nbsp;&nbsp;&nbsp;${fmtReceipt(bill.grandTotal)}`, true) : '') +
+    (bill.svc > 0
+      ? row('', `Service Charges&nbsp;&nbsp;&nbsp;&nbsp;${fmtReceipt(bill.svc)}`)
+      : '') +
+    `<div style="display:flex;justify-content:space-between;font-weight:900;font-size:15px;margin-top:2px"><span>G. Total</span><span>${fmtReceipt(bill.total)}</span></div>`;
+
+  return (
+    `<div style="width:300px;max-width:100%;margin:0 auto;background:#fff;color:#000;font-family:'Courier New',Courier,monospace;font-size:12px;line-height:1.5;padding:10px 8px">` +
+    `<div style="text-align:center">` +
+    (biz.logoUrl ? `<img src="${esc(biz.logoUrl)}" alt="" style="max-height:64px;max-width:140px;margin-bottom:4px" />` : '') +
+    `<div style="font-weight:900;font-size:17px;letter-spacing:0.5px">${esc((biz.name || 'RESTAURANT').toUpperCase())}</div>` +
+    (biz.address ? `<div>${esc(biz.address)}</div>` : '') +
+    (biz.phone ? `<div>Tel : ${esc(biz.phone)}</div>` : '') +
+    (biz.ntn || biz.strn
+      ? `<div>NTN # ${esc(biz.ntn || '—')} : STRN # ${esc(biz.strn || '—')}</div>`
+      : '') +
+    `</div>` +
+    dash +
+    `<div style="display:flex;justify-content:space-between"><span>${esc(meta.date)}</span><span>${esc(meta.time)}</span><span>Cashier: ${esc(meta.cashier)}</span></div>` +
+    `<div style="display:flex;justify-content:space-between"><span>Chq#&nbsp;&nbsp;${esc(String(order.order_number))}</span><span>Table#&nbsp;&nbsp;${esc(meta.tableNo ?? '—')}</span></div>` +
+    `<div style="display:flex;justify-content:space-between"><span>${esc(order.order_type === 'takeaway' ? 'TAKEAWAY' : 'DINE IN')}</span>${meta.waiterName ? `<span>Waiter: ${esc(meta.waiterName)}</span>` : ''}</div>` +
+    dash +
+    `<div style="display:flex;gap:6px;font-weight:900;border-bottom:1px solid #000;padding-bottom:3px;margin-bottom:4px">` +
+    `<span style="flex:1">Description</span>` +
+    `<span style="width:64px;text-align:right;flex-shrink:0">Rate</span>` +
+    `<span style="width:34px;text-align:right;flex-shrink:0">Qty</span>` +
+    `<span style="width:76px;text-align:right;flex-shrink:0">Amount</span></div>` +
+    (itemRows || `<div>No items.</div>`) +
+    dash +
+    totals +
+    dash +
+    `<div style="text-align:center">Payment: ${esc(meta.method)}${order.payment_status === 'paid' ? ' · PAID' : ''}</div>` +
+    `<div style="text-align:center;margin-top:6px;font-size:11px">Powered by OrderKar</div>` +
+    `</div>`
+  );
+}
+
+function buildReceiptDoc(inner: string, orderNumber: string | number): string {
+  return (
+    `<!doctype html><html><head><meta charset="utf-8"><title>Receipt #${esc(String(orderNumber))}</title>` +
+    `<style>@media print{body{margin:0}}</style></head>` +
+    `<body style="margin:0;padding:12px;background:#eee"><div style="max-width:340px;margin:0 auto">${inner}</div></body></html>`
+  );
+}
 
 export default function ReceiptModal({
   restaurantId,
@@ -37,17 +141,9 @@ export default function ReceiptModal({
   onPaid: (method: string) => void | Promise<void>;
   payBusy?: boolean;
 }) {
-  const [biz, setBiz] = useState<{ name: string; address: string; phone: string }>({
-    name: '',
-    address: '',
-    phone: '',
-  });
-  const [cfg, setCfg] = useState<BillingConfig>({
-    taxValue: 0,
-    taxType: 'pct',
-    svcValue: 0,
-    svcType: 'pct',
-  });
+  const [biz, setBiz] = useState<BizInfo>({ name: '', address: '', phone: '', ntn: '', strn: '', logoUrl: '' });
+  const [cfg, setCfg] = useState<BillingConfig>({ taxValue: 0, taxType: 'pct', svcValue: 0, svcType: 'pct', fbrValue: 0 });
+  const [cashier, setCashier] = useState('—');
   const [method, setMethod] = useState('cash');
 
   useEffect(() => {
@@ -65,19 +161,29 @@ export default function ReceiptModal({
   useEffect(() => {
     let live = true;
     (async () => {
-      const { data } = await createClient()
-        .from('restaurants')
-        .select('name, theme_config')
-        .eq('id', restaurantId)
-        .single();
-      if (!live || !data) return;
-      const tc = (data.theme_config ?? {}) as Record<string, unknown>;
-      setBiz({
-        name: (data.name as string) ?? '',
-        address: typeof tc.address === 'string' ? tc.address : '',
-        phone: typeof tc.phone === 'string' ? tc.phone : '',
-      });
-      setCfg(parseBillingConfig(tc));
+      const supabase = createClient();
+      const [{ data }, { data: auth }] = await Promise.all([
+        supabase.from('restaurants').select('name, theme_config').eq('id', restaurantId).single(),
+        supabase.auth.getUser(),
+      ]);
+      if (!live) return;
+      if (data) {
+        const tc = (data.theme_config ?? {}) as Record<string, unknown>;
+        const str = (k: string) => (typeof tc[k] === 'string' ? (tc[k] as string) : '');
+        setBiz({
+          name: (data.name as string) ?? '',
+          address: str('address'),
+          phone: str('phone'),
+          ntn: str('ntn'),
+          strn: str('strn'),
+          logoUrl: str('logo_url'),
+        });
+        setCfg(parseBillingConfig(tc));
+      }
+      if (auth?.user) {
+        const { data: prof } = await supabase.from('profiles').select('name').eq('id', auth.user.id).single();
+        if (live && prof?.name) setCashier(String(prof.name).split(' ')[0]);
+      }
     })();
     return () => {
       live = false;
@@ -87,18 +193,35 @@ export default function ReceiptModal({
   const subtotal = items.reduce((s, i) => s + i.quantity * Number(i.unit_price), 0);
   const bill = calcBill(subtotal, cfg);
   const created = new Date(order.created_at);
-  const dateStr = created.toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' });
-  const timeStr = created.toLocaleTimeString('en-PK', { hour: 'numeric', minute: '2-digit' });
-  const methodLabel = PAY_METHODS.find((m) => m.value === method)?.label ?? method;
+  const meta = {
+    date: created.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+    time: fmtTime(created),
+    cashier,
+    tableNo: tableNo ?? null,
+    waiterName: waiterName ?? null,
+    method: PAY_METHODS.find((m) => m.value === method)?.label ?? method,
+  };
+  const inner = buildReceiptInner(biz, order, items, bill, cfg, meta);
 
   const download = () => {
+    const blob = new Blob([buildReceiptDoc(inner, order.order_number)], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Receipt-${order.order_number}.html`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 4000);
+  };
+
+  const print = () => {
     document.body.classList.add('receipt-printing');
     const done = () => {
       document.body.classList.remove('receipt-printing');
       window.removeEventListener('afterprint', done);
     };
     window.addEventListener('afterprint', done);
-    // Fallback in case afterprint never fires (e.g. dialog cancelled oddly).
     window.setTimeout(done, 2000);
     window.print();
   };
@@ -107,7 +230,6 @@ export default function ReceiptModal({
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
       <div className="relative flex max-h-[92vh] w-full max-w-sm flex-col overflow-hidden rounded-[20px] border border-line bg-[var(--c-surface-solid)] shadow-2xl">
-        {/* Header (not printed) */}
         <div className="flex items-center justify-between border-b border-line px-5 py-3.5 print:hidden">
           <h3 className="font-display text-[16px] font-black text-ink">🧾 Receipt</h3>
           <button
@@ -119,138 +241,59 @@ export default function ReceiptModal({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-5 py-4">
-          {/* ── Printable receipt ── */}
-          <div className="receipt-print-area rounded-[14px] border border-dashed border-line/80 bg-white p-4 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-            <div className="text-center">
-              <p className="font-display text-[19px] font-black tracking-tight">{biz.name || '—'}</p>
-              {biz.address && <p className="mt-0.5 text-[11.5px] font-medium text-slate-500">{biz.address}</p>}
-              {biz.phone && <p className="text-[11.5px] font-medium text-slate-500">{biz.phone}</p>}
-            </div>
+        <div className="flex-1 overflow-y-auto bg-slate-200 px-5 py-4 dark:bg-black/40">
+          {/* Printable receipt — single markup source for screen/download/print */}
+          <div className="receipt-print-area" dangerouslySetInnerHTML={{ __html: inner }} />
+        </div>
 
-            <div className="my-3 border-t border-dashed border-slate-300" />
-
-            <div className="grid grid-cols-2 gap-x-3 gap-y-1 font-mono text-[11.5px]">
-              <p className="text-slate-500">Receipt</p>
-              <p className="text-right font-bold">#{order.order_number}</p>
-              <p className="text-slate-500">Date</p>
-              <p className="text-right font-bold">{dateStr} · {timeStr}</p>
-              <p className="text-slate-500">Table</p>
-              <p className="text-right font-bold">{tableNo ? `Table ${tableNo}` : order.order_type.replace('_', ' ')}</p>
-              {waiterName && (
-                <>
-                  <p className="text-slate-500">Waiter</p>
-                  <p className="text-right font-bold">{waiterName}</p>
-                </>
-              )}
-            </div>
-
-            <div className="my-3 border-t border-dashed border-slate-300" />
-
-            <ul className="space-y-2">
-              {items.map((it) => (
-                <li key={it.id}>
-                  <div className="flex items-baseline justify-between gap-2 text-[12.5px]">
-                    <p className="min-w-0 flex-1 truncate font-bold">
-                      {it.item_name}
-                      <span className="ml-1.5 font-mono font-medium text-slate-500">
-                        {it.quantity} × {fmtPKR(Number(it.unit_price))}
-                      </span>
-                    </p>
-                    <p className="shrink-0 font-mono font-bold">
-                      {fmtPKR(it.quantity * Number(it.unit_price))}
-                    </p>
-                  </div>
-                  {it.notes && <p className="mt-0.5 text-[11px] text-slate-500">📝 {it.notes}</p>}
-                </li>
-              ))}
-              {items.length === 0 && <li className="text-[12px] text-slate-500">No items.</li>}
-            </ul>
-
-            <div className="my-3 border-t border-dashed border-slate-300" />
-
-            <div className="space-y-1 font-mono text-[12.5px]">
-              <div className="flex justify-between">
-                <span className="text-slate-500">Subtotal</span>
-                <span className="font-bold">{fmtPKR(bill.subtotal)}</span>
-              </div>
-              {bill.tax > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Tax ({chargeLabel(cfg.taxValue, cfg.taxType)})</span>
-                  <span className="font-bold">{fmtPKR(bill.tax)}</span>
-                </div>
-              )}
-              {bill.svc > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Service Charges ({chargeLabel(cfg.svcValue, cfg.svcType)})</span>
-                  <span className="font-bold">{fmtPKR(bill.svc)}</span>
-                </div>
-              )}
-              <div className="flex justify-between border-t border-slate-300 pt-2 text-[15px]">
-                <span className="font-black">TOTAL</span>
-                <span className="font-black">{fmtPKR(bill.total)}</span>
-              </div>
-            </div>
-
-            <div className="my-3 border-t border-dashed border-slate-300" />
-
-            {/* Method shown on the printed receipt */}
-            <p className="text-center font-mono text-[12px] font-bold">
-              Payment: {methodLabel}
-              {order.payment_status === 'paid' ? ' · ✅ PAID' : ''}
-            </p>
-            <p className="mt-1 text-center text-[11px] text-slate-400">Thank you for dining with us!</p>
-
-            {/* Method picker — screen only */}
-            <div className="mt-3 print:hidden">
-              <p className="text-[10.5px] font-extrabold uppercase tracking-wider text-slate-400">
-                Payment method
-              </p>
-              <div className="mt-1.5 grid grid-cols-4 gap-1.5">
-                {PAY_METHODS.map((m) => (
-                  <button
-                    key={m.value}
-                    onClick={() => setMethod(m.value)}
-                    className={`rounded-[10px] border px-1 py-2 text-[11px] font-extrabold transition-all ${
-                      method === m.value
-                        ? 'border-emerald-600 bg-emerald-600/10 text-emerald-700 dark:text-emerald-300'
-                        : 'border-slate-200 text-slate-500 hover:text-slate-800'
-                    }`}
-                  >
-                    <span className="block text-[16px]">{m.icon}</span>
-                    {m.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+        {/* Method picker (screen only) */}
+        <div className="border-t border-line px-5 pt-3 print:hidden">
+          <p className="text-[10.5px] font-extrabold uppercase tracking-wider text-muted">Payment method</p>
+          <div className="mt-1.5 grid grid-cols-4 gap-1.5">
+            {PAY_METHODS.map((m) => (
+              <button
+                key={m.value}
+                onClick={() => setMethod(m.value)}
+                className={`rounded-[10px] border px-1 py-2 text-[11px] font-extrabold transition-all ${
+                  method === m.value
+                    ? 'border-emerald-600 bg-emerald-600/10 text-emerald-700 dark:text-emerald-300'
+                    : 'border-line/70 text-muted hover:text-ink'
+                }`}
+              >
+                <span className="block text-[16px]">{m.icon}</span>
+                {m.label}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Actions (not printed) */}
-        <div className="space-y-2 border-t border-line px-5 py-3.5 print:hidden">
+        <div className="space-y-2 px-5 py-3.5 print:hidden">
           <div className="flex gap-2">
             <button
               onClick={download}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-[12px] border border-line/70 px-4 py-2.5 text-[13px] font-extrabold text-ink transition-all hover:border-brand/40"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-[12px] border border-line/70 px-3 py-2.5 text-[13px] font-extrabold text-ink transition-all hover:border-brand/40"
             >
               <span>⬇</span> Download
             </button>
             <button
-              onClick={() => onPaid(method)}
-              disabled={payBusy}
-              className="flex flex-[2] items-center justify-center gap-1.5 rounded-[12px] bg-emerald-600 px-4 py-2.5 text-[13.5px] font-black text-white shadow-lift transition-all hover:bg-emerald-700 active:scale-[0.99] disabled:opacity-60"
+              onClick={print}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-[12px] border border-line/70 px-3 py-2.5 text-[13px] font-extrabold text-ink transition-all hover:border-brand/40"
             >
-              {payBusy ? (
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-              ) : (
-                <span>✓</span>
-              )}
-              Mark Paid · {fmtPKR(bill.total)}
+              <span>🖨</span> Print
             </button>
           </div>
-          <p className="text-center text-[11px] font-medium text-muted">
-            Download opens the print dialog — choose “Save as PDF” to save the receipt.
-          </p>
+          <button
+            onClick={() => onPaid(method)}
+            disabled={payBusy}
+            className="flex w-full items-center justify-center gap-1.5 rounded-[12px] bg-emerald-600 px-4 py-3 text-[14px] font-black text-white shadow-lift transition-all hover:bg-emerald-700 active:scale-[0.99] disabled:opacity-60"
+          >
+            {payBusy ? (
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+            ) : (
+              <span>✓</span>
+            )}
+            Mark Paid · {fmtReceipt(bill.total)}
+          </button>
         </div>
       </div>
     </div>
