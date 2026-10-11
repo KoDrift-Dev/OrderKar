@@ -429,9 +429,9 @@ export function WeekdayBars({ days }: { days: number[] }) {
 
 /* ── Top Items Leaderboard (Podium Badges + Revenue Share) ───── */
 const RANK_BADGES = [
-  { label: '1', tone: 'bg-amber-400 text-amber-950 shadow-amber-400/30 shadow-md ring-1 ring-amber-300' },
+  { label: '1', tone: 'bg-amber text-ink shadow-amber/30 shadow-md ring-1 ring-amber' },
   { label: '2', tone: 'bg-slate-300 text-slate-800 shadow-slate-300/30 shadow-md ring-1 ring-slate-200' },
-  { label: '3', tone: 'bg-amber-700 text-amber-100 shadow-amber-700/30 shadow-md ring-1 ring-amber-600' },
+  { label: '3', tone: 'bg-amber text-white shadow-amber/30 shadow-md ring-1 ring-amber' },
 ];
 
 export function TopItems({ items }: { items: { name: string; qty: number; revenue: number }[] }) {

@@ -65,7 +65,7 @@ function ChannelBars({ days, dineIn, takeaway }: { days: string[]; dineIn: numbe
               style={{ height: `${Math.max(3, (dineIn[i] / max) * 150)}px` }}
             />
             <div
-              className="w-full max-w-[14px] rounded-t-[4px] bg-amber-500/50"
+              className="w-full max-w-[14px] rounded-t-[4px] bg-amber/50"
               style={{ height: `${Math.max(3, (takeaway[i] / max) * 150)}px` }}
             />
           </div>
@@ -80,7 +80,7 @@ function ChannelBars({ days, dineIn, takeaway }: { days: string[]; dineIn: numbe
       </div>
       <div className="mt-2 flex items-center gap-4 text-[11px] font-bold text-muted">
         <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-brand" /> Dine-in</span>
-        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-amber-500/60" /> Takeaway</span>
+        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-amber/60" /> Takeaway</span>
       </div>
     </div>
   );
@@ -233,7 +233,7 @@ export default function OwnerReportsOverview({
         icon: '🐌',
         title: 'Slow Preparation',
         body: `Average prep time is ${Math.round(avgPrep)} min — above the 25 min target.`,
-        tone: 'text-amber-600 dark:text-amber-400',
+        tone: 'text-amber dark:text-amber',
       });
     }
     if (wastePct != null && wastePct > 3) {
@@ -249,7 +249,7 @@ export default function OwnerReportsOverview({
         icon: '⭐',
         title: 'Rating Alert',
         body: `Average rating is ${feedback.avg.toFixed(1)} — check recent reviews.`,
-        tone: 'text-amber-600 dark:text-amber-400',
+        tone: 'text-amber dark:text-amber',
       });
     }
     if (out.length === 0 && done.length > 0) {
@@ -376,7 +376,7 @@ export default function OwnerReportsOverview({
                       <span className="w-6 shrink-0 font-mono">{d.star} ★</span>
                       <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-soft">
                         <div
-                          className="h-full rounded-full bg-gradient-to-r from-amber-500 to-orange-500"
+                          className="h-full rounded-full bg-gradient-to-r from-amber to-orange-500"
                           style={{ width: `${reviews.length ? (d.n / reviews.length) * 100 : 0}%` }}
                         />
                       </div>

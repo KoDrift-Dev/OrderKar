@@ -43,9 +43,9 @@ const COL_STYLE: Record<'pending' | 'preparing' | 'ready', { col: string; card: 
     header: 'text-blue-700 dark:text-blue-300',
   },
   preparing: {
-    col: 'border-amber-500/30 bg-amber-500/[0.05]',
-    card: 'border-amber-500/40 bg-amber-500/[0.05] hover:border-amber-500/60',
-    header: 'text-amber-700 dark:text-amber-300',
+    col: 'border-amber/30 bg-amber/[0.05]',
+    card: 'border-amber/40 bg-amber/[0.05] hover:border-amber/60',
+    header: 'text-amber dark:text-amber',
   },
   ready: {
     col: 'border-emerald-500/30 bg-emerald-500/[0.05]',
@@ -453,10 +453,10 @@ export default function OwnerKitchenView({
                 )}
 
                 {etaMin != null && (
-                  <div className="mt-3 flex items-center gap-2.5 rounded-[12px] border border-amber-500/25 bg-amber-500/[0.07] p-2.5">
+                  <div className="mt-3 flex items-center gap-2.5 rounded-[12px] border border-amber/25 bg-amber/[0.07] p-2.5">
                     <span className="text-[18px]">⏱️</span>
                     <div>
-                      <p className="text-[10.5px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                      <p className="text-[10.5px] font-bold uppercase tracking-wider text-amber dark:text-amber">
                         Est. ready in
                       </p>
                       <p className="font-mono text-[15px] font-black text-ink">≈ {etaMin} min</p>
