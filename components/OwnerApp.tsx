@@ -27,6 +27,8 @@ import MenuSection from './MenuSection';
 import TeamManager from './TeamManager';
 import OwnerAuditTab from './OwnerAuditTab';
 import OwnerReportsTab, { type ReportSubTab } from './OwnerReportsTab';
+import OwnerInventoryTab from './OwnerInventoryTab';
+import OwnerFoodCostTab from './OwnerFoodCostTab';
 import PosTab from './PosTab';
 import { useSectionData, RANGE_KEYS, type Range } from './useRangeAnalytics';
 
@@ -40,6 +42,8 @@ type TabKey =
   | 'customers'
   | 'menu'
   | 'tables'
+  | 'inventory'
+  | 'foodcost'
   | 'staff'
   | 'team'
   | 'previews'
@@ -368,6 +372,17 @@ function OwnerAppInner({
           ),
         },
         {
+          key: 'inventory',
+          label: 'Inventory',
+          icon: (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+              <path d="m3.3 7 8.7 5 8.7-5" />
+              <path d="M12 22V12" />
+            </svg>
+          ),
+        },
+        {
           key: 'menu',
           label: 'Menu',
           icon: (
@@ -436,6 +451,17 @@ function OwnerAppInner({
             </svg>
           ),
           badge: cancelledCount > 0 ? String(cancelledCount) : undefined,
+        },
+        {
+          key: 'foodcost',
+          label: 'Food Cost',
+          icon: (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="19" y1="5" x2="5" y2="19" />
+              <circle cx="6.5" cy="6.5" r="2.5" />
+              <circle cx="17.5" cy="17.5" r="2.5" />
+            </svg>
+          ),
         },
         {
           key: 'customers',
@@ -814,6 +840,8 @@ function OwnerAppInner({
                   onSubTabChange={setReportSubTab}
                   range={reportsRange}
                   onRangeChange={setReportsRange}
+                  restaurantId={restaurantId}
+                  reviews={reviews}
                 />
               </div>
 
@@ -899,7 +927,25 @@ function OwnerAppInner({
                   slug={slug}
                   tables={tables}
                   orders={activeOrders}
+                  items={activeItems}
+                  staff={staff}
                   onChange={setTables}
+                  onNavigate={selectTab}
+                />
+              </div>
+
+              {/* 6b. Inventory */}
+              <div className={tab === 'inventory' ? '' : 'hidden'}>
+                <OwnerInventoryTab restaurantId={restaurantId} />
+              </div>
+
+              {/* 6c. Food Cost & Profit */}
+              <div className={tab === 'foodcost' ? '' : 'hidden'}>
+                <OwnerFoodCostTab
+                  restaurantId={restaurantId}
+                  orders={orders}
+                  items={items}
+                  menu={menu}
                 />
               </div>
 
