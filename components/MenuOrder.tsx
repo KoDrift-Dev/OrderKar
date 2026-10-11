@@ -15,6 +15,7 @@ import { cdnUrl } from '@/lib/images';
 import { useT } from '@/lib/i18n';
 import { logActivity, ACT } from '@/lib/activity';
 import { Btn, Card, Empty, Pill, Textarea } from './ui';
+import SmartImage from './SmartImage';
 
 // Real uploaded photo first, bundled category photo as fallback.
 function itemPhoto(item: MenuItem, catName: Record<string, string>): string {
@@ -55,7 +56,7 @@ function ItemCard({
       className="group cursor-pointer overflow-hidden rounded-[18px] border border-line bg-[var(--c-surface-solid)] shadow-lift transition-transform active:scale-[0.98]"
     >
       <div className="relative">
-        <img src={img} alt={item.name} loading="lazy" className="aspect-[4/3] w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+        <SmartImage src={img} alt={item.name} width={800} height={600} loading="lazy" className="aspect-[4/3] w-full object-cover transition-transform duration-500 group-hover:scale-105" />
         <div className="absolute left-2 top-2 flex gap-1">
           {item.tags.includes('bestseller') && (
             <span className="rounded-full bg-amber px-2 py-0.5 text-[9.5px] font-extrabold text-white shadow">★</span>
@@ -358,10 +359,42 @@ export default function MenuOrder({
   const total = cart.reduce((s, l) => s + Number(l.item.price) * l.qty, 0);
   const count = cart.reduce((s, l) => s + l.qty, 0);
 
+  // Anon spam guard: max 5 orders/hour per device (waiters are exempt).
+  const checkAnonRateLimit = (): boolean => {
+    if (waiterId) return true;
+    try {
+      const now = Date.now();
+      const times = (JSON.parse(localStorage.getItem('ok_order_times') ?? '[]') as unknown[]).filter(
+        (t): t is number => typeof t === 'number' && now - t < 3600000,
+      );
+      return times.length < 5;
+    } catch {
+      return true;
+    }
+  };
+  const recordAnonOrderTime = () => {
+    if (waiterId) return;
+    try {
+      const now = Date.now();
+      const times = (JSON.parse(localStorage.getItem('ok_order_times') ?? '[]') as unknown[]).filter(
+        (t): t is number => typeof t === 'number' && now - t < 3600000,
+      );
+      times.push(now);
+      localStorage.setItem('ok_order_times', JSON.stringify(times.slice(-20)));
+    } catch {
+      /* storage unavailable — skip */
+    }
+  };
+
   const placeOrder = async () => {
     if (cart.length === 0 || placing) return;
     setPlacing(true);
     setError('');
+    if (!checkAnonRateLimit()) {
+      setPlacing(false);
+      setError('Too many orders from this device. Please wait a little before ordering again.');
+      return;
+    }
     try {
       const supabase = createClient();
       const rpcLines = cart.map((l) => ({
@@ -384,6 +417,7 @@ export default function MenuOrder({
         setCartOpen(false);
         setOrderNotes('');
         onPlaced(openOrder.id, openOrder.token);
+        recordAnonOrderTime();
         return;
       }
       // id + tracking_token are generated client-side: anon can no longer
@@ -417,6 +451,7 @@ export default function MenuOrder({
       setCartOpen(false);
       setOrderNotes('');
       onPlaced(orderId, trackingToken);
+      recordAnonOrderTime();
       logActivity(supabase, {
         restaurantId,
         action: ACT.ORDER_CREATED,
@@ -472,6 +507,7 @@ export default function MenuOrder({
         <input
           type="text"
           name="orderkar-dish-search"
+          aria-label="Search dishes"
           autoComplete="off"
           data-lpignore="true"
           data-1p-ignore="true"
@@ -613,9 +649,12 @@ export default function MenuOrder({
             <div className="flex-1 space-y-2 overflow-y-auto px-4">
               {cart.map((l) => (
                 <div key={l.item.id} className="glass flex gap-3 !rounded-[14px] p-2.5">
-                  <img
+                  <SmartImage
                     src={itemPhoto(l.item, catName)}
                     alt=""
+                    width={48}
+                    height={48}
+                    loading="lazy"
                     className="h-12 w-12 shrink-0 rounded-[10px] object-cover"
                   />
                   <div className="min-w-0 flex-1">
@@ -668,9 +707,12 @@ export default function MenuOrder({
           <div className="absolute inset-0 m-auto flex h-fit max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg flex-col rounded-[24px] bg-[var(--c-surface-solid)] shadow-2xl">
             <div className="flex-1 overflow-y-auto">
               <div className="relative">
-                <img
+                <SmartImage
                   src={itemPhoto(detail, catName)}
                   alt={detail.name}
+                  width={800}
+                  height={192}
+                  loading="eager"
                   className="h-48 w-full rounded-t-[24px] object-cover"
                 />
                 <button

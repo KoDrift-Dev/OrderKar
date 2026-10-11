@@ -11,6 +11,7 @@ import { fmtPKR, fmtNum } from '@/lib/format';
 import { exportAsCsv } from '@/lib/report-export';
 import { Card, Empty, Input, Label } from './ui';
 import { useGuard, useUndoDelete, DeleteConfirm, UndoToast } from './DeleteFlow';
+import { logActivity, ACT } from '@/lib/activity';
 
 interface InvItem {
   id: string;
@@ -107,6 +108,12 @@ export default function OwnerInventoryTab({ restaurantId }: { restaurantId: stri
   const [saving, setSaving] = useState(false);
   const [adjusting, setAdjusting] = useState<InvItem | null>(null);
   const [adjustQty, setAdjustQty] = useState('');
+  const [wasting, setWasting] = useState<InvItem | null>(null);
+  const [wasteQty, setWasteQty] = useState('');
+  const [wasteReason, setWasteReason] = useState('spoilage');
+  const [wasteCost, setWasteCost] = useState('');
+  const [wasteNote, setWasteNote] = useState('');
+  const [wasteError, setWasteError] = useState('');
   const [confirmDel, setConfirmDel] = useState<InvItem | null>(null);
   const guard = useGuard();
   const del = useUndoDelete<InvItem>(async (it) => {
@@ -188,6 +195,86 @@ export default function OwnerInventoryTab({ restaurantId }: { restaurantId: stri
     setFormError('');
     setMenuOpenId(null);
   };
+
+  const openWaste = (it: InvItem) => {
+    setWasting(it);
+    setWasteQty('');
+    setWasteReason('spoilage');
+    setWasteCost('');
+    setWasteNote('');
+    setWasteError('');
+    setMenuOpenId(null);
+  };
+
+  const onWasteQtyChange = (v: string) => {
+    setWasteQty(v);
+    if (wasting) {
+      const n = Number(v);
+      setWasteCost(v.trim() !== '' && !Number.isNaN(n) && n > 0 ? String(n * Number(wasting.cost_per_unit)) : '');
+    }
+  };
+
+  const saveWaste = () =>
+    guard(async () => {
+      if (!wasting) return;
+      const qty = Number(wasteQty);
+      const stock = Number(wasting.current_stock);
+      if (!wasteQty.trim() || Number.isNaN(qty) || qty <= 0) {
+        setWasteError('Enter a quantity greater than 0.');
+        return;
+      }
+      if (qty > stock) {
+        setWasteError(`Only ${fmtNum(stock)} ${wasting.unit} in stock.`);
+        return;
+      }
+      const cost = wasteCost.trim() === '' ? 0 : Number(wasteCost);
+      if (Number.isNaN(cost) || cost < 0) {
+        setWasteError('Estimated cost must be 0 or more.');
+        return;
+      }
+      setSaving(true);
+      try {
+        const supabase = createClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        const { error } = await supabase.from('waste_logs').insert({
+          restaurant_id: restaurantId,
+          inventory_item_id: wasting.id,
+          menu_item_id: null,
+          item_name: wasting.name,
+          quantity: qty,
+          reason: wasteReason,
+          logged_by: user?.id ?? null,
+          estimated_cost: cost,
+        });
+        if (error) throw error;
+        const { error: stockErr } = await supabase
+          .from('inventory_items')
+          .update({ current_stock: stock - qty })
+          .eq('id', wasting.id);
+        if (stockErr) throw stockErr;
+        logActivity(supabase, {
+          restaurantId,
+          action: ACT.WASTE_LOGGED,
+          entityType: 'inventory_item',
+          entityId: wasting.id,
+          details: {
+            item_name: wasting.name,
+            quantity: qty,
+            reason: wasteReason,
+            estimated_cost: cost,
+            note: wasteNote.trim() || undefined,
+          },
+        });
+        setWasting(null);
+        load();
+      } catch (e) {
+        setWasteError(e instanceof Error ? e.message : 'Failed to log waste.');
+      } finally {
+        setSaving(false);
+      }
+    });
 
   const saveForm = () =>
     guard(async () => {
@@ -312,6 +399,7 @@ export default function OwnerInventoryTab({ restaurantId }: { restaurantId: stri
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Search items..."
+                aria-label="Search inventory items"
                 className="w-44 rounded-full border border-line/70 bg-soft/60 px-3.5 py-1.5 text-[12px] font-medium text-ink outline-none placeholder:text-muted/70 focus:border-brand/50"
               />
             </div>
@@ -407,6 +495,12 @@ export default function OwnerInventoryTab({ restaurantId }: { restaurantId: stri
                                     className="flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-left text-[12.5px] font-bold text-ink hover:bg-brand/10 hover:text-brand"
                                   >
                                     <span>📊</span> Adjust Stock
+                                  </button>
+                                  <button
+                                    onClick={() => openWaste(r)}
+                                    className="flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-left text-[12.5px] font-bold text-ink hover:bg-brand/10 hover:text-brand"
+                                  >
+                                    <span>🗑️</span> Log Waste
                                   </button>
                                   <button
                                     onClick={() => openEdit(r)}
@@ -575,6 +669,84 @@ export default function OwnerInventoryTab({ restaurantId }: { restaurantId: stri
               >
                 {saving ? 'Saving...' : 'Apply'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Log waste modal */}
+      {wasting && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setWasting(null)} />
+          <div className="relative w-full max-w-md rounded-[20px] border border-line bg-[var(--c-surface-solid)] p-5 shadow-2xl">
+            <h3 className="font-display text-[16px] font-black text-ink">Log Waste</h3>
+            <p className="mt-1 text-[12.5px] font-medium text-muted">
+              {wasting.name} · currently {fmtNum(Number(wasting.current_stock))} {wasting.unit} in stock
+            </p>
+            <div className="mt-4 space-y-3">
+              <div>
+                <Label>Wasted quantity ({wasting.unit}) *</Label>
+                <Input
+                  type="number"
+                  value={wasteQty}
+                  onChange={(e) => onWasteQtyChange(e.target.value)}
+                  placeholder="0"
+                  aria-label="Wasted quantity"
+                  autoFocus
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Reason *</Label>
+                  <select
+                    value={wasteReason}
+                    onChange={(e) => setWasteReason(e.target.value)}
+                    aria-label="Waste reason"
+                    className="input-neu w-full px-4 py-2.5 text-[15px] text-ink"
+                  >
+                    <option value="spoilage">Spoilage</option>
+                    <option value="overprep">Over-preparation</option>
+                    <option value="damaged">Damaged</option>
+                    <option value="theft">Theft</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <Label>Est. cost (Rs)</Label>
+                  <Input
+                    type="number"
+                    value={wasteCost}
+                    onChange={(e) => setWasteCost(e.target.value)}
+                    placeholder="0"
+                    aria-label="Estimated cost in rupees"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label>Note (optional)</Label>
+                <Input
+                  value={wasteNote}
+                  onChange={(e) => setWasteNote(e.target.value)}
+                  placeholder="e.g. left out of fridge overnight"
+                  aria-label="Waste note"
+                />
+              </div>
+              {wasteError && <p className="text-[12.5px] font-bold text-rose-600">{wasteError}</p>}
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={() => setWasting(null)}
+                  className="flex-1 rounded-[12px] border border-line/70 px-4 py-2.5 text-[13px] font-extrabold text-muted hover:text-ink"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={saveWaste}
+                  disabled={saving}
+                  className="flex-1 rounded-[12px] bg-brand px-4 py-2.5 text-[13px] font-black text-white shadow-lift disabled:opacity-60"
+                >
+                  {saving ? 'Saving...' : 'Log Waste'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

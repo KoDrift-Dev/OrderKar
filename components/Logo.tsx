@@ -3,16 +3,17 @@
 // file API, so the logo ships inside the code).
 
 import { LOGO_DATA_URL } from '@/lib/logo';
+import SmartImage from './SmartImage';
 
 export default function Logo({ size = 40 }: { size?: number }) {
   return (
-    <img
+    <SmartImage
       src={LOGO_DATA_URL}
       alt="OrderKar"
       width={size}
       height={size}
-      className="shrink-0 rounded-[12px]"
       loading="eager"
+      className="shrink-0 rounded-[12px]"
     />
   );
 }

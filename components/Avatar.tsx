@@ -4,6 +4,7 @@
 
 import { useState } from 'react';
 import { cdnUrl } from '@/lib/images';
+import SmartImage from './SmartImage';
 
 function MaleGlyph() {
   return (
@@ -45,7 +46,7 @@ export default function Avatar({
       style={{ width: size, height: size }}
     >
       {photoUrl && !failed ? (
-        <img src={cdnUrl(photoUrl)} alt={name} onError={() => setFailed(true)} className="h-full w-full object-cover" loading="lazy" />
+        <SmartImage src={cdnUrl(photoUrl)} alt={name} onError={() => setFailed(true)} width={size} height={size} className="h-full w-full object-cover" loading="lazy" />
       ) : (
         <div className="h-[72%] w-[72%]">{gender === 'female' ? <FemaleGlyph /> : <MaleGlyph />}</div>
       )}
