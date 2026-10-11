@@ -121,7 +121,7 @@ export default function OwnerHistoryTab({ restaurantId }: { restaurantId: string
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line/12 react-hooks/exhaustive-deps
   }, [restaurantId]);
 
   const actionOptions = useMemo(() => {
@@ -173,7 +173,7 @@ export default function OwnerHistoryTab({ restaurantId }: { restaurantId: string
       </div>
 
       <Card className="overflow-hidden p-0">
-        <div className="flex flex-wrap items-center gap-2 border-b border-line px-4 py-3">
+        <div className="flex flex-wrap items-center gap-2 border-b border-line/12 px-4 py-3">
           <select
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
@@ -211,7 +211,7 @@ export default function OwnerHistoryTab({ restaurantId }: { restaurantId: string
           </div>
         ) : (
           <>
-            <div className="hidden grid-cols-12 gap-2 border-b border-line px-4 py-2.5 text-[10.5px] font-extrabold uppercase tracking-wider text-muted md:grid">
+            <div className="hidden grid-cols-12 gap-2 border-b border-line/12 px-4 py-2.5 text-[10.5px] font-extrabold uppercase tracking-wider text-muted md:grid">
               <p className="col-span-2">Time</p>
               <p className="col-span-3">Action</p>
               <p className="col-span-2">Actor</p>

@@ -157,9 +157,9 @@ export default function OwnerGuide({
             />
 
             {/* Centered Modal Window */}
-            <div className="relative z-10 flex max-h-[88vh] w-full max-w-2xl flex-col rounded-[28px] border border-line bg-[var(--c-surface-solid)] shadow-2xl backdrop-blur-2xl animate-in zoom-in-95 fade-in duration-200 overflow-hidden">
+            <div className="relative z-10 flex max-h-[88vh] w-full max-w-2xl flex-col rounded-[28px] border border-line/12 bg-[var(--c-surface-solid)] shadow-2xl backdrop-blur-2xl animate-in zoom-in-95 fade-in duration-200 overflow-hidden">
               {/* Header */}
-              <div className="flex shrink-0 items-center justify-between border-b border-line px-6 py-5 sm:px-8">
+              <div className="flex shrink-0 items-center justify-between border-b border-line/12 px-6 py-5 sm:px-8">
                 <div className="flex items-center gap-3">
                   <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand/10 text-brand text-xl shadow-inner">
                     💡
@@ -172,7 +172,7 @@ export default function OwnerGuide({
 
                 <button
                   onClick={() => setOpen(false)}
-                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-line bg-soft/50 text-muted hover:bg-soft hover:text-ink transition-colors"
+                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-line/12 bg-soft/50 text-muted hover:bg-soft hover:text-ink transition-colors"
                   aria-label="Close"
                 >
                   ✕
@@ -180,7 +180,7 @@ export default function OwnerGuide({
               </div>
 
               {/* Category Filter Pills */}
-              <div className="flex shrink-0 items-center gap-1.5 overflow-x-auto border-b border-line bg-soft/30 px-6 py-2.5 no-scrollbar">
+              <div className="flex shrink-0 items-center gap-1.5 overflow-x-auto border-b border-line/12 bg-soft/30 px-6 py-2.5 no-scrollbar">
                 <button
                   onClick={() => setActiveSection('all')}
                   className={`rounded-full px-3 py-1 text-[12px] font-black transition-all ${
@@ -215,7 +215,7 @@ export default function OwnerGuide({
                       {s.rows.map((r) => (
                         <div
                           key={r.metric}
-                          className="rounded-[16px] border border-line bg-soft/40 p-4 transition-colors hover:border-brand/40"
+                          className="rounded-[16px] border border-line/12 bg-soft/40 p-4 transition-colors hover:border-brand/40"
                         >
                           <div className="flex items-center justify-between">
                             <p className="text-[13.5px] font-black text-brand">{r.metric}</p>
@@ -240,7 +240,7 @@ export default function OwnerGuide({
               </div>
 
               {/* Footer */}
-              <div className="shrink-0 border-t border-line bg-soft/20 px-6 py-4 sm:px-8">
+              <div className="shrink-0 border-t border-line/12 bg-soft/20 px-6 py-4 sm:px-8">
                 <Btn className="w-full justify-center" onClick={() => setOpen(false)}>
                   {t('gde_gotit')}
                 </Btn>

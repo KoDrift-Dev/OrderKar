@@ -89,7 +89,7 @@ export default function OwnerFoodCostTab({
     return () => {
       supabase.removeChannel(ch);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line/12 react-hooks/exhaustive-deps
   }, [restaurantId]);
 
   const invById = useMemo(() => new Map(inv.map((i) => [i.id, i])), [inv]);
@@ -362,10 +362,10 @@ export default function OwnerFoodCostTab({
 
                   {/* Menu item performance */}
                   <Card className="mt-4 overflow-hidden p-0">
-                    <div className="border-b border-line px-4 py-3">
+                    <div className="border-b border-line/12 px-4 py-3">
                       <h3 className="font-display text-[15px] font-extrabold text-ink">Menu Item Performance</h3>
                     </div>
-                    <div className="hidden grid-cols-12 gap-2 border-b border-line px-4 py-2.5 text-[10.5px] font-extrabold uppercase tracking-wider text-muted md:grid">
+                    <div className="hidden grid-cols-12 gap-2 border-b border-line/12 px-4 py-2.5 text-[10.5px] font-extrabold uppercase tracking-wider text-muted md:grid">
                       <p className="col-span-4">Item</p>
                       <p className="col-span-2 text-right">Food Cost</p>
                       <p className="col-span-2 text-right">Selling Price</p>
@@ -455,7 +455,7 @@ export default function OwnerFoodCostTab({
 
       {sub === 'items' && (
         <Card className="overflow-hidden p-0">
-          <div className="border-b border-line px-4 py-3">
+          <div className="border-b border-line/12 px-4 py-3">
             <h3 className="font-display text-[15px] font-extrabold text-ink">Recipes per Dish</h3>
             <p className="text-[12px] font-medium text-muted">Add ingredient quantities — food cost is calculated from inventory rates.</p>
           </div>
@@ -537,7 +537,7 @@ export default function OwnerFoodCostTab({
 
       {sub === 'ingredients' && (
         <Card className="overflow-hidden p-0">
-          <div className="border-b border-line px-4 py-3">
+          <div className="border-b border-line/12 px-4 py-3">
             <h3 className="font-display text-[15px] font-extrabold text-ink">Ingredients</h3>
             <p className="text-[12px] font-medium text-muted">Unit costs from inventory — edit them in the Inventory tab.</p>
           </div>
@@ -588,7 +588,7 @@ function DualLine({ days, rev, cost }: { days: string[]; rev: number[]; cost: nu
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img">
       {ticks.map((t, i) => (
         <g key={i}>
-          <line x1={PL} x2={W - PR} y1={t.y} y2={t.y} className="stroke-line" strokeWidth="1" opacity="0.5" />
+          <line x1={PL} x2={W - PR} y1={t.y} y2={t.y} className="stroke-line/12" strokeWidth="1" opacity="0.5" />
           <text x={PL - 8} y={t.y + 4} textAnchor="end" fontSize="10" className="fill-muted font-mono">
             {t.v >= 1000 ? `${Math.round(t.v / 1000)}k` : Math.round(t.v)}
           </text>
