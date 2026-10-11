@@ -75,21 +75,23 @@ export default function StaffShell({
     <div className="min-h-screen">
       <header className="sticky top-0 z-40 border-b border-line bg-[var(--c-surface)] backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
-          <div className="flex items-center gap-3">
-            <Logo size={38} />
-            <div className="leading-tight">
-              <div className="flex items-center gap-2">
-                <p className="font-display text-[15.5px] font-black tracking-tight text-ink">{tenant.name}</p>
-                <span className="hidden sm:inline-flex rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-black text-brand uppercase tracking-wider">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <span className="shrink-0">
+              <Logo size={38} />
+            </span>
+            <div className="min-w-0 leading-tight">
+              <div className="flex min-w-0 items-center gap-2">
+                <p className="truncate font-display text-[15.5px] font-black tracking-tight text-ink">{tenant.name}</p>
+                <span className="hidden shrink-0 rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-black text-brand uppercase tracking-wider sm:inline-flex">
                   Partner
                 </span>
               </div>
-              <p className="text-[11.5px] font-bold text-muted">
+              <p className="truncate text-[11.5px] font-bold text-muted">
                 {name} <span className="opacity-50">&middot;</span> <span className="uppercase tracking-wider text-brand font-black">{role.replace('_', ' ')}</span>
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2.5">
+          <div className="flex shrink-0 items-center gap-2.5">
             <ThemeToggle />
             <button
               onClick={logout}

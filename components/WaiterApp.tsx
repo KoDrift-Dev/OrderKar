@@ -15,6 +15,7 @@ import MenuOrder from './MenuOrder';
 import TableCard, { tableState } from './TableCard';
 import StatusPill from './StatusPill';
 import ReceiptModal from './ReceiptModal';
+import OrderDetailModal from './OrderDetailModal';
 import { Card, Empty, PageHeader, Tabs, Btn } from './ui';
 
 type View = 'take' | 'orders';
@@ -51,6 +52,7 @@ function WaiterAppInner({ restaurantId, waiterId }: { restaurantId: string; wait
   const [addingTo, setAddingTo] = useState<OrderWithItems | null>(null);
   const [placedTick, setPlacedTick] = useState(0);
   const [receiptFor, setReceiptFor] = useState<OrderWithItems | null>(null);
+  const [detailFor, setDetailFor] = useState<OrderWithItems | null>(null);
   const [paying, setPaying] = useState(false);
 
   const collectPayment = async (orderId: string, method: string) => {
@@ -162,29 +164,45 @@ function WaiterAppInner({ restaurantId, waiterId }: { restaurantId: string; wait
 
   const renderOrderCard = (o: OrderWithItems) => {
     const canAdd = (o.status === 'pending' || o.status === 'preparing') && !o.ready_for_bill;
+    const itemCount = o.order_items.reduce((s, i) => s + i.quantity, 0);
+    const accent =
+      o.status === 'pending'
+        ? 'border-l-blue-500'
+        : o.status === 'preparing'
+          ? 'border-l-amber-500'
+          : 'border-l-emerald-500';
     return (
-      <Card key={o.id} className="p-4">
+      <Card
+        key={o.id}
+        onClick={() => setDetailFor(o)}
+        className={`cursor-pointer border-l-4 p-4 transition-all hover:-translate-y-0.5 hover:shadow-lift active:scale-[0.99] ${accent}`}
+      >
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="font-mono text-lg font-bold text-ink">
+            <p className="font-mono text-[17px] font-black text-ink">
               #{o.order_number} · {o.tables ? `Table ${o.tables.table_number}` : o.order_type}
-              {o.waiter_id === waiterId && <span className="ml-1.5 rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-extrabold text-brand">YOU</span>}
+              {o.waiter_id === waiterId && (
+                <span className="ml-1.5 rounded-full bg-brand/10 px-2 py-0.5 align-middle text-[10px] font-extrabold text-brand">YOU</span>
+              )}
             </p>
-            <p className="truncate text-[12.5px] text-muted">
-              {o.order_items.reduce((s, i) => s + i.quantity, 0)} items · {fmtPKR(o.total_amount)} · {fmtAgo(o.created_at)}
+            <p className="mt-0.5 truncate text-[12.5px] font-medium text-muted">
+              {itemCount} items · <span className="font-mono font-bold text-ink">{fmtPKR(o.total_amount)}</span> · {fmtAgo(o.created_at)}
               {o.customer_name ? ` · ${o.customer_name}` : ''}
             </p>
           </div>
-          <StatusPill status={o.status} />
+          <div className="flex shrink-0 flex-col items-end gap-1.5">
+            <StatusPill status={o.status} />
+            <span className="text-[11px] font-bold text-brand">Details →</span>
+          </div>
         </div>
 
         {o.ready_for_bill && (o.status === 'pending' || o.status === 'preparing') && (
-          <p className="mt-2 inline-block rounded-full bg-amber/15 px-2.5 py-1 text-[11px] font-extrabold text-amber">
+          <p className="mt-2 inline-block rounded-full bg-amber-500/15 px-2.5 py-1 text-[11px] font-extrabold text-amber-700 dark:text-amber-300">
             🔒 {t('wtr_locked_bill')}
           </p>
         )}
 
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-3 flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
           {canAdd && (
             <button
               onClick={() => {
@@ -192,19 +210,25 @@ function WaiterAppInner({ restaurantId, waiterId }: { restaurantId: string; wait
                 setActiveTable(null);
                 setView('take');
               }}
-              className="rounded-btn bg-brand/10 px-4 py-2 text-[13px] font-extrabold text-brand hover:bg-brand/20"
+              className="min-h-[44px] rounded-btn bg-brand/10 px-4 py-2.5 text-[13px] font-extrabold text-brand transition-colors hover:bg-brand/20 active:scale-95"
             >
-              {t('wtr_add_items')}
+              ➕ {t('wtr_add_items')}
             </button>
           )}
           {o.status === 'ready' && o.payment_status !== 'paid' && (
-            <button onClick={() => setReceiptFor(o)} className="flex-1 rounded-btn bg-ok/10 py-2 text-[13.5px] font-extrabold text-ok hover:bg-ok/20">
+            <button
+              onClick={() => setReceiptFor(o)}
+              className="min-h-[44px] flex-1 rounded-btn bg-emerald-600/10 px-4 py-2.5 text-[13.5px] font-extrabold text-emerald-700 transition-colors hover:bg-emerald-600/20 active:scale-95 dark:text-emerald-300"
+            >
               🧾 {t('wtr_collect_payment', { amount: fmtPKR(o.total_amount) })}
             </button>
           )}
           {o.status === 'ready' && o.payment_status === 'paid' && (
-            <button onClick={() => completeOrder(o.id)} className="flex-1 rounded-btn bg-brand/10 py-2 text-[13.5px] font-extrabold text-brand hover:bg-brand/20">
-              {t('wtr_complete_order')}
+            <button
+              onClick={() => completeOrder(o.id)}
+              className="min-h-[44px] flex-1 rounded-btn bg-brand/10 px-4 py-2.5 text-[13.5px] font-extrabold text-brand transition-colors hover:bg-brand/20 active:scale-95"
+            >
+              ✓ {t('wtr_complete_order')}
             </button>
           )}
         </div>
@@ -331,6 +355,23 @@ function WaiterAppInner({ restaurantId, waiterId }: { restaurantId: string; wait
             </>
           )}
         </div>
+      )}
+
+      {/* Full order detail popup on card tap */}
+      {detailFor && (
+        <OrderDetailModal
+          order={detailFor}
+          items={detailFor.order_items}
+          tableNo={detailFor.tables?.table_number != null ? String(detailFor.tables.table_number) : null}
+          onClose={() => setDetailFor(null)}
+          onCollectPayment={
+            detailFor.status === 'ready' && detailFor.payment_status !== 'paid'
+              ? (method) => collectPayment(detailFor.id, method)
+              : undefined
+          }
+          payBusy={paying}
+          restaurantId={restaurantId}
+        />
       )}
 
       {/* Receipt popup — method, download, and Paid live here */}

@@ -105,15 +105,29 @@ function OrderCard({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="font-mono text-[22px] font-bold leading-none text-ink">#{order.order_number}</p>
-            <p className="mt-1 text-[14px] font-bold text-brand">
-              {order.tables ? `Table ${order.tables.table_number}` : order.order_type}
-              {order.customer_name ? ` · ${order.customer_name}` : ''}
+            <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[14px] font-bold">
+              {order.tables ? (
+                <span className="rounded-lg bg-brand px-2.5 py-0.5 text-[13px] font-black text-white">
+                  Table {order.tables.table_number}
+                </span>
+              ) : (
+                <span className="rounded-lg bg-soft px-2.5 py-0.5 text-[13px] font-black text-ink">
+                  {order.order_type}
+                </span>
+              )}
+              {order.customer_name && <span className="text-muted">· {order.customer_name}</span>}
             </p>
           </div>
-          <div className="flex shrink-0 flex-col items-end gap-1">
+          <div className="flex shrink-0 flex-col items-end gap-1.5">
             <StatusPill status={order.status} size="lg" />
-            <p className={`font-mono text-[18px] font-bold ${late ? 'animate-pulse text-danger' : 'text-body'}`}>
-              {fmtElapsed(elapsedMs)}
+            <p className={`rounded-full px-2.5 py-1 font-mono text-[14px] font-black tabular-nums ${
+              late
+                ? 'animate-pulse bg-danger/15 text-danger'
+                : elapsedMs > 10 * 60000
+                  ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
+                  : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+            }`}>
+              ⏱ {fmtElapsed(elapsedMs)}
             </p>
           </div>
         </div>
@@ -192,7 +206,7 @@ function OrderCard({
           <button
             disabled={busy}
             onClick={() => onStatus(order.id, 'preparing')}
-            className="btn-3d flex-1 rounded-btn py-3 font-display text-[15px] font-bold text-white disabled:opacity-60"
+            className="btn-3d min-h-[48px] flex-1 rounded-btn py-3 font-display text-[15px] font-bold text-white transition-transform active:scale-[0.98] disabled:opacity-60"
           >
             {t('ktn_start_preparing')}
           </button>
@@ -201,7 +215,7 @@ function OrderCard({
           <button
             disabled={busy}
             onClick={() => onStatus(order.id, 'ready')}
-            className="flex-1 rounded-btn bg-gradient-to-br from-teal to-emerald-600 py-3 font-display text-[15px] font-bold text-white shadow-lift transition-all hover:-translate-y-px active:translate-y-0 disabled:opacity-60"
+            className="min-h-[48px] flex-1 rounded-btn bg-gradient-to-br from-teal to-emerald-600 py-3 font-display text-[15px] font-bold text-white shadow-lift transition-all hover:-translate-y-px active:scale-[0.98] disabled:opacity-60"
           >
             {t('ktn_mark_ready')}
           </button>
@@ -601,13 +615,13 @@ function KitchenAppInner({ restaurantId }: { restaurantId: string }) {
         title="Kitchen display"
         sub={t('ktn_sub')}
         right={
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <div className="glass flex !rounded-full p-1" role="group" aria-label="View">
               {(['kanban', 'rows', 'column'] as KView[]).map((v) => (
                 <button
                   key={v}
                   onClick={() => setView(v)}
-                  className={`rounded-full px-3 py-1.5 text-[12px] font-extrabold transition-all ${
+                  className={`min-h-[36px] rounded-full px-2.5 py-1.5 text-[12px] font-extrabold transition-all sm:px-3 ${
                     view === v ? 'btn-3d text-white' : 'text-muted hover:text-ink'
                   }`}
                 >
@@ -625,9 +639,9 @@ function KitchenAppInner({ restaurantId }: { restaurantId: string }) {
       {orders.length === 0 ? (
         <Empty title={t('ktn_empty_title')} sub={t('ktn_empty_sub')} />
       ) : view === 'kanban' ? (
-        <div className="grid gap-4 lg:grid-cols-3">
+        <div className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 lg:mx-0 lg:grid lg:grid-cols-3 lg:overflow-visible lg:px-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {(['pending', 'preparing', 'ready'] as const).map((k) => (
-            <section key={k} className="min-w-0">
+            <section key={k} className="w-[84vw] shrink-0 snap-start sm:w-[60vw] lg:w-auto">
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="font-display text-[15px] font-extrabold text-ink">
                   {sectionTitle(k)}
@@ -636,7 +650,7 @@ function KitchenAppInner({ restaurantId }: { restaurantId: string }) {
                   </span>
                 </h2>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-3 pb-1">
                 {groups[k].map((o) => (
                   <OrderCard key={o.id} {...cardProps(o)} />
                 ))}
