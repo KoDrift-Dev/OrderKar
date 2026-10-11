@@ -16,7 +16,7 @@ import { Card, Empty, PageHeader } from './ui';
 type KView = 'kanban' | 'rows' | 'column';
 
 const STATUS_TINT: Record<string, string> = {
-  pending: '!border-amber-500/40 bg-amber-500/[0.06]',
+  pending: '!border-amber/40 bg-amber/[0.06]',
   preparing: '!border-sky-500/40 bg-sky-500/[0.06]',
   ready: '!border-emerald-500/40 bg-emerald-500/[0.06]',
 };
@@ -132,7 +132,7 @@ function OrderCard({
               late
                 ? 'animate-pulse bg-danger/15 text-danger'
                 : elapsedMs > 10 * 60000
-                  ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
+                  ? 'bg-amber/15 text-amber dark:text-amber'
                   : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
             }`}>
               ⏱ {fmtElapsed(elapsedMs)}

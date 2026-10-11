@@ -461,7 +461,7 @@ export default function TableManager({
             )}
             <div className="mt-3 flex flex-wrap gap-4 px-1 text-[11.5px] font-bold text-muted">
               <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-teal" /> Seated</span>
-              <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-amber-500" /> Bill Pending</span>
+              <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-amber" /> Bill Pending</span>
               <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-soft" /> Available</span>
             </div>
           </div>
@@ -474,7 +474,7 @@ export default function TableManager({
                   <h3 className="font-display text-[16px] font-black text-ink">Table {detailTable.table_number}</h3>
                   <span className={`rounded-full px-3 py-1 text-[11px] font-extrabold ${
                     detailState === 'seated' ? 'bg-teal/15 text-teal'
-                    : detailState === 'bill' ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
+                    : detailState === 'bill' ? 'bg-amber/15 text-amber dark:text-amber'
                     : 'bg-soft text-muted'
                   }`}>
                     {detailState === 'seated' ? 'Occupied' : detailState === 'bill' ? 'Bill Pending' : 'Available'}
