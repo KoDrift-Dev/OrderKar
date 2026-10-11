@@ -110,7 +110,7 @@ export function DeleteConfirm({
           <button
             onClick={onCancel}
             disabled={busy}
-            className="rounded-btn border border-line bg-[var(--c-surface-solid)] px-4 py-2.5 text-[13.5px] font-bold text-ink hover:bg-soft"
+            className="rounded-btn border border-line/12 bg-[var(--c-surface-solid)] px-4 py-2.5 text-[13.5px] font-bold text-ink hover:bg-soft"
           >
             Cancel
           </button>

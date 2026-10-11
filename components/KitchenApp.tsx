@@ -158,7 +158,7 @@ function OrderCard({
       </button>
 
       {expanded && (
-        <div className="mt-3 border-t border-line pt-3">
+        <div className="mt-3 border-t border-line/12 pt-3">
           {order.notes && (
             <p className="mb-3 rounded-btn bg-amber/10 px-3.5 py-2 text-[13px] font-semibold text-amber">
               Note: {order.notes}
@@ -247,7 +247,7 @@ function OrderCard({
       {order.status !== 'ready' &&
         (cancelling ? (
           <div className="mt-2 flex gap-2" onClick={(e) => e.stopPropagation()}>
-            <select value={reason} onChange={(e) => setReason(e.target.value)} className="min-w-0 flex-1 rounded-btn border border-line bg-[var(--c-surface-solid)] px-3 py-2 text-[13px] font-bold text-ink">
+            <select value={reason} onChange={(e) => setReason(e.target.value)} className="min-w-0 flex-1 rounded-btn border border-line/12 bg-[var(--c-surface-solid)] px-3 py-2 text-[13px] font-bold text-ink">
               {reasonOpts.map((r) => (
                 <option key={r.value} value={r.value}>{r.label}</option>
               ))}
@@ -255,7 +255,7 @@ function OrderCard({
             <button onClick={cancelOrder} className="shrink-0 rounded-btn bg-danger px-4 py-2 text-[13px] font-extrabold text-white">
               {t('ktn_confirm')}
             </button>
-            <button onClick={() => setCancelling(false)} className="shrink-0 rounded-btn border border-line px-3 py-2 text-[13px] font-bold text-muted">
+            <button onClick={() => setCancelling(false)} className="shrink-0 rounded-btn border border-line/12 px-3 py-2 text-[13px] font-bold text-muted">
               ✕
             </button>
           </div>
@@ -383,7 +383,7 @@ function OrderRow({
       </div>
 
       {expanded && (
-        <div className="mt-3.5 border-t border-line pt-3.5">
+        <div className="mt-3.5 border-t border-line/12 pt-3.5">
           {order.notes && (
             <p className="mb-3 rounded-btn bg-amber/10 px-3.5 py-2 text-[13px] font-semibold text-amber">
               Note: {order.notes}
@@ -473,7 +473,7 @@ function OrderRow({
           {order.status !== 'ready' &&
             (cancelling ? (
               <div className="mt-2 flex gap-2" onClick={(e) => e.stopPropagation()}>
-                <select value={reason} onChange={(e) => setReason(e.target.value)} className="min-w-0 flex-1 rounded-btn border border-line bg-[var(--c-surface-solid)] px-3 py-2 text-[13px] font-bold text-ink">
+                <select value={reason} onChange={(e) => setReason(e.target.value)} className="min-w-0 flex-1 rounded-btn border border-line/12 bg-[var(--c-surface-solid)] px-3 py-2 text-[13px] font-bold text-ink">
                   {reasonOpts.map((r) => (
                     <option key={r.value} value={r.value}>{r.label}</option>
                   ))}
@@ -481,7 +481,7 @@ function OrderRow({
                 <button onClick={cancelOrder} className="shrink-0 rounded-btn bg-danger px-4 py-2 text-[13px] font-extrabold text-white">
                   {t('ktn_confirm')}
                 </button>
-                <button onClick={() => setCancelling(false)} className="shrink-0 rounded-btn border border-line px-3 py-2 text-[13px] font-bold text-muted">
+                <button onClick={() => setCancelling(false)} className="shrink-0 rounded-btn border border-line/12 px-3 py-2 text-[13px] font-bold text-muted">
                   ✕
                 </button>
               </div>
@@ -672,7 +672,7 @@ function KitchenAppInner({ restaurantId }: { restaurantId: string }) {
                   <OrderCard key={o.id} {...cardProps(o)} />
                 ))}
                 {groups[k].length === 0 && (
-                  <p className="rounded-[14px] border border-dashed border-line py-6 text-center text-[12px] font-bold text-muted">—</p>
+                  <p className="rounded-[14px] border border-dashed border-line/12 py-6 text-center text-[12px] font-bold text-muted">—</p>
                 )}
               </div>
             </section>
@@ -691,7 +691,7 @@ function KitchenAppInner({ restaurantId }: { restaurantId: string }) {
                   <span className="rounded-full bg-soft px-2.5 py-0.5 font-mono text-[12px] font-bold text-muted">
                     {groups[k].length}
                   </span>
-                  <div className="h-px flex-1 bg-line" />
+                  <div className="h-px flex-1 bg-line/12" />
                 </div>
                 <div className="space-y-2.5">
                   {groups[k].map((o) => (
@@ -716,7 +716,7 @@ function KitchenAppInner({ restaurantId }: { restaurantId: string }) {
                   <span className="rounded-full bg-soft px-2.5 py-0.5 font-mono text-[12px] font-bold text-muted">
                     {groups[k].length}
                   </span>
-                  <div className="h-px flex-1 bg-line" />
+                  <div className="h-px flex-1 bg-line/12" />
                 </div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {groups[k].map((o) => (

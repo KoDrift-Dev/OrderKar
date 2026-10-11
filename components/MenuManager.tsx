@@ -89,7 +89,7 @@ export default function MenuManager({ restaurantId }: { restaurantId: string }) 
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line/12 react-hooks/exhaustive-deps
   }, [restaurantId]);
 
   const catName = useMemo(() => {
@@ -251,7 +251,7 @@ export default function MenuManager({ restaurantId }: { restaurantId: string }) 
           </p>
         </div>
         <div className="flex gap-2">
-          <button onClick={load} className="rounded-btn border border-line bg-[var(--c-surface-solid)] px-4 py-2.5 text-[13px] font-bold text-muted hover:text-ink">
+          <button onClick={load} className="rounded-btn border border-line/12 bg-[var(--c-surface-solid)] px-4 py-2.5 text-[13px] font-bold text-muted hover:text-ink">
             ⟳ Refresh
           </button>
           <Btn variant="secondary" onClick={() => setScannerOpen(true)}>📷 Scan Menu</Btn>
@@ -346,7 +346,7 @@ export default function MenuManager({ restaurantId }: { restaurantId: string }) 
                   {item.tags.includes('veg') && <Pill tone="ok">Veg</Pill>}
                   <span className="ml-auto text-[11px] font-bold text-muted">~{item.prep_time_minutes} min</span>
                 </div>
-                <div className="mt-3 flex items-center justify-between border-t border-line pt-3">
+                <div className="mt-3 flex items-center justify-between border-t border-line/12 pt-3">
                   <button
                     onClick={() => toggleAvailable(item)}
                     className={`rounded-full px-2.5 py-1 text-[11.5px] font-bold ${
@@ -401,7 +401,7 @@ export default function MenuManager({ restaurantId }: { restaurantId: string }) 
         <div className="fixed inset-0 z-50" role="dialog" aria-modal="true">
           <div className="absolute inset-0 bg-ink/45 backdrop-blur-[2px]" onClick={() => !saving && setEditing(null)} />
           <div className="absolute inset-0 m-auto flex h-fit max-h-[92dvh] w-[calc(100%-2rem)] max-w-xl flex-col rounded-[24px] bg-[var(--c-surface-solid)] shadow-2xl">
-            <div className="flex items-center justify-between border-b border-line p-4 sm:px-6">
+            <div className="flex items-center justify-between border-b border-line/12 p-4 sm:px-6">
               <h2 className="font-display text-[17px] font-extrabold text-ink">
                 {editing === 'new' ? 'Add New Item' : 'Edit Item'}
               </h2>
@@ -468,7 +468,7 @@ export default function MenuManager({ restaurantId }: { restaurantId: string }) 
                     role="switch"
                     aria-checked={form.is_available}
                     onClick={() => setForm((f) => ({ ...f, is_available: !f.is_available }))}
-                    className={`relative h-6 w-11 rounded-full transition-colors ${form.is_available ? 'bg-ok' : 'bg-line'}`}
+                    className={`relative h-6 w-11 rounded-full transition-colors ${form.is_available ? 'bg-ok' : 'bg-line/12'}`}
                   >
                     <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${form.is_available ? 'left-[22px]' : 'left-0.5'}`} />
                   </button>
@@ -477,7 +477,7 @@ export default function MenuManager({ restaurantId }: { restaurantId: string }) 
               </div>
               {error && <p className="text-[13px] font-bold text-danger">{error}</p>}
             </div>
-            <div className="flex justify-end gap-2 border-t border-line p-4 sm:px-6">
+            <div className="flex justify-end gap-2 border-t border-line/12 p-4 sm:px-6">
               <button onClick={() => setEditing(null)} disabled={saving} className="rounded-btn px-4 py-2.5 text-[13.5px] font-bold text-muted hover:text-ink">
                 Cancel
               </button>
