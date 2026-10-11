@@ -10,6 +10,7 @@ import { useT } from '@/lib/i18n';
 import { Btn, Card, SectionHead, Input, Label } from './ui';
 import { useGuard } from './DeleteFlow';
 import { POS_PALETTES, type PosPaletteId } from './PosTab';
+import SmartImage from './SmartImage';
 
 function msg(text: string, ok: boolean) {
   return (
@@ -312,10 +313,12 @@ export default function OwnerSettings({
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
               <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl border-2 border-line bg-[var(--c-surface-solid)] flex items-center justify-center shadow-xs">
                 {logoUrl ? (
-                  <img
+                  <SmartImage
                     src={logoUrl}
                     alt={name || 'Logo'}
-                    className="h-full w-full object-cover"
+                    fill
+                    sizes="64px"
+                    className="object-cover"
                     onError={(e) => {
                       (e.target as HTMLElement).style.display = 'none';
                     }}

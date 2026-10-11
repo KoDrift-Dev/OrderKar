@@ -16,6 +16,7 @@ import { useMenuMap } from './useMenuMap';
 import StatusPill from './StatusPill';
 import { Empty } from './ui';
 import OrderDetailModal from './OrderDetailModal';
+import SmartImage from './SmartImage';
 
 const COLUMNS: { key: 'pending' | 'preparing' | 'ready'; label: string }[] = [
   { key: 'pending', label: 'New' },
@@ -350,7 +351,7 @@ export default function OwnerKitchenView({
                               return (
                                 <li key={it.id} className="flex items-center gap-2">
                                   {thumb ? (
-                                    <img src={thumb} alt="" className="h-8 w-8 shrink-0 rounded-[8px] object-cover" loading="lazy" />
+                                    <SmartImage src={thumb} alt="" width={32} height={32} className="h-8 w-8 shrink-0 rounded-[8px] object-cover" loading="lazy" />
                                   ) : (
                                     <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-soft text-[13px]">
                                       {catIcon(stationOf(it))}
@@ -426,7 +427,7 @@ export default function OwnerKitchenView({
                     return (
                       <li key={it.id} className="flex items-center gap-2.5">
                         {thumb ? (
-                          <img src={thumb} alt="" className="h-10 w-10 shrink-0 rounded-[10px] object-cover" loading="lazy" />
+                          <SmartImage src={thumb} alt="" width={40} height={40} className="h-10 w-10 shrink-0 rounded-[10px] object-cover" loading="lazy" />
                         ) : (
                           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-soft text-[16px]">
                             {catIcon(stationOf(it))}

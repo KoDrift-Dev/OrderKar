@@ -14,6 +14,7 @@ import StatusPill from './StatusPill';
 import { useMenuMap } from './useMenuMap';
 import { Empty } from './ui';
 import OrderDetailModal from './OrderDetailModal';
+import SmartImage from './SmartImage';
 
 type ListTab = 'all' | 'active' | 'ready' | 'delayed';
 
@@ -143,6 +144,26 @@ export default function OwnerOrdersList({
     }
   };
 
+  const markRefunded = async (o: Order) => {
+    setBusyId(o.id);
+    setMenuOpenId(null);
+    const { error } = await createClient()
+      .from('orders')
+      .update({ payment_status: 'refunded' })
+      .eq('id', o.id);
+    setBusyId(null);
+    if (!error) {
+      onRefresh?.();
+      logActivity(createClient(), {
+        restaurantId,
+        action: ACT.PAYMENT_REFUNDED,
+        entityType: 'order',
+        entityId: o.id,
+        details: { total: o.total_amount, payment_method: o.payment_method },
+      });
+    }
+  };
+
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -225,7 +246,7 @@ export default function OwnerOrdersList({
                             {oItems.slice(0, 3).map((it) => {
                               const th = thumbOf(it);
                               return th ? (
-                                <img key={it.id} src={th} alt="" className="h-7 w-7 rounded-full border-2 border-[var(--c-surface-solid)] object-cover" loading="lazy" />
+                                <SmartImage key={it.id} src={th} alt="" width={28} height={28} className="h-7 w-7 rounded-full border-2 border-[var(--c-surface-solid)] object-cover" loading="lazy" />
                               ) : (
                                 <span key={it.id} className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-[var(--c-surface-solid)] bg-soft text-[11px]">
                                   🍽️
@@ -291,6 +312,15 @@ export default function OwnerOrdersList({
                                 >
                                   <span>👨‍🍳</span> View in Kitchen
                                 </button>
+                                {o.payment_status === 'paid' && (
+                                  <button
+                                    onClick={() => markRefunded(o)}
+                                    disabled={busyId === o.id}
+                                    className="flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-left text-[12.5px] font-bold text-rose-700 transition-colors hover:bg-rose-500/10 dark:text-rose-300 disabled:opacity-60"
+                                  >
+                                    <span>↩️</span> Mark Refunded
+                                  </button>
+                                )}
                                 {o.payment_status !== 'paid' && o.status !== 'cancelled' && (
                                   <button
                                     onClick={() => {
