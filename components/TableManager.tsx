@@ -11,8 +11,12 @@ import { useT } from '@/lib/i18n';
 import { qrSvg, downloadPng } from './QrSection';
 import { Btn, Card, SectionHead, Input, Label, Empty } from './ui';
 import { useGuard, useUndoDelete, DeleteConfirm, UndoToast } from './DeleteFlow';
-import type { DiningTable, Order } from '@/lib/types';
+import type { DiningTable, Order, OrderItem, OrderStatus, Profile } from '@/lib/types';
 import TableCard, { tableState } from './TableCard';
+import OrderDetailModal from './OrderDetailModal';
+import StatusPill from './StatusPill';
+import { useMenuMap } from './useMenuMap';
+import { fmtPKR } from '@/lib/format';
 
 const PRESET_SECTIONS = ['Indoor', 'Outdoor', 'Rooftop'];
 
@@ -108,13 +112,19 @@ export default function TableManager({
   slug,
   tables,
   orders = [],
+  items = [],
+  staff = [],
   onChange,
+  onNavigate,
 }: {
   restaurantId: string;
   slug: string;
   tables: DiningTable[];
   orders?: Order[];
+  items?: OrderItem[];
+  staff?: Profile[];
   onChange: (tables: DiningTable[]) => void;
+  onNavigate?: (tab: any) => void;
 }) {
   const t = useT();
   const [editing, setEditing] = useState<DiningTable | 'new' | null>(null);
@@ -253,44 +263,266 @@ export default function TableManager({
     return { free, seated, bill };
   }, [tables, liveStates]);
 
+  const { thumbOf, menuInfoById } = useMenuMap(restaurantId);
+  const [areaFilter, setAreaFilter] = useState<string>('all');
+  const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
+  const [detailOrderId, setDetailOrderId] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  const waiterNameById = useMemo(() => new Map(staff.map((x) => [x.id, x.name])), [staff]);
+
+  const areaList = useMemo(() => {
+    const set = new Set<string>();
+    for (const tb of tables) {
+      const a = (tb.floor_section || '').trim();
+      set.add(a ? a.charAt(0).toUpperCase() + a.slice(1) : 'Indoor');
+    }
+    return [...set].sort();
+  }, [tables]);
+
+  const visibleTables = useMemo(() => {
+    const list = tables.filter((x) => x.is_active).sort((a, b) => a.table_number - b.table_number);
+    if (areaFilter === 'all') return list;
+    return list.filter((tb) => {
+      const a = (tb.floor_section || '').trim();
+      const name = a ? a.charAt(0).toUpperCase() + a.slice(1) : 'Indoor';
+      return name === areaFilter;
+    });
+  }, [tables, areaFilter]);
+
+  const liveTotal = tables.filter((x) => x.is_active).length;
+  const outOfService = tables.filter((x) => !x.is_active).length;
+
+  // Detail panel: selected table (default = first occupied, else first)
+  const detailTable = useMemo(() => {
+    if (selectedTableId) return tables.find((x) => x.id === selectedTableId) ?? null;
+    const occ = visibleTables.find((tb) => (liveStates.get(tb.id) ?? 'free') !== 'free');
+    return occ ?? visibleTables[0] ?? null;
+  }, [selectedTableId, tables, visibleTables, liveStates]);
+  const detailState = detailTable ? liveStates.get(detailTable.id) ?? 'free' : 'free';
+  const detailArea = useMemo(() => {
+    if (!detailTable) return '';
+    const a = (detailTable.floor_section || '').trim();
+    return a ? a.charAt(0).toUpperCase() + a.slice(1) : 'Indoor';
+  }, [detailTable]);
+  const detailOrder = useMemo(() => {
+    if (!detailTable) return null;
+    const list = orders
+      .filter((o) => o.table_id === detailTable.id && ['pending', 'preparing', 'ready'].includes(o.status))
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    return list[0] ?? null;
+  }, [orders, detailTable]);
+  const detailItems = useMemo(
+    () => (detailOrder ? items.filter((i) => i.order_id === detailOrder.id) : []),
+    [items, detailOrder]
+  );
+  const detailWaiter = detailOrder?.waiter_id ? waiterNameById.get(detailOrder.waiter_id) ?? null : null;
+  const detailNext: OrderStatus | undefined =
+    detailOrder?.status === 'pending' ? 'preparing' : detailOrder?.status === 'preparing' ? 'ready' : undefined;
+  const detailNextLabel = detailNext === 'preparing' ? 'Start Preparing' : detailNext === 'ready' ? 'Mark as Ready' : '';
+  const advanceDetailOrder = async () => {
+    if (!detailOrder || !detailNext) return;
+    setBusyId(detailOrder.id);
+    const { error } = await createClient().from('orders').update({ status: detailNext }).eq('id', detailOrder.id);
+    setBusyId(null);
+    if (error) {
+      // realtime reload will correct; nothing else to do
+    }
+  };
+  const detailOrderFull = detailOrderId ? orders.find((o) => o.id === detailOrderId) ?? null : null;
+  const detailMenuById = useMemo(() => {
+    const m = new Map<string, { image_url: string | null; ingredients: string | null }>();
+    for (const it of detailItems) {
+      if (it.menu_item_id && !m.has(it.menu_item_id)) {
+        const info = menuInfoById(it.menu_item_id);
+        if (info) m.set(it.menu_item_id, info);
+      }
+    }
+    return m;
+  }, [detailItems, menuInfoById]);
+
   return (
     <div className="space-y-6">
-      {/* ── Section 1: Live floor status ── */}
-      <div className="rounded-[20px] border border-line/60 bg-[var(--c-surface-solid)] p-4 sm:p-5 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h2 className="font-display text-[16px] font-extrabold tracking-tight text-ink">
-              Live Floor Status
-            </h2>
-            <p className="mt-0.5 text-[12px] font-medium text-muted">
-              Real-time table occupancy from active orders
-            </p>
+      {/* ── Section 1: Floor Overview (Pic 4) ── */}
+      <div className="space-y-4">
+        <div>
+          <h2 className="font-display text-[19px] sm:text-[21px] font-black tracking-tight text-ink">Tables</h2>
+          <p className="text-[12px] font-medium text-muted">Manage table status and live occupancy</p>
+        </div>
+
+        {/* Stat cards */}
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { label: 'Occupied', count: liveCounts.seated + liveCounts.bill, total: liveTotal, bar: 'from-teal-500 to-emerald-600', icon: '🪑' },
+            { label: 'Available', count: liveCounts.free, total: liveTotal, bar: 'from-emerald-400 to-green-500', icon: '✅' },
+            { label: 'Out of Service', count: outOfService, total: tables.length, bar: 'from-slate-400 to-slate-500', icon: '🚫' },
+          ].map((c) => {
+            const pct = c.total > 0 ? Math.round((c.count / c.total) * 100) : 0;
+            return (
+              <div key={c.label} className="rounded-[18px] border border-line/60 bg-[var(--c-surface-solid)] p-4 shadow-sm">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-soft text-[17px]">{c.icon}</span>
+                  <p className="text-[12.5px] font-bold text-muted">{c.label}</p>
+                </div>
+                <p className="mt-2 font-mono text-[22px] font-black text-ink">
+                  {c.count}
+                  <span className="text-[13px] font-bold text-muted"> / {c.total}</span>
+                </p>
+                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-soft">
+                  <div className={`h-full rounded-full bg-gradient-to-r ${c.bar}`} style={{ width: `${pct}%` }} />
+                </div>
+                <p className="mt-1 text-right font-mono text-[11px] font-bold text-muted">{pct}%</p>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Area pills */}
+        <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {['all', ...areaList].map((a) => (
+            <button
+              key={a}
+              onClick={() => setAreaFilter(a)}
+              className={`shrink-0 rounded-[12px] px-3.5 py-1.5 text-[12.5px] font-extrabold transition-all ${
+                areaFilter === a
+                  ? 'bg-brand text-white shadow-lift'
+                  : 'border border-line/70 bg-[var(--c-surface-solid)] text-muted hover:text-ink'
+              }`}
+            >
+              {a === 'all' ? 'All Areas' : a}
+            </button>
+          ))}
+        </div>
+
+        {/* Grid + detail panel */}
+        <div className="grid gap-4 xl:grid-cols-12">
+          <div className="xl:col-span-8">
+            {visibleTables.length === 0 ? (
+              <div className="rounded-[18px] border border-line/60 bg-[var(--c-surface-solid)] p-8 text-center">
+                <p className="text-[13px] font-bold text-muted">No tables in this area yet.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                {visibleTables.map((tb) => {
+                  const st = liveStates.get(tb.id) ?? 'free';
+                  const isSel = selectedTableId === tb.id;
+                  return (
+                    <div key={tb.id} className={isSel ? 'rounded-[16px] ring-2 ring-brand/50 ring-offset-1' : ''}>
+                      <TableCard table={tb} state={st} onClick={() => setSelectedTableId(tb.id)} />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            <div className="mt-3 flex flex-wrap gap-4 px-1 text-[11.5px] font-bold text-muted">
+              <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-teal-500" /> Seated</span>
+              <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-amber-500" /> Bill Pending</span>
+              <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-soft" /> Available</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2 text-[11.5px] font-extrabold">
-            <span className="rounded-full bg-soft px-2.5 py-1 text-muted">{liveCounts.free} Free</span>
-            <span className="rounded-full bg-teal-500/15 px-2.5 py-1 text-teal-700 dark:text-teal-300">
-              {liveCounts.seated} Seated
-            </span>
-            <span className="rounded-full bg-amber-500/15 px-2.5 py-1 text-amber-700 dark:text-amber-300">
-              {liveCounts.bill} Bill Pending
-            </span>
+
+          {/* Detail panel */}
+          <div className="xl:col-span-4">
+            {detailTable ? (
+              <div className="rounded-[18px] border border-line/60 bg-[var(--c-surface-solid)] p-4 shadow-sm lg:sticky lg:top-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-display text-[16px] font-black text-ink">Table {detailTable.table_number}</h3>
+                  <span className={`rounded-full px-3 py-1 text-[11px] font-extrabold ${
+                    detailState === 'seated' ? 'bg-teal-500/15 text-teal-700 dark:text-teal-300'
+                    : detailState === 'bill' ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
+                    : 'bg-soft text-muted'
+                  }`}>
+                    {detailState === 'seated' ? 'Occupied' : detailState === 'bill' ? 'Bill Pending' : 'Available'}
+                  </span>
+                </div>
+                <p className="mt-1 text-[12px] font-medium text-muted">
+                  {detailTable.capacity} seats · {detailArea}
+                  {detailOrder && ` · Since ${new Date(detailOrder.created_at).toLocaleTimeString('en-PK', { hour: 'numeric', minute: '2-digit' })}`}
+                </p>
+                {detailOrder && (
+                  <p className="mt-1 text-[12px] font-medium text-muted">
+                    Waiter: <span className="font-bold text-ink">{detailWaiter ?? '—'}</span>
+                  </p>
+                )}
+
+                {detailOrder ? (
+                  <>
+                    <button
+                      onClick={() => setDetailOrderId(detailOrder.id)}
+                      className="mt-3 w-full rounded-[13px] bg-brand px-4 py-2.5 text-[13px] font-black text-white shadow-lift transition-all hover:bg-brand-deep active:scale-[0.99]"
+                    >
+                      View Order #{detailOrder.order_number}
+                    </button>
+                    <div className="mt-3 rounded-[14px] border border-line/60 bg-soft/40 p-3">
+                      <p className="text-[11px] font-extrabold uppercase tracking-wider text-muted">Order Details</p>
+                      <ul className="mt-2 space-y-1.5">
+                        {detailItems.map((it) => (
+                          <li key={it.id} className="flex items-center justify-between gap-2 text-[12.5px]">
+                            <span className="min-w-0 flex-1 truncate font-medium text-body">
+                              <span className="mr-1 font-mono font-bold text-ink">{it.quantity}×</span>{it.item_name}
+                            </span>
+                            <span className="font-mono font-bold text-ink">{fmtPKR(it.quantity * Number(it.unit_price))}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      <div className="mt-2 flex justify-between border-t border-line pt-2">
+                        <span className="text-[12.5px] font-extrabold text-ink">Total</span>
+                        <span className="font-mono text-[14px] font-black text-ink">{fmtPKR(Number(detailOrder.total_amount))}</span>
+                      </div>
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      {detailNext && (
+                        <button
+                          onClick={() => advanceDetailOrder()}
+                          disabled={busyId === detailOrder.id}
+                          className="rounded-[12px] border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-[12px] font-extrabold text-emerald-700 dark:text-emerald-300 transition-all hover:bg-emerald-500/20 disabled:opacity-60"
+                        >
+                          {busyId === detailOrder.id ? '...' : detailNextLabel}
+                        </button>
+                      )}
+                      <button
+                        onClick={() => onNavigate?.('pos')}
+                        className={`rounded-[12px] border border-line/70 px-3 py-2 text-[12px] font-extrabold text-ink transition-all hover:border-brand/40 ${detailNext ? '' : 'col-span-2'}`}
+                      >
+                        ➕ Add Items
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="mt-3">
+                    <p className="rounded-[12px] bg-soft/60 p-3 text-center text-[12.5px] font-medium text-muted">
+                      Table is free — no active order.
+                    </p>
+                    <button
+                      onClick={() => onNavigate?.('pos')}
+                      className="mt-3 w-full rounded-[13px] bg-brand px-4 py-2.5 text-[13px] font-black text-white shadow-lift transition-all hover:bg-brand-deep active:scale-[0.99]"
+                    >
+                      ➕ New Order
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="rounded-[18px] border border-line/60 bg-[var(--c-surface-solid)] p-6 text-center">
+                <p className="text-[13px] font-bold text-muted">Select a table to see details</p>
+              </div>
+            )}
           </div>
         </div>
-        {tables.filter((x) => x.is_active).length === 0 ? (
-          <p className="py-6 text-center text-[13px] font-medium text-muted">
-            No active tables yet — add one below.
-          </p>
-        ) : (
-          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-            {[...tables]
-              .filter((x) => x.is_active)
-              .sort((a, b) => a.table_number - b.table_number)
-              .map((tb) => (
-                <TableCard key={tb.id} table={tb} state={liveStates.get(tb.id) ?? 'free'} />
-              ))}
-          </div>
-        )}
       </div>
+
+      {/* Detail order modal */}
+      {detailOrderFull && (
+        <OrderDetailModal
+          order={detailOrderFull}
+          items={detailItems}
+          menuById={detailMenuById}
+          thumbOf={thumbOf}
+          tableNo={detailTable ? String(detailTable.table_number) : null}
+          waiterName={detailWaiter}
+          onClose={() => setDetailOrderId(null)}
+        />
+      )}
 
       {/* ── Section 2: Table management ── */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">

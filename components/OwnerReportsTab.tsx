@@ -5,12 +5,13 @@
 // zebra-striped rows, column-by-column sorting, search/filters, and Download Report (Excel/CSV + Executive PDF).
 
 import React, { useState, useMemo, Fragment } from 'react';
-import type { Order, OrderItem } from '@/lib/types';
+import type { Order, OrderItem, Review } from '@/lib/types';
 import type { DiningTable, Profile, MenuCategory, MenuItem } from '@/lib/types';
 import { fmtPKR, fmtNum } from '@/lib/format';
 import { exportAsCsv, printExecutivePdf } from '@/lib/report-export';
 import { Card } from './ui';
 import { RangePills, type Range } from './useRangeAnalytics';
+import OwnerReportsOverview from './OwnerReportsOverview';
 
 export type ReportSubTab = 'orders' | 'dishes' | 'revenue';
 
@@ -28,6 +29,8 @@ interface OwnerReportsTabProps {
   onSubTabChange?: (tab: ReportSubTab) => void;
   range?: Range;
   onRangeChange?: (r: Range) => void;
+  restaurantId?: string;
+  reviews?: Review[];
 }
 
 type OrderSortField = 'number' | 'time' | 'table' | 'staff' | 'status' | 'payment' | 'amount';
@@ -48,6 +51,8 @@ export default function OwnerReportsTab({
   onSubTabChange,
   range,
   onRangeChange,
+  restaurantId,
+  reviews = [],
 }: OwnerReportsTabProps) {
   const [currentTab, setCurrentTab] = useState<ReportSubTab>(activeSubTab);
   const [downloadMenuOpen, setDownloadMenuOpen] = useState(false);
@@ -584,7 +589,18 @@ export default function OwnerReportsTab({
         </div>
       </div>
 
-      {/* ── 2. Segmented Report Type Tabs (Compact pills, fits on single screen) ── */}
+      {/* ── 2. Pic-6 performance overview ── */}
+      <OwnerReportsOverview
+        restaurantId={restaurantId}
+        orders={orders}
+        items={items}
+        menu={menu}
+        categories={categories}
+        reviews={reviews}
+        range={range ?? 'today'}
+      />
+
+      {/* ── 3. Segmented Report Type Tabs (Compact pills, fits on single screen) ── */}
       <div className="flex flex-wrap sm:flex-nowrap items-center gap-1.5 sm:gap-2 border-b border-line/60 pb-1.5">
         {[
           { key: 'orders' as const, label: 'Recent Orders', icon: '📋', count: orders.length },
