@@ -239,14 +239,36 @@ function OwnerAppInner({
 
   // ── Realtime: orders / order_items / tables → silent refresh, no page reload. ──
   // Debounced so rapid kitchen status taps don't refetch-storm.
+  // NOTE: postgres_changes only fires for tables in the supabase_realtime
+  // publication (see supabase/realtime.sql). The heartbeat below is a safety
+  // net: a cheap 1-row poll that triggers a full reload if anything changed.
   useEffect(() => {
     const supabase = createClient();
     let timer: number | undefined;
+    let beat: number | undefined;
+    let lastBeat = '';
     const reload = () => {
       window.clearTimeout(timer);
       timer = window.setTimeout(() => {
         loadOrdersRef.current();
       }, 400);
+    };
+    const heartbeat = async () => {
+      try {
+        const { data } = await supabase
+          .from('orders')
+          .select('updated_at')
+          .eq('restaurant_id', restaurantId)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        const stamp = (data as { updated_at?: string } | null)?.updated_at ?? '';
+        if (!stamp) return;
+        if (lastBeat && stamp !== lastBeat) reload();
+        lastBeat = stamp;
+      } catch {
+        /* silent — next beat retries */
+      }
     };
     const reloadTables = async () => {
       const { data } = await supabase
@@ -270,8 +292,11 @@ function OwnerAppInner({
         reloadTables
       )
       .subscribe();
+    beat = window.setInterval(heartbeat, 5000);
+    heartbeat();
     return () => {
       window.clearTimeout(timer);
+      window.clearInterval(beat);
       supabase.removeChannel(ch);
     };
   }, [restaurantId]);
