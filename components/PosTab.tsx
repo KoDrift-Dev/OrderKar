@@ -454,7 +454,7 @@ export default function PosTab({
         ['--c-brand-rgb' as any]: curPal.brandRgb,
         ['--c-brand-deep' as any]: curPal.brandDeep,
         ['--c-brand-soft' as any]: curPal.brandSoft,
-        ['--c-line' as any]: curPal.line,
+        ['--c-line/12' as any]: curPal.line,
         ['--c-line-strong' as any]: curPal.lineStrong,
         ['--shadow-lift' as any]: curPal.shadowLift,
         ['--shadow-glow' as any]: curPal.shadowGlow,
@@ -474,7 +474,7 @@ export default function PosTab({
 
           {/* Compact Order Type & Settings on top-right */}
           <div className="flex items-center gap-1.5 shrink-0">
-            <div className="flex items-center rounded-xl border border-line bg-[var(--c-surface-solid)] p-0.5 shadow-xs text-xs">
+            <div className="flex items-center rounded-xl border border-line/12 bg-[var(--c-surface-solid)] p-0.5 shadow-xs text-xs">
               {[
                 { id: 'dine_in' as const, label: '🍽️ Dine', title: 'Dine-In' },
                 { id: 'takeaway' as const, label: '🛍️ Take', title: 'Takeaway' },
@@ -499,7 +499,7 @@ export default function PosTab({
             <button
               type="button"
               onClick={() => setShowSettingsModal(true)}
-              className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-xl border border-line bg-[var(--c-surface-solid)] text-muted hover:text-ink shadow-xs transition-all active:scale-95"
+              className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-xl border border-line/12 bg-[var(--c-surface-solid)] text-muted hover:text-ink shadow-xs transition-all active:scale-95"
               title="Settings"
             >
               ⚙️
@@ -507,7 +507,7 @@ export default function PosTab({
           </div>
         </div>
 
-        {/* If Dine-In & tables available: Compact single-line table pill row */}
+        {/* If Dine-In & tables available: Compact single-line/12 table pill row */}
         {orderType === 'dine_in' && activeTables.length > 0 && (
           <div className="mt-1.5 flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
             <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider text-muted">
@@ -526,7 +526,7 @@ export default function PosTab({
                     isSelected
                       ? 'bg-[#154a48] text-white shadow-xs ring-1 ring-[#154a48]'
                       : st === 'free'
-                        ? 'border border-line bg-[var(--c-surface-solid)] text-ink hover:border-[#154a48]'
+                        ? 'border border-line/12 bg-[var(--c-surface-solid)] text-ink hover:border-[#154a48]'
                         : 'bg-soft text-muted cursor-not-allowed opacity-50'
                   }`}
                 >
@@ -539,7 +539,7 @@ export default function PosTab({
 
         {/* Customer fields for Takeaway / Delivery (compact) */}
         {orderType !== 'dine_in' && (
-          <div className="mt-2 grid gap-1.5 sm:grid-cols-2 rounded-xl border border-line bg-[var(--c-surface)] p-2">
+          <div className="mt-2 grid gap-1.5 sm:grid-cols-2 rounded-xl border border-line/12 bg-[var(--c-surface)] p-2">
             <Input
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
@@ -623,7 +623,7 @@ export default function PosTab({
             <button
               type="button"
               onClick={() => scrollCats('left')}
-              className="shrink-0 flex h-6 w-6 items-center justify-center rounded-lg border border-line bg-[var(--c-surface-solid)] text-muted hover:text-ink shadow-xs"
+              className="shrink-0 flex h-6 w-6 items-center justify-center rounded-lg border border-line/12 bg-[var(--c-surface-solid)] text-muted hover:text-ink shadow-xs"
               title="Scroll Left"
             >
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
@@ -641,7 +641,7 @@ export default function PosTab({
                 className={`shrink-0 flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-tight transition-all ${
                   activeCat === 'all'
                     ? 'bg-[#154a48] text-white shadow-xs'
-                    : 'border border-line bg-[var(--c-surface-solid)] text-ink/80 hover:text-ink'
+                    : 'border border-line/12 bg-[var(--c-surface-solid)] text-ink/80 hover:text-ink'
                 }`}
               >
                 <span>✨ All Items</span>
@@ -661,7 +661,7 @@ export default function PosTab({
                     className={`shrink-0 flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-tight transition-all ${
                       isActive
                         ? 'bg-[#154a48] text-white shadow-xs'
-                        : 'border border-line bg-[var(--c-surface-solid)] text-ink/80 hover:text-ink'
+                        : 'border border-line/12 bg-[var(--c-surface-solid)] text-ink/80 hover:text-ink'
                     }`}
                   >
                     <span>{categoryEmoji(c.name)}</span>
@@ -677,7 +677,7 @@ export default function PosTab({
             <button
               type="button"
               onClick={() => scrollCats('right')}
-              className="shrink-0 flex h-6 w-6 items-center justify-center rounded-lg border border-line bg-[var(--c-surface-solid)] text-muted hover:text-ink shadow-xs"
+              className="shrink-0 flex h-6 w-6 items-center justify-center rounded-lg border border-line/12 bg-[var(--c-surface-solid)] text-muted hover:text-ink shadow-xs"
               title="Scroll Right"
             >
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
@@ -758,7 +758,7 @@ export default function PosTab({
 
         {/* ── Right Column: CURRENT BILL (col-span-5, directly below on mobile, matching 2nd picture) ── */}
         <div id="pos-current-bill" className="lg:col-span-5 flex flex-col h-full min-h-0 w-full">
-          <div className="flex flex-col h-full min-h-0 rounded-2xl border border-line bg-[var(--c-surface-solid)] p-3.5 sm:p-4 shadow-sm">
+          <div className="flex flex-col h-full min-h-0 rounded-2xl border border-line/12 bg-[var(--c-surface-solid)] p-3.5 sm:p-4 shadow-sm">
             {/* Bill Header */}
             <div className="shrink-0 flex items-center justify-between border-b border-line/60 pb-2">
               <div className="flex items-center gap-1.5">
@@ -768,7 +768,7 @@ export default function PosTab({
                 </h2>
               </div>
               <div className="flex items-center gap-2">
-                <span className="rounded-md border border-line px-2 py-0.5 text-[10px] font-bold text-muted">
+                <span className="rounded-md border border-line/12 px-2 py-0.5 text-[10px] font-bold text-muted">
                   Items: {totalItemsCount}
                 </span>
                 {cart.length > 0 && (
@@ -806,7 +806,7 @@ export default function PosTab({
                       </div>
 
                       {/* Stepper − / + */}
-                      <div className="flex items-center gap-1 rounded-lg bg-[var(--c-surface-solid)] border border-line p-0.5 shrink-0">
+                      <div className="flex items-center gap-1 rounded-lg bg-[var(--c-surface-solid)] border border-line/12 p-0.5 shrink-0">
                         <button
                           type="button"
                           onClick={() => setQty(line.item.id, line.qty - 1)}
@@ -848,7 +848,7 @@ export default function PosTab({
                         setDiscountType(e.target.value as DiscountType);
                         if (e.target.value === 'none') setDiscountVal('');
                       }}
-                      className="w-full rounded-xl border border-line bg-[var(--c-surface-solid)] px-2 py-1.5 text-xs font-semibold text-ink outline-none"
+                      className="w-full rounded-xl border border-line/12 bg-[var(--c-surface-solid)] px-2 py-1.5 text-xs font-semibold text-ink outline-none"
                     >
                       <option value="none">None</option>
                       <option value="rs">Rs (Flat)</option>
@@ -862,7 +862,7 @@ export default function PosTab({
                         value={discountVal}
                         onChange={(e) => setDiscountVal(e.target.value)}
                         placeholder={discountType === 'percent' ? '%' : 'Rs'}
-                        className="w-16 rounded-xl border border-line bg-[var(--c-surface-solid)] px-1.5 py-1.5 text-xs font-bold text-ink outline-none"
+                        className="w-16 rounded-xl border border-line/12 bg-[var(--c-surface-solid)] px-1.5 py-1.5 text-xs font-bold text-ink outline-none"
                       />
                     )}
                   </div>
@@ -880,7 +880,7 @@ export default function PosTab({
                       className={`rounded-xl py-1.5 px-1 text-[11px] font-bold flex items-center justify-center gap-1 transition-all ${
                         paymentMode === 'cash'
                           ? 'border-2 border-[#154a48] bg-[#f0f9f8] text-[#154a48] dark:bg-emerald-950/40 dark:border-emerald-500 dark:text-emerald-300 font-black'
-                          : 'border border-line bg-[var(--c-surface-solid)] text-muted hover:text-ink'
+                          : 'border border-line/12 bg-[var(--c-surface-solid)] text-muted hover:text-ink'
                       }`}
                     >
                       <span>💵</span>
@@ -892,7 +892,7 @@ export default function PosTab({
                       className={`rounded-xl py-1.5 px-1 text-[11px] font-bold flex items-center justify-center gap-1 transition-all ${
                         paymentMode === 'online'
                           ? 'border-2 border-[#154a48] bg-[#f0f9f8] text-[#154a48] dark:bg-emerald-950/40 dark:border-emerald-500 dark:text-emerald-300 font-black'
-                          : 'border border-line bg-[var(--c-surface-solid)] text-muted hover:text-ink'
+                          : 'border border-line/12 bg-[var(--c-surface-solid)] text-muted hover:text-ink'
                       }`}
                     >
                       <span>💳</span>
@@ -904,7 +904,7 @@ export default function PosTab({
 
               {/* CASH GIVEN Row (Exact 2nd picture style: 💵 CASH GIVEN on left, [ 0.00 ] on right) */}
               {paymentMode === 'cash' ? (
-                <div className="rounded-xl border border-line bg-[#faf8f4] dark:bg-soft/40 px-3 py-1.5 sm:py-2 flex items-center justify-between">
+                <div className="rounded-xl border border-line/12 bg-[#faf8f4] dark:bg-soft/40 px-3 py-1.5 sm:py-2 flex items-center justify-between">
                   <span className="text-[11px] sm:text-xs font-black uppercase tracking-wide text-ink flex items-center gap-1.5">
                     <span>💵</span>
                     <span>CASH GIVEN</span>
@@ -916,11 +916,11 @@ export default function PosTab({
                     value={cashGiven}
                     onChange={(e) => setCashGiven(e.target.value)}
                     placeholder={netPayable > 0 ? String(netPayable) : '0.00'}
-                    className="rounded-lg border border-line bg-[var(--c-surface-solid)] px-2.5 py-1 font-mono text-xs sm:text-sm font-black text-ink text-right w-24 sm:w-28 outline-none focus:border-[#154a48]"
+                    className="rounded-lg border border-line/12 bg-[var(--c-surface-solid)] px-2.5 py-1 font-mono text-xs sm:text-sm font-black text-ink text-right w-24 sm:w-28 outline-none focus:border-[#154a48]"
                   />
                 </div>
               ) : (
-                <div className="rounded-xl border border-line bg-soft/40 p-2 space-y-1.5">
+                <div className="rounded-xl border border-line/12 bg-soft/40 p-2 space-y-1.5">
                   <div className="grid grid-cols-3 gap-1">
                     {[
                       { id: 'card' as const, label: '💳 Card' },
@@ -934,7 +934,7 @@ export default function PosTab({
                         className={`rounded-lg py-1 text-[10.5px] font-bold transition-all ${
                           onlineMethod === m.id
                             ? 'bg-[#154a48] text-white font-black'
-                            : 'border border-line bg-[var(--c-surface-solid)] text-muted hover:text-ink'
+                            : 'border border-line/12 bg-[var(--c-surface-solid)] text-muted hover:text-ink'
                         }`}
                       >
                         {m.label}
@@ -947,13 +947,13 @@ export default function PosTab({
                     value={onlineRef}
                     onChange={(e) => setOnlineRef(e.target.value)}
                     placeholder="Transaction Ref (optional)"
-                    className="w-full rounded-lg border border-line bg-[var(--c-surface-solid)] px-2 py-1 text-xs text-ink outline-none"
+                    className="w-full rounded-lg border border-line/12 bg-[var(--c-surface-solid)] px-2 py-1 text-xs text-ink outline-none"
                   />
                 </div>
               )}
 
               {/* Totals Row: SUBTOTAL on left, NET PAYABLE on right (Exact 2nd picture layout) */}
-              <div className="flex items-center justify-between pt-2 border-t border-dashed border-line">
+              <div className="flex items-center justify-between pt-2 border-t border-dashed border-line/12">
                 <div>
                   <span className="block text-[9.5px] uppercase font-bold tracking-wider text-muted">
                     SUBTOTAL: RS {subtotal}
@@ -1001,7 +1001,7 @@ export default function PosTab({
       {receipt && (
         <div className="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
           <div className="absolute inset-0 bg-ink/50 backdrop-blur-xs" />
-          <div className="relative mx-auto my-6 w-[calc(100%-2rem)] max-w-md rounded-[26px] bg-[var(--c-surface-solid)] p-6 shadow-2xl border border-line animate-in zoom-in-95">
+          <div className="relative mx-auto my-6 w-[calc(100%-2rem)] max-w-md rounded-[26px] bg-[var(--c-surface-solid)] p-6 shadow-2xl border border-line/12 animate-in zoom-in-95">
             <h2 className="mb-4 text-center font-display text-lg font-black text-ink">
               ✅ Payment Processed Successfully
             </h2>
@@ -1051,8 +1051,8 @@ export default function PosTab({
             className="absolute inset-0 bg-ink/50 backdrop-blur-xs transition-opacity"
             onClick={() => setShowSettingsModal(false)}
           />
-          <div className="relative w-full max-w-md rounded-[26px] bg-[var(--c-surface-solid)] p-5 sm:p-6 shadow-2xl border border-line animate-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-line pb-3 mb-4">
+          <div className="relative w-full max-w-md rounded-[26px] bg-[var(--c-surface-solid)] p-5 sm:p-6 shadow-2xl border border-line/12 animate-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-line/12 pb-3 mb-4">
               <div className="flex items-center gap-2.5">
                 <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand/10 text-brand text-base">
                   ⚙️
@@ -1090,7 +1090,7 @@ export default function PosTab({
                         className={`flex items-center justify-between rounded-xl border p-3 text-left transition-all ${
                           isSelected
                             ? 'border-brand bg-brand/[0.06] shadow-xs ring-2 ring-brand/20'
-                            : 'border-line hover:border-brand/40 bg-[var(--c-surface)]'
+                            : 'border-line/12 hover:border-brand/40 bg-[var(--c-surface)]'
                         }`}
                       >
                         <div className="flex items-center gap-3">
@@ -1117,7 +1117,7 @@ export default function PosTab({
               </div>
             </div>
 
-            <div className="mt-5 border-t border-line pt-3 flex justify-end">
+            <div className="mt-5 border-t border-line/12 pt-3 flex justify-end">
               <button
                 type="button"
                 onClick={() => setShowSettingsModal(false)}

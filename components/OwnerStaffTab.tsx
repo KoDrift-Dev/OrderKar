@@ -122,7 +122,7 @@ function Leaderboard({ orders, staff }: { orders: Order[]; staff: Profile[] }) {
             <div className="overflow-x-auto">
               <table className="w-full min-w-[580px] text-left text-[13px]">
                 <thead>
-                  <tr className="border-b border-line bg-soft/60 text-[11.5px] font-extrabold uppercase tracking-wider text-muted">
+                  <tr className="border-b border-line/12 bg-soft/60 text-[11.5px] font-extrabold uppercase tracking-wider text-muted">
                     <th className="px-5 py-3.5">Rank</th>
                     <th className="px-5 py-3.5">Staff Member</th>
                     <th className="px-5 py-3.5 text-center">Orders Taken</th>
@@ -130,7 +130,7 @@ function Leaderboard({ orders, staff }: { orders: Order[]; staff: Profile[] }) {
                     <th className="px-5 py-3.5 text-right">Avg Order Ticket</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-line">
+                <tbody className="divide-y divide-line/12">
                   {rows.map((r, i) => (
                     <tr
                       key={r.id}
@@ -216,7 +216,7 @@ export default function OwnerStaffTab({
           {staff.map((s) => {
             const roleInfo = ROLE_COLORS[s.role] || {
               label: s.role,
-              badge: 'bg-soft text-muted border-line',
+              badge: 'bg-soft text-muted border-line/12',
             };
 
             return (

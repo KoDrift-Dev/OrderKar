@@ -118,7 +118,7 @@ export default function PhotoDropzone({
           handleFile(e.dataTransfer.files?.[0]);
         }}
         className={`flex cursor-pointer items-center gap-3 rounded-[16px] border-2 border-dashed p-3 transition-all ${
-          dragging ? 'border-brand bg-brand-soft scale-[1.01]' : 'border-line bg-soft/50 hover:border-brand/50'
+          dragging ? 'border-brand bg-brand-soft scale-[1.01]' : 'border-line/12 bg-soft/50 hover:border-brand/50'
         }`}
       >
         {uploading ? (
