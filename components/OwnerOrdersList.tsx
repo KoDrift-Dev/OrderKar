@@ -7,6 +7,7 @@
 
 import { useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { deductInventoryForOrder } from '@/lib/inventory';
 import { logActivity, ACT } from '@/lib/activity';
 import type { DiningTable, MenuItem, Order, OrderItem, OrderStatus, Profile } from '@/lib/types';
 import { fmtElapsed, fmtPKR } from '@/lib/format';
@@ -141,6 +142,7 @@ export default function OwnerOrdersList({
         entityId: orderId,
         details: { payment_method: method },
       });
+      deductInventoryForOrder(createClient(), orderId, restaurantId);
     }
   };
 

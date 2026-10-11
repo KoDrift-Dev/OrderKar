@@ -9,6 +9,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { deductInventoryForOrder } from '@/lib/inventory';
 import { logActivity, ACT } from '@/lib/activity';
 import type { OrderStatus, OrderWithItems, OrderItem, Profile } from '@/lib/types';
 import { fmtElapsed, fmtPKR } from '@/lib/format';
@@ -211,6 +212,7 @@ export default function OwnerKitchenView({
         entityId: orderId,
         details: { payment_method: method },
       });
+      deductInventoryForOrder(createClient(), orderId, restaurantId);
     }
   };
 
