@@ -64,7 +64,7 @@ const FILTERS: { key: POStatus | 'all'; label: string }[] = [
 
 const STATUS_STYLE: Record<POStatus, string> = {
   draft: 'bg-line/60 text-muted',
-  pending: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
+  pending: 'bg-amber/15 text-amber dark:text-amber',
   received: 'bg-ok/10 text-ok',
   cancelled: 'bg-danger/10 text-danger',
 };

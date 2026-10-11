@@ -333,7 +333,7 @@ export default function OwnerFoodCostTab({
               <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                 {[
                   { label: 'Total Food Sales', value: fmtPKR(totalFoodSales), icon: '🏷️', tone: 'text-brand' },
-                  { label: 'Total Food Cost', value: fmtPKR(totalFoodCost), icon: '🧾', tone: 'text-amber-600 dark:text-amber-400' },
+                  { label: 'Total Food Cost', value: fmtPKR(totalFoodCost), icon: '🧾', tone: 'text-amber dark:text-amber' },
                   { label: 'Overall Profit Margin', value: `${Math.round(overallMargin)}%`, icon: '%', tone: 'text-emerald-600 dark:text-emerald-400' },
                   { label: 'Total Food Waste', value: `${wastePct.toFixed(1)}%`, icon: '🗑️', tone: 'text-rose-600 dark:text-rose-400' },
                 ].map((c) => (
@@ -377,7 +377,7 @@ export default function OwnerFoodCostTab({
                         <div key={p.name} className="grid grid-cols-12 items-center gap-2 px-4 py-2.5">
                           <div className="col-span-7 md:col-span-4">
                             <p className="truncate text-[13px] font-extrabold text-ink">{p.name}</p>
-                            {!p.hasRecipe && <p className="text-[10.5px] font-bold text-amber-600">No recipe</p>}
+                            {!p.hasRecipe && <p className="text-[10.5px] font-bold text-amber">No recipe</p>}
                           </div>
                           <p className="hidden text-right font-mono text-[12.5px] font-bold text-muted md:col-span-2 md:block">
                             {p.hasRecipe ? fmtPKR(p.qty ? p.cost / p.qty : 0) : '—'}
@@ -389,7 +389,7 @@ export default function OwnerFoodCostTab({
                             {p.hasRecipe ? (
                               <span className={`rounded-full px-2.5 py-1 font-mono text-[11.5px] font-extrabold ${
                                 p.margin < 25 ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
-                                : p.margin < 50 ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300'
+                                : p.margin < 50 ? 'bg-amber/10 text-amber dark:text-amber'
                                 : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
                               }`}>
                                 {Math.round(p.margin)}%
@@ -440,7 +440,7 @@ export default function OwnerFoodCostTab({
                             <span className="font-mono font-bold text-muted">{fmtPKR(t.cost)} · {t.pct}%</span>
                           </div>
                           <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-soft">
-                            <div className="h-full rounded-full bg-gradient-to-r from-amber-500 to-orange-500" style={{ width: `${t.pct}%` }} />
+                            <div className="h-full rounded-full bg-gradient-to-r from-amber to-orange-500" style={{ width: `${t.pct}%` }} />
                           </div>
                         </li>
                       ))}
