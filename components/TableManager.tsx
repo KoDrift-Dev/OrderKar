@@ -329,6 +329,18 @@ export default function TableManager({
       // realtime reload will correct; nothing else to do
     }
   };
+  const collectDetailPayment = async (method: string) => {
+    if (!detailOrderFull) return;
+    setBusyId(detailOrderFull.id);
+    const { error } = await createClient()
+      .from('orders')
+      .update({ status: 'completed', payment_status: 'paid', payment_method: method })
+      .eq('id', detailOrderFull.id);
+    setBusyId(null);
+    // Order leaves the active list on the next realtime/heartbeat refresh;
+    // close the popup so the table panel doesn't show a stale bill.
+    if (!error) setDetailOrderId(null);
+  };
   const detailOrderFull = detailOrderId ? orders.find((o) => o.id === detailOrderId) ?? null : null;
   const detailMenuById = useMemo(() => {
     const m = new Map<string, { image_url: string | null; ingredients: string | null }>();
@@ -487,6 +499,14 @@ export default function TableManager({
                         ➕ Add Items
                       </button>
                     </div>
+                    {detailState === 'bill' && detailOrder.payment_status !== 'paid' && (
+                      <button
+                        onClick={() => setDetailOrderId(detailOrder.id)}
+                        className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-[12px] bg-emerald-600/10 px-3 py-2.5 text-[12.5px] font-black text-emerald-700 transition-all hover:bg-emerald-600/20 dark:text-emerald-300"
+                      >
+                        <span>💰</span> Collect Payment · {fmtPKR(Number(detailOrder.total_amount))}
+                      </button>
+                    )}
                   </>
                 ) : (
                   <div className="mt-3">
@@ -521,6 +541,8 @@ export default function TableManager({
           tableNo={detailTable ? String(detailTable.table_number) : null}
           waiterName={detailWaiter}
           onClose={() => setDetailOrderId(null)}
+          onCollectPayment={collectDetailPayment}
+          payBusy={busyId === detailOrderFull.id}
         />
       )}
 

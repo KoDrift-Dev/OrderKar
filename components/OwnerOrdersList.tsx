@@ -114,6 +114,16 @@ export default function OwnerOrdersList({
     if (!error) onRefresh?.();
   };
 
+  const collectPayment = async (orderId: string, method: string) => {
+    setBusyId(orderId);
+    const { error } = await createClient()
+      .from('orders')
+      .update({ status: 'completed', payment_status: 'paid', payment_method: method })
+      .eq('id', orderId);
+    setBusyId(null);
+    if (!error) onRefresh?.();
+  };
+
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -262,6 +272,17 @@ export default function OwnerOrdersList({
                                 >
                                   <span>👨‍🍳</span> View in Kitchen
                                 </button>
+                                {o.payment_status !== 'paid' && o.status !== 'cancelled' && (
+                                  <button
+                                    onClick={() => {
+                                      setMenuOpenId(null);
+                                      setModalId(o.id);
+                                    }}
+                                    className="flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-left text-[12.5px] font-bold text-emerald-700 transition-colors hover:bg-emerald-500/10 dark:text-emerald-300"
+                                  >
+                                    <span>💰</span> Collect Payment
+                                  </button>
+                                )}
                               </div>
                             </>
                           )}
@@ -308,6 +329,8 @@ export default function OwnerOrdersList({
               }
               advanceLabel={next ? NEXT_LABEL[modalOrder.status] : undefined}
               busy={busyId === modalOrder.id}
+              onCollectPayment={(method) => collectPayment(modalOrder.id, method)}
+              payBusy={busyId === modalOrder.id}
             />
           );
         })()}

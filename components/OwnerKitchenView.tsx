@@ -176,6 +176,24 @@ export default function OwnerKitchenView({
     }
   };
 
+  // ── Collect payment (optimistic; order leaves the active kanban) ──
+  const collectPayment = async (orderId: string, method: string) => {
+    setBusyId(orderId);
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === orderId
+          ? { ...o, status: 'completed' as OrderStatus, payment_status: 'paid', payment_method: method }
+          : o
+      )
+    );
+    const { error } = await createClient()
+      .from('orders')
+      .update({ status: 'completed', payment_status: 'paid', payment_method: method })
+      .eq('id', orderId);
+    setBusyId(null);
+    if (error) setModalId(null);
+  };
+
   // ── Performance strip (real) ──
   const perf = useMemo(() => {
     const done = orders
@@ -478,6 +496,8 @@ export default function OwnerKitchenView({
             onAdvance={next ? () => advanceStatus(modalOrder.id, next) : undefined}
             advanceLabel={next ? NEXT_LABEL[modalOrder.status] : undefined}
             busy={busyId === modalOrder.id}
+            onCollectPayment={(method) => collectPayment(modalOrder.id, method)}
+            payBusy={busyId === modalOrder.id}
           />
         );
       })()}
