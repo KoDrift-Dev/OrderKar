@@ -7,6 +7,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useT, useLang } from '@/lib/i18n';
+import { logActivity, ACT } from '@/lib/activity';
 import { cdnUrl } from '@/lib/images';
 import { categoryImage, categoryEmoji } from '@/lib/food-images';
 import { fmtPKR } from '@/lib/format';
@@ -400,6 +401,13 @@ export default function PosTab({
 
       const { error: iErr } = await supabase.from('order_items').insert(lines);
       if (iErr) throw iErr;
+      logActivity(supabase, {
+        restaurantId,
+        action: ACT.ORDER_CREATED,
+        entityType: 'order',
+        entityId: orderId,
+        details: { total: netPayable, items: cart.length, order_type: orderType, payment_method: dbMethod, via: 'pos' },
+      });
 
       // 3. Fetch saved order sequence number
       const { data: ord } = await supabase.from('orders').select('order_number, created_at').eq('id', orderId).single();

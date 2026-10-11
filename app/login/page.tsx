@@ -8,6 +8,7 @@ import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
+import { logActivity, ACT } from '@/lib/activity';
 import { Btn, Card, Input, Label } from '@/components/ui';
 import ThemeToggle from '@/components/ThemeToggle';
 import Logo from '@/components/Logo';
@@ -60,11 +61,21 @@ function LoginForm({ lang, onLang }: { lang: Lang; onLang: (l: Lang) => void }) 
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('id, role, is_super_admin, is_active, restaurants(slug)')
+        .select('id, role, restaurant_id, is_super_admin, is_active, restaurants(slug)')
         .eq('id', user.id)
         .maybeSingle();
 
       if (!profile || !profile.is_active) throw new Error(t('lgn_no_profile_owner'));
+
+      if (profile.restaurant_id) {
+        logActivity(supabase, {
+          restaurantId: profile.restaurant_id,
+          action: ACT.STAFF_LOGIN,
+          entityType: 'profile',
+          entityId: profile.id,
+          details: { role: profile.role },
+        });
+      }
 
       const next = params.get('next');
       if (next) {

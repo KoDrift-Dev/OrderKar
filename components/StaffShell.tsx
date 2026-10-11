@@ -5,6 +5,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { logActivity, ACT } from '@/lib/activity';
 import { useTenant } from './TenantProvider';
 import type { Role } from '@/lib/types';
 import ThemeToggle from './ThemeToggle';
@@ -38,7 +39,15 @@ export default function StaffShell({
   const router = useRouter();
 
   const logout = async () => {
-    await createClient().auth.signOut();
+    const supabase = createClient();
+    // Log while the session is still alive (RLS needs the actor).
+    logActivity(supabase, {
+      restaurantId: tenant.id,
+      action: ACT.STAFF_LOGOUT,
+      entityType: 'profile',
+      details: { role },
+    });
+    await supabase.auth.signOut();
     router.push('/login');
     router.refresh();
   };

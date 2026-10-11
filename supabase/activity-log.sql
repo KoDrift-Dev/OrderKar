@@ -21,6 +21,8 @@ create table if not exists public.activity_log (
   -- 'order' | 'order_item' | 'menu_item' | 'table' | 'inventory_item'
   entity_id     uuid,
   details       jsonb       not null default '{}',
+  ip_address    text,
+  user_agent    text,
   created_at    timestamptz not null default now()
 );
 
@@ -36,3 +38,11 @@ create policy activity_log_tenant on public.activity_log
   );
 
 grant all on public.activity_log to authenticated;
+
+-- Customer QR flow places orders as anon: allow append-only inserts so
+-- "order placed" events are logged. Reads stay staff-only via the policy above.
+drop policy if exists activity_log_anon_insert on public.activity_log;
+create policy activity_log_anon_insert on public.activity_log
+  for insert to anon with check (true);
+
+grant insert on public.activity_log to anon;
