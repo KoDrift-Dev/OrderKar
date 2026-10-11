@@ -908,8 +908,13 @@ function OwnerAppInner({
               <input
                 type="text"
                 name="orderkar-global-search"
+                id="orderkar-global-search"
                 autoComplete="off"
                 data-lpignore="true"
+                data-1p-ignore="true"
+                readOnly
+                onFocus={(e) => e.currentTarget.removeAttribute('readOnly')}
+                onBlur={(e) => e.currentTarget.setAttribute('readOnly', '')}
                 placeholder="Search orders, tables, menu..."
                 className="w-full rounded-full border border-line/70 bg-soft/60 pl-9 pr-4 py-2 text-[12.5px] font-medium text-ink outline-none transition-all placeholder:text-muted/70 hover:bg-soft focus:border-brand/50 focus:bg-[var(--c-surface-solid)] focus:ring-2 focus:ring-brand/20 shadow-2xs"
               />
