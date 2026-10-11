@@ -179,7 +179,7 @@ function WaiterAppInner({ restaurantId, waiterId }: { restaurantId: string; wait
       o.status === 'pending'
         ? 'border-l-blue-500'
         : o.status === 'preparing'
-          ? 'border-l-amber-500'
+          ? 'border-l-amber'
           : 'border-l-emerald-500';
     return (
       <Card
@@ -207,7 +207,7 @@ function WaiterAppInner({ restaurantId, waiterId }: { restaurantId: string; wait
         </div>
 
         {o.ready_for_bill && (o.status === 'pending' || o.status === 'preparing') && (
-          <p className="mt-2 inline-block rounded-full bg-amber-500/15 px-2.5 py-1 text-[11px] font-extrabold text-amber-700 dark:text-amber-300">
+          <p className="mt-2 inline-block rounded-full bg-amber/15 px-2.5 py-1 text-[11px] font-extrabold text-amber dark:text-amber">
             🔒 {t('wtr_locked_bill')}
           </p>
         )}

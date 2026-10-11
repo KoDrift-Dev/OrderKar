@@ -14,9 +14,9 @@ const PODIUM_CONFIG = [
   {
     medal: '🥇',
     title: '1st Place',
-    border: 'border-amber-400/60 shadow-amber-400/20 shadow-lg',
-    badge: 'bg-amber-400/15 text-amber-600 border-amber-400/30',
-    headerBg: 'from-amber-400/20 to-orange-400/5',
+    border: 'border-amber/60 shadow-amber/20 shadow-lg',
+    badge: 'bg-amber/15 text-amber border-amber/30',
+    headerBg: 'from-amber/20 to-orange-400/5',
   },
   {
     medal: '🥈',
@@ -28,9 +28,9 @@ const PODIUM_CONFIG = [
   {
     medal: '🥉',
     title: '3rd Place',
-    border: 'border-amber-700/50 shadow-amber-700/15 shadow-md',
-    badge: 'bg-amber-700/15 text-amber-700 dark:text-amber-300 border-amber-700/30',
-    headerBg: 'from-amber-700/20 to-yellow-800/5',
+    border: 'border-amber/50 shadow-amber/15 shadow-md',
+    badge: 'bg-amber/15 text-amber dark:text-amber border-amber/30',
+    headerBg: 'from-amber/20 to-yellow-800/5',
   },
 ];
 
@@ -166,9 +166,9 @@ function Leaderboard({ orders, staff }: { orders: Order[]; staff: Profile[] }) {
 }
 
 const ROLE_COLORS: Record<string, { label: string; badge: string }> = {
-  owner: { label: 'Owner', badge: 'bg-amber-500/15 text-amber-600 border-amber-500/25' },
+  owner: { label: 'Owner', badge: 'bg-amber/15 text-amber border-amber/25' },
   manager: { label: 'Manager', badge: 'bg-violet-500/15 text-violet-600 border-violet-500/25' },
-  kitchen: { label: 'Kitchen Chef', badge: 'bg-teal-500/15 text-teal-600 border-teal-500/25' },
+  kitchen: { label: 'Kitchen Chef', badge: 'bg-teal/15 text-teal border-teal/25' },
   waiter: { label: 'Floor Server', badge: 'bg-blue-500/15 text-blue-600 border-blue-500/25' },
 };
 

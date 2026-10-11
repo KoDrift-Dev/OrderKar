@@ -144,7 +144,7 @@ export default function OrderDetailModal({
                     </p>
                   </div>
                   {it.notes && (
-                    <p className="mt-2 rounded-[10px] bg-amber-500/10 px-2.5 py-1.5 text-[12px] font-medium text-amber-700 dark:text-amber-300">
+                    <p className="mt-2 rounded-[10px] bg-amber/10 px-2.5 py-1.5 text-[12px] font-medium text-amber dark:text-amber">
                       📝 {it.notes}
                     </p>
                   )}

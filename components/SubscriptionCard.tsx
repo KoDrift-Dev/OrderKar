@@ -111,7 +111,7 @@ export default function SubscriptionCard({ restaurantId }: { restaurantId: strin
     }
     if (state.kind === 'past_due') {
       return (
-        <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-[13px] font-medium text-amber-700 dark:text-amber-300">
+        <div className="rounded-xl border border-amber/40 bg-amber/10 px-4 py-3 text-[13px] font-medium text-amber dark:text-amber">
           ⚠️ Last payment <b>failed</b>. Update your payment method to avoid interruption.
         </div>
       );
@@ -127,7 +127,7 @@ export default function SubscriptionCard({ restaurantId }: { restaurantId: strin
     <div className="space-y-4">
       {statusBanner()}
       {notice && (
-        <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-[13px] font-medium text-amber-700 dark:text-amber-300">
+        <div className="rounded-xl border border-amber/40 bg-amber/10 px-4 py-3 text-[13px] font-medium text-amber dark:text-amber">
           {notice}
         </div>
       )}

@@ -11,7 +11,7 @@ import { useT, type TKey } from '@/lib/i18n';
 function Stars({ n, size = 15 }: { n: number; size?: number }) {
   return (
     <span
-      className="inline-flex tracking-wider text-amber-400"
+      className="inline-flex tracking-wider text-amber"
       style={{ fontSize: size }}
       aria-label={`${n} stars`}
     >
@@ -153,16 +153,16 @@ export default function OwnerCustomersTab({ reviews }: { reviews: Review[] }) {
                   <div key={stars} className="flex items-center gap-3">
                     <span className="flex w-16 shrink-0 items-center gap-1 font-mono text-[13px] font-extrabold text-ink">
                       <span>{stars}</span>
-                      <span className="text-amber-400">★</span>
+                      <span className="text-amber">★</span>
                     </span>
 
                     <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-soft">
                       <div
                         className={`h-full rounded-full transition-all duration-500 ${
                           stars >= 4
-                            ? 'bg-gradient-to-r from-emerald-500 to-teal-500'
+                            ? 'bg-gradient-to-r from-emerald-500 to-teal'
                             : stars === 3
-                            ? 'bg-amber-400'
+                            ? 'bg-amber'
                             : 'bg-rose-500'
                         }`}
                         style={{ width: `${pct}%` }}

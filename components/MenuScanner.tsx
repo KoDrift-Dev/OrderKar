@@ -162,7 +162,7 @@ export default function MenuScanner({
 
         <div className="flex-1 overflow-y-auto p-5">
           {notConfigured && (
-            <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-[13px] text-amber-700 dark:text-amber-300">
+            <div className="rounded-xl border border-amber/40 bg-amber/10 p-4 text-[13px] text-amber dark:text-amber">
               <p className="font-bold">AI scanning isn&apos;t connected yet.</p>
               <p className="mt-1">
                 Add these environment variables (Vercel → Settings → Environment Variables), then redeploy:

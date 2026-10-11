@@ -109,10 +109,10 @@ export function SectionHead({
 const KPI_ACCENTS = {
   emerald: 'border-t-emerald-500',
   sky: 'border-t-sky-500',
-  amber: 'border-t-amber-500',
+  amber: 'border-t-amber',
   rose: 'border-t-rose-500',
   orange: 'border-t-orange-500',
-  teal: 'border-t-teal-500',
+  teal: 'border-t-teal',
   violet: 'border-t-violet-500',
 } as const;
 
