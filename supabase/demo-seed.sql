@@ -128,8 +128,8 @@ begin
     (r_id, 'Fresh Meat House',  '0300-1111111', 'Meat Market, Kharian'),
     (r_id, 'Grain & Grocery Co.', '0300-2222222', 'Galla Mandi, Gujrat'),
     (r_id, 'Dairy Fresh Foods', '0300-3333333', 'Dairy Road, Kharian'),
-    (r_id, 'Pak Beverages Ltd', '0300-4444444', 'Industrial Area, Gujranwala')
-  returning id into sup1;
+    (r_id, 'Pak Beverages Ltd', '0300-4444444', 'Industrial Area, Gujranwala');
+  select id into sup1 from public.suppliers where restaurant_id = r_id and name = 'Fresh Meat House';
   select id into sup2 from public.suppliers where restaurant_id = r_id and name = 'Grain & Grocery Co.';
   select id into sup3 from public.suppliers where restaurant_id = r_id and name = 'Dairy Fresh Foods';
   select id into sup4 from public.suppliers where restaurant_id = r_id and name = 'Pak Beverages Ltd';
@@ -386,7 +386,7 @@ returns void language plpgsql as $fn$
 declare
   mi uuid; pr numeric;
 begin
-  select id, price into mi, pr from public.menu_items where restaurant_id = p_restaurant and name = p_name;
+  select id, price into mi, pr from public.menu_items where restaurant_id = p_restaurant and name = p_name limit 1;
   insert into public.order_items (order_id, menu_item_id, item_name, quantity, unit_price, status)
   values (p_order, mi, p_name, p_qty, pr, p_status);
   update public.orders set total_amount = total_amount + p_qty * pr where id = p_order;
