@@ -9,6 +9,7 @@
 import { useEffect, useState } from 'react';
 import { createClient as createRawClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/client';
+import { logActivity, ACT } from '@/lib/activity';
 import type { Profile, Role, StaffMember } from '@/lib/types';
 import { Btn, Card, Empty, Input, Label, Select, Textarea } from './ui';
 import PhotoDropzone, { useUploadState } from './PhotoDropzone';
@@ -68,6 +69,13 @@ export default function TeamManager({
   const [confirmDel, setConfirmDel] = useState<StaffMember | null>(null);
   const del = useUndoDelete<StaffMember>(async (s) => {
     await createClient().from('staff_members').delete().eq('id', s.id);
+    logActivity(createClient(), {
+      restaurantId,
+      action: ACT.STAFF_REMOVED,
+      entityType: 'staff_member',
+      entityId: s.id,
+      details: { name: s.name },
+    });
   });
 
   // create-account modal
@@ -171,6 +179,13 @@ export default function TeamManager({
       if (pErr) throw new Error(pErr.message);
       setCreating(false);
       await load();
+      logActivity(supabase, {
+        restaurantId,
+        action: ACT.STAFF_LOGIN_ADDED,
+        entityType: 'profile',
+        entityId: userId,
+        details: { name: cName.trim(), role: cRole },
+      });
     } catch (e) {
       setCError(e instanceof Error ? e.message : 'Failed to create account');
     } finally {
@@ -270,6 +285,12 @@ export default function TeamManager({
       if (sEditing === 'new') {
         const { error } = await supabase.from('staff_members').insert(payload);
         if (error) throw new Error(error.message);
+        logActivity(supabase, {
+          restaurantId,
+          action: ACT.STAFF_ADDED,
+          entityType: 'staff_member',
+          details: { name: payload.name, job_title: payload.job_title },
+        });
       } else if (sEditing) {
         const { error } = await supabase.from('staff_members').update(payload).eq('id', sEditing.id);
         if (error) throw new Error(error.message);

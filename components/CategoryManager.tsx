@@ -5,6 +5,7 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { logActivity, ACT } from '@/lib/activity';
 import type { MenuCategory } from '@/lib/types';
 import { Btn, Card, Empty, Input, Label } from './ui';
 import { useGuard, useUndoDelete, DeleteConfirm, UndoToast } from './DeleteFlow';
@@ -23,6 +24,13 @@ export default function CategoryManager({ restaurantId }: { restaurantId: string
   const [confirmDel, setConfirmDel] = useState<MenuCategory | null>(null);
   const del = useUndoDelete<MenuCategory>(async (c) => {
     await createClient().from('menu_categories').delete().eq('id', c.id);
+    logActivity(createClient(), {
+      restaurantId,
+      action: ACT.CATEGORY_DELETED,
+      entityType: 'menu_category',
+      entityId: c.id,
+      details: { name: c.name },
+    });
   });
 
   const load = async () => {
@@ -81,9 +89,22 @@ export default function CategoryManager({ restaurantId }: { restaurantId: string
       if (editing === 'new') {
         const { error } = await supabase.from('menu_categories').insert(payload);
         if (error) throw new Error(error.message);
+        logActivity(supabase, {
+          restaurantId,
+          action: ACT.CATEGORY_CREATED,
+          entityType: 'menu_category',
+          details: { name: payload.name },
+        });
       } else if (editing) {
         const { error } = await supabase.from('menu_categories').update(payload).eq('id', editing.id);
         if (error) throw new Error(error.message);
+        logActivity(supabase, {
+          restaurantId,
+          action: ACT.CATEGORY_UPDATED,
+          entityType: 'menu_category',
+          entityId: editing.id,
+          details: { name: payload.name },
+        });
       }
       setEditing(null);
       await load();

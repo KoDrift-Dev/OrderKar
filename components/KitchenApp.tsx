@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/client';
 import type { OrderStatus, OrderWithItems } from '@/lib/types';
 import { fmtElapsed, fmtPKR } from '@/lib/format';
 import { LangProvider, normalizeLang, useT, type Lang } from '@/lib/i18n';
+import { logActivity, ACT } from '@/lib/activity';
 import StatusPill from './StatusPill';
 import { Card, Empty, PageHeader } from './ui';
 
@@ -97,6 +98,13 @@ function OrderCard({
   const cancelOrder = async () => {
     const supabase = createClient();
     await supabase.from('orders').update({ status: 'cancelled', cancel_reason: reason }).eq('id', order.id);
+    logActivity(supabase, {
+      restaurantId: order.restaurant_id,
+      action: ACT.ORDER_CANCELLED,
+      entityType: 'order',
+      entityId: order.id,
+      details: { reason },
+    });
   };
 
   return (
@@ -573,6 +581,15 @@ function KitchenAppInner({ restaurantId }: { restaurantId: string }) {
     setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status } : o)));
     const { error } = await createClient().from('orders').update({ status }).eq('id', orderId);
     setBusyId(null);
+    if (!error) {
+      logActivity(createClient(), {
+        restaurantId,
+        action: ACT.ORDER_STATUS_CHANGED,
+        entityType: 'order',
+        entityId: orderId,
+        details: { status },
+      });
+    }
     if (error) {
       // Roll back on failure; realtime/poll will resync anyway.
       const { data } = await createClient()
