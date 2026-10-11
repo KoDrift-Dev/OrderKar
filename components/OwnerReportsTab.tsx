@@ -672,6 +672,7 @@ export default function OwnerReportsTab({
                 <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted text-[13px]">🔍</span>
                 <input
                   type="text"
+                  aria-label="Search orders"
                   placeholder="Search order #, table, staff, dish..."
                   value={orderSearch}
                   onChange={(e) => setOrderSearch(e.target.value)}
@@ -1073,6 +1074,7 @@ export default function OwnerReportsTab({
                 <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted text-[13px]">🔍</span>
                 <input
                   type="text"
+                  aria-label="Search dishes"
                   placeholder="Search dish by name..."
                   value={dishSearch}
                   onChange={(e) => setDishSearch(e.target.value)}
