@@ -11,8 +11,8 @@ import ThemeToggle from './ThemeToggle';
 import Logo from './Logo';
 
 const ROLE_TABS: { href: string; label: string; roles: Role[] }[] = [
-  { href: 'owner', label: 'Owner', roles: ['owner', 'super_admin'] },
-  { href: 'manager', label: 'Manager', roles: ['owner', 'manager', 'super_admin'] },
+  // Owner + Manager share one unified console with full access.
+  { href: 'owner', label: 'Console', roles: ['owner', 'manager', 'super_admin'] },
   { href: 'kitchen', label: 'Kitchen', roles: ['owner', 'manager', 'kitchen', 'super_admin'] },
   { href: 'waiter', label: 'Waiter', roles: ['owner', 'manager', 'waiter', 'super_admin'] },
 ];

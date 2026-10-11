@@ -1,12 +1,7 @@
-import { requireStaff } from '@/lib/staff-server';
-import StaffShell from '@/components/StaffShell';
-import ManagerApp from '@/components/ManagerApp';
+import { redirect } from 'next/navigation';
 
+// Owner and Manager share one unified console with full access.
+// The old /manager route redirects here so bookmarks and deep links keep working.
 export default async function ManagerPage({ params }: { params: { slug: string } }) {
-  const { restaurant, profile } = await requireStaff(params.slug);
-  return (
-    <StaffShell role={profile.role} name={profile.name}>
-      <ManagerApp restaurantId={restaurant.id} slug={restaurant.slug} restaurantName={restaurant.name} />
-    </StaffShell>
-  );
+  redirect(`/r/${params.slug}/owner`);
 }

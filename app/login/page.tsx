@@ -14,8 +14,9 @@ import Logo from '@/components/Logo';
 import { LangProvider, normalizeLang, useT, type Lang } from '@/lib/i18n';
 
 const ROLE_HOME: Record<string, string> = {
+  // Owner and Manager share one unified console with full access.
   owner: 'owner',
-  manager: 'manager',
+  manager: 'owner',
   waiter: 'waiter',
   kitchen: 'kitchen',
 };

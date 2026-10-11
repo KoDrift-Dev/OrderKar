@@ -21,7 +21,6 @@ import ThemeToggle from './ThemeToggle';
 import Logo from './Logo';
 import { Card } from './ui';
 import { LangProvider, normalizeLang, useT, type Lang, type TKey } from '@/lib/i18n';
-import ManagerApp from './ManagerApp';
 import KitchenApp from './KitchenApp';
 import WaiterApp from './WaiterApp';
 import MenuSection from './MenuSection';
@@ -46,7 +45,7 @@ type TabKey =
   | 'team'
   | 'previews'
   | 'settings';
-type PreviewKey = 'manager' | 'kitchen' | 'waiter';
+type PreviewKey = 'kitchen' | 'waiter';
 
 function isoDay(d: Date): string {
   return d.toLocaleDateString('en-CA');
@@ -315,7 +314,7 @@ function OwnerAppInner({
   const [custom, setCustom] = useState(defaultCustom);
   const [tab, setTab] = useState<TabKey>('dashboard');
   const [reportSubTab, setReportSubTab] = useState<ReportSubTab>('orders');
-  const [preview, setPreview] = useState<PreviewKey>('manager');
+  const [preview, setPreview] = useState<PreviewKey>('kitchen');
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -1066,6 +1065,7 @@ function OwnerAppInner({
               {/* 1. Dashboard Overview */}
               <div className={tab === 'dashboard' ? '' : 'hidden'}>
                 <OwnerDashTab
+                  restaurantId={restaurantId}
                   agg={agg}
                   orders={currentOrders}
                   items={currentItems}
@@ -1201,7 +1201,6 @@ function OwnerAppInner({
 
                       <div className="flex items-center gap-1.5 rounded-[14px] border border-line bg-[var(--c-surface-solid)] p-1 shadow-sm">
                         {[
-                          { key: 'manager', label: 'Manager Hub', icon: '🧑‍💼' },
                           { key: 'kitchen', label: 'Kitchen KDS', icon: '👨‍🍳' },
                           { key: 'waiter', label: 'Waiter App', icon: '🤵' },
                         ].map((p) => (
@@ -1223,9 +1222,6 @@ function OwnerAppInner({
                   </div>
 
                   <div className="mt-4">
-                    {tab === 'previews' && preview === 'manager' && (
-                      <ManagerApp restaurantId={restaurantId} slug={slug} restaurantName={restaurantName} />
-                    )}
                     {tab === 'previews' && preview === 'kitchen' && (
                       <KitchenApp restaurantId={restaurantId} />
                     )}
