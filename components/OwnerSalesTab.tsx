@@ -4,7 +4,8 @@
 // cancellation audits, and one-click financial CSV reports.
 
 import { useState, useMemo } from 'react';
-import type { DiningTable, Order, OrderItem } from '@/lib/types';
+import type { DiningTable, MenuItem, Order, OrderItem, Profile } from '@/lib/types';
+import { RangePills, type Range } from './useRangeAnalytics';
 import { fmtPKR, fmtNum } from '@/lib/format';
 import { printExecutivePdf, exportAsCsv } from '@/lib/report-export';
 import { HourlyHeatmap, TopItems, WeekdayBars } from './charts';
@@ -99,8 +100,12 @@ export default function OwnerSalesTab({
   rangeLabel,
   restaurantName,
   logoUrl,
+  menu,
+  staff,
   onNavigate,
   onRefresh,
+  range,
+  onRangeChange,
 }: {
   restaurantId: string;
   orders: Order[];
@@ -112,8 +117,12 @@ export default function OwnerSalesTab({
   rangeLabel: string;
   restaurantName?: string;
   logoUrl?: string;
+  menu?: MenuItem[];
+  staff?: Profile[];
   onNavigate?: (tab: any) => void;
   onRefresh?: () => void;
+  range?: Range;
+  onRangeChange?: (r: Range) => void;
 }) {
   const t = useT();
   const [downloadOpen, setDownloadOpen] = useState(false);
@@ -376,12 +385,24 @@ export default function OwnerSalesTab({
         </div>
       </div>
 
+      {/* ── Per-section range (no global filter) ── */}
+      {onRangeChange && (
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <p className="text-[13px] font-extrabold uppercase tracking-wider text-muted">
+            Orders <span className="normal-case text-muted/70">· {rangeLabel}</span>
+          </p>
+          <RangePills value={range ?? 'today'} onChange={onRangeChange} small />
+        </div>
+      )}
+
       {/* ── Orders list (Pic 3) ── */}
       <OwnerOrdersList
         restaurantId={restaurantId}
         orders={orders}
         items={items}
         tables={tables}
+        menu={menu}
+        staff={staff}
         onNavigate={onNavigate}
         onRefresh={onRefresh}
       />

@@ -7,15 +7,20 @@ import { useMemo } from 'react';
 import type { Order, Profile } from '@/lib/types';
 import { fmtPKR, fmtNum } from '@/lib/format';
 import { Card } from './ui';
+import { RangePills, type Range } from './useRangeAnalytics';
 
 export default function OwnerAuditTab({
   orders,
   staff,
   rangeLabel,
+  range,
+  onRangeChange,
 }: {
   orders: Order[];
   staff: Profile[];
   rangeLabel: string;
+  range?: Range;
+  onRangeChange?: (r: Range) => void;
 }) {
   const staffNameMap = useMemo(() => new Map(staff.map((s) => [s.id, s.name])), [staff]);
 
@@ -72,6 +77,9 @@ export default function OwnerAuditTab({
             Cancellation telemetry, voided ticket forensic logs, and financial risk mitigation ({rangeLabel})
           </p>
         </div>
+        {onRangeChange && (
+          <RangePills value={range ?? '7d'} onChange={onRangeChange} small />
+        )}
 
         <div className="flex items-center gap-2">
           <span

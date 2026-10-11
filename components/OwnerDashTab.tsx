@@ -9,6 +9,7 @@ import type { Order, OrderItem, Profile, DiningTable } from '@/lib/types';
 import { fmtPKR } from '@/lib/format';
 import { createClient } from '@/lib/supabase/client';
 import QrSection from './QrSection';
+import { RangePills, type Range } from './useRangeAnalytics';
 
 export interface DashAgg {
   revenue: number;
@@ -77,6 +78,8 @@ export default function OwnerDashTab({
   onNavigate,
   viewerName = 'Owner',
   viewerRole: _viewerRole = 'Owner',
+  range,
+  onRangeChange,
 }: {
   restaurantId: string;
   agg: DashAgg;
@@ -91,6 +94,8 @@ export default function OwnerDashTab({
   onNavigate?: (tab: any, subTab?: any) => void;
   viewerName?: string;
   viewerRole?: string;
+  range?: Range;
+  onRangeChange?: (r: Range) => void;
 }) {
   const chartId = useId();
   const [salesRange, setSalesRange] = useState<ChartRange>('today');
@@ -328,6 +333,13 @@ export default function OwnerDashTab({
 
   return (
     <div className="space-y-4 pb-10 font-sans">
+      {/* ── Per-section range (no global filter) ── */}
+      {onRangeChange && (
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[13px] font-extrabold uppercase tracking-wider text-muted">Overview</p>
+          <RangePills value={range ?? 'today'} onChange={onRangeChange} small />
+        </div>
+      )}
       {/* ── 1. HERO BANNER ── */}
       <div className="relative overflow-hidden rounded-[22px] border border-white/10 bg-[#0d091a] shadow-[0_8px_30px_rgba(0,0,0,0.16)] min-h-[140px] sm:min-h-[160px]">
         {heroImgOk && (

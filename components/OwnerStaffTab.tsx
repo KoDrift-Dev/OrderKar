@@ -8,6 +8,7 @@ import type { Order, Profile } from '@/lib/types';
 import { fmtPKR, fmtNum } from '@/lib/format';
 import { Card, Empty } from './ui';
 import { useT, type TKey } from '@/lib/i18n';
+import { RangePills, type Range } from './useRangeAnalytics';
 
 const PODIUM_CONFIG = [
   {
@@ -171,11 +172,27 @@ const ROLE_COLORS: Record<string, { label: string; badge: string }> = {
   waiter: { label: 'Floor Server', badge: 'bg-blue-500/15 text-blue-600 border-blue-500/25' },
 };
 
-export default function OwnerStaffTab({ orders, staff }: { orders: Order[]; staff: Profile[] }) {
+export default function OwnerStaffTab({
+  orders,
+  staff,
+  range,
+  onRangeChange,
+}: {
+  orders: Order[];
+  staff: Profile[];
+  range?: Range;
+  onRangeChange?: (r: Range) => void;
+}) {
   const t = useT();
 
   return (
     <div className="space-y-8">
+      {onRangeChange && (
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[13px] font-extrabold uppercase tracking-wider text-muted">Performance</p>
+          <RangePills value={range ?? '7d'} onChange={onRangeChange} small />
+        </div>
+      )}
       {/* Waiter Leaderboard */}
       <Leaderboard orders={orders} staff={staff} />
 
