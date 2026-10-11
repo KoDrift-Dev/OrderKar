@@ -789,7 +789,7 @@ export default function OwnerReportsTab({
                             ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
                             : o.status === 'cancelled'
                             ? 'bg-rose-500/10 text-rose-600 border-rose-500/20'
-                            : 'bg-amber-500/10 text-amber-600 border-amber-500/20';
+                            : 'bg-amber/10 text-amber border-amber/20';
 
                         return (
                           <div
@@ -920,7 +920,7 @@ export default function OwnerReportsTab({
                                 ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
                                 : o.status === 'cancelled'
                                 ? 'bg-rose-500/10 text-rose-600 border-rose-500/20'
-                                : 'bg-amber-500/10 text-amber-600 border-amber-500/20';
+                                : 'bg-amber/10 text-amber border-amber/20';
 
                             const rowBg = idx % 2 === 0 ? 'bg-white' : 'bg-slate-500/[0.025] dark:bg-white/[0.02]';
 
@@ -1271,7 +1271,7 @@ export default function OwnerReportsTab({
             </div>
             <div className="rounded-[18px] border border-line bg-[var(--c-surface-solid)] p-3.5 shadow-xs">
               <p className="text-[11px] font-extrabold uppercase text-muted">Avg Daily Ticket (AOV)</p>
-              <p className="mt-1 font-mono text-xl sm:text-2xl font-black text-amber-600">
+              <p className="mt-1 font-mono text-xl sm:text-2xl font-black text-amber">
                 {totalLedgerCompletedOrders > 0
                   ? fmtPKR(Math.round(totalLedgerNet / totalLedgerCompletedOrders))
                   : fmtPKR(0)}
