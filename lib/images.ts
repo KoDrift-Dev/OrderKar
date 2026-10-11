@@ -2,22 +2,25 @@
 
 // Image helpers: CDN rewrite + browser-side resize/upload.
 //
-// - cdnUrl(): rewrites Supabase Storage public URLs (menu-images, staff-photos)
-//   to the Cloudflare Worker edge cache when NEXT_PUBLIC_IMAGE_CDN is set.
-//   The database always stores the Supabase origin URL; display goes through
-//   the edge. Without the env var, the original URL is used (zero-config fallback).
+// Architecture: Supabase = data, Cloudinary = images, Cloudflare Worker = edge cache.
+// - uploadPhoto(): resizes in-browser (~100KB) and uploads DIRECTLY to Cloudinary
+//   via the unsigned preset (no secret in the browser). Falls back to Supabase
+//   Storage when the Cloudinary env vars are absent.
+// - cdnUrl(): rewrites Cloudinary URLs to the Worker /c/ path (30-day edge cache),
+//   and legacy Supabase menu-images URLs to the Worker legacy path.
 
 import { createClient } from './supabase/client';
 
 const CDN = (process.env.NEXT_PUBLIC_IMAGE_CDN ?? '').replace(/\/$/, '');
+const CLD_CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ?? '';
+const CLD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET ?? '';
 
-// NOTE: only menu-images goes through the Cloudflare Worker — the deployed
-// worker code only proxies that bucket. staff-photos uses direct Supabase
-// URLs (public bucket) so previews never 404. If the worker is ever updated
-// to serve more buckets, extend the regex below.
 export function cdnUrl(url: string | null | undefined): string {
   if (!url) return '';
   if (!CDN) return url;
+  // Cloudinary origin → Worker /c/ edge cache (strip the version segment: /v123/ → /)
+  const cld = url.match(/^https:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\/(?:v\d+\/)?(.*)$/);
+  if (cld) return `${CDN}/c/${cld[1]}`;
   const m = url.match(/\/storage\/v1\/object\/public\/(menu-images)(\/.*)$/);
   if (m) return `${CDN}${m[2]}`;
   return url;
@@ -67,9 +70,25 @@ export async function resizeImage(file: File, maxDim = 1024): Promise<Blob> {
   return blob;
 }
 
-// Upload a resized photo into <bucket>/<folder>/… — returns the public origin URL.
+// Upload a resized photo — returns the origin URL to store in the database.
+// Prefers Cloudinary (unsigned preset, no secret in browser); falls back to
+// Supabase Storage when Cloudinary env vars are absent.
 export async function uploadPhoto(bucket: 'menu-images' | 'staff-photos', folder: string, file: File): Promise<string> {
   const blob = await resizeImage(file);
+  if (CLD_CLOUD && CLD_PRESET) {
+    const form = new FormData();
+    form.append('file', blob, 'photo.jpg');
+    form.append('upload_preset', CLD_PRESET);
+    form.append('folder', `orderkar/${folder}`);
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLD_CLOUD}/image/upload`, {
+      method: 'POST',
+      body: form,
+    });
+    if (!res.ok) throw new Error('Image upload failed');
+    const data = await res.json();
+    if (!data.secure_url) throw new Error('Image upload failed');
+    return data.secure_url as string;
+  }
   const supabase = createClient();
   const path = `${folder}/${crypto.randomUUID()}.jpg`;
   const { error } = await supabase.storage.from(bucket).upload(path, blob, {

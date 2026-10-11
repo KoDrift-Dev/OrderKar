@@ -1,24 +1,35 @@
 'use client';
 
-// Owner's READ-ONLY live kitchen monitor. Same realtime feed as the Kitchen
-// Display, but no status buttons — the owner watches, the kitchen acts.
-// Kanban (columns) ↔ List (table) toggle.
+// Owner Operations → Kitchen command view (Pic 2 / Restora layout).
+// LIVE: same realtime feed as the Kitchen Display.
+// ACTIONABLE: the merged owner+manager console has full access — status can be
+// advanced here (pending → preparing → ready), optimistic with rollback.
+// Station pills filter by menu category; the detail panel shows the selected order.
+// 100% real data — no dummy stations, counts, or ETAs.
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import type { OrderStatus, OrderWithItems } from '@/lib/types';
+import type { OrderStatus, OrderWithItems, OrderItem } from '@/lib/types';
 import { fmtElapsed, fmtPKR } from '@/lib/format';
+import { cdnUrl } from '@/lib/images';
 import StatusPill from './StatusPill';
-import { Card, Empty, SectionHead, Tabs } from './ui';
-import { useT, type TKey } from '@/lib/i18n';
+import { Empty } from './ui';
 
-type View = 'kanban' | 'list';
-
-const COLUMNS: { key: OrderStatus; label: string }[] = [
-  { key: 'pending', label: '🆕 New' },
-  { key: 'preparing', label: '👨‍🍳 Preparing' },
-  { key: 'ready', label: '🔔 Ready' },
+const COLUMNS: { key: 'pending' | 'preparing' | 'ready'; label: string }[] = [
+  { key: 'pending', label: 'New' },
+  { key: 'preparing', label: 'Preparing' },
+  { key: 'ready', label: 'Ready' },
 ];
+
+const NEXT_STATUS: Partial<Record<OrderStatus, OrderStatus>> = {
+  pending: 'preparing',
+  preparing: 'ready',
+};
+
+const NEXT_LABEL: Partial<Record<OrderStatus, string>> = {
+  pending: 'Start Preparing',
+  preparing: 'Mark as Ready',
+};
 
 function useClock(): Date {
   const [now, setNow] = useState(() => new Date());
@@ -29,47 +40,39 @@ function useClock(): Date {
   return now;
 }
 
-function KanbanCard({ order, now }: { order: OrderWithItems; now: Date }) {
-  const t = useT();
-  const elapsedMs = now.getTime() - new Date(order.created_at).getTime();
-  const late = elapsedMs > 20 * 60000 && order.status !== 'ready';
-  const itemCount = order.order_items.reduce((s, i) => s + i.quantity, 0);
-  return (
-    <div className={`rounded-[14px] border bg-[var(--c-surface-solid)] p-3.5 ${late ? 'border-danger/50' : 'border-line'}`}>
-      <div className="flex items-center justify-between gap-2">
-        <p className="font-mono text-[16px] font-extrabold text-ink">#{order.order_number}</p>
-        <p className={`font-mono text-[12px] font-bold ${late ? 'text-danger' : 'text-muted'}`}>{fmtElapsed(elapsedMs)}</p>
-      </div>
-      <p className="mt-0.5 text-[12.5px] font-bold text-brand">
-        {order.tables ? `Table ${order.tables.table_number}` : order.order_type} · {itemCount} items
-      </p>
-      {late && <p className="mt-1 text-[11px] font-extrabold uppercase tracking-wide text-danger">{t('own_ktn_late' as TKey)}</p>}
-      <ul className="mt-2 space-y-1 border-t border-line pt-2">
-        {order.order_items.slice(0, 4).map((it) => (
-          <li key={it.id} className="flex justify-between gap-2 text-[12.5px]">
-            <span className="truncate text-body">
-              <span className="mr-1.5 font-mono font-bold text-ink">{it.quantity}×</span>
-              {it.item_name}
-            </span>
-          </li>
-        ))}
-        {order.order_items.length > 4 && (
-          <li className="text-[11.5px] font-bold text-muted">{t('own_ktn_more' as TKey, { n: order.order_items.length - 4 })}</li>
-        )}
-      </ul>
-      <p className="mt-2 text-right font-mono text-[12.5px] font-bold text-ink">{fmtPKR(order.total_amount)}</p>
-    </div>
-  );
+function catIcon(name: string): string {
+  const n = name.toLowerCase();
+  if (/grill|bbq|tandoor|kebab/.test(n)) return '\u{1F525}';
+  if (/drink|beverage|juice|shake|tea|coffee|lassi/.test(n)) return '\u{1F964}';
+  if (/dessert|sweet|cake|ice|kulfi/.test(n)) return '\u{1F370}';
+  if (/salad/.test(n)) return '\u{1F957}';
+  if (/pasta|noodle|chow/.test(n)) return '\u{1F35D}';
+  if (/pizza/.test(n)) return '\u{1F355}';
+  if (/burger|fast|fries/.test(n)) return '\u{1F354}';
+  if (/rice|biryani|pulao/.test(n)) return '\u{1F35A}';
+  if (/breakfast|paratha|halwa/.test(n)) return '\u{1F373}';
+  if (/starter|appet/.test(n)) return '\u{1F362}';
+  if (/soup/.test(n)) return '\u{1F35C}';
+  return '\u{1F37D}\uFE0F';
+}
+
+interface MenuInfo {
+  image_url: string | null;
+  category_id: string | null;
 }
 
 export default function OwnerKitchenView({ restaurantId }: { restaurantId: string }) {
-  const t = useT();
   const [orders, setOrders] = useState<OrderWithItems[]>([]);
-  const [view, setView] = useState<View>('kanban');
-  const [flashIds, setFlashIds] = useState<Set<string>>(new Set());
+  const [menuById, setMenuById] = useState<Map<string, MenuInfo>>(new Map());
+  const [menuByName, setMenuByName] = useState<Map<string, MenuInfo>>(new Map());
+  const [catNameById, setCatNameById] = useState<Map<string, string>>(new Map());
+  const [station, setStation] = useState<string>('all');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
   const seenRef = useRef<Set<string>>(new Set());
   const now = useClock();
 
+  // ── Live orders feed (realtime + poll fallback) ──
   useEffect(() => {
     const supabase = createClient();
     let live = true;
@@ -90,106 +93,417 @@ export default function OwnerKitchenView({ restaurantId }: { restaurantId: strin
       .channel(`owner-kds-${restaurantId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `restaurant_id=eq.${restaurantId}` }, () => load())
       .subscribe();
-    const t = window.setInterval(load, 5000);
+    const poll = window.setInterval(load, 5000);
     return () => {
       live = false;
       supabase.removeChannel(ch);
-      window.clearInterval(t);
+      window.clearInterval(poll);
     };
   }, [restaurantId]);
 
-  // Flash new orders (no beep — this is a monitor, not the KDS)
+  // ── Menu map for station grouping + thumbnails (one-time) ──
   useEffect(() => {
-    const seen = seenRef.current;
-    const fresh = orders.filter((o) => !seen.has(o.id) && o.status === 'pending');
-    orders.forEach((o) => seen.add(o.id));
-    if (fresh.length > 0) {
-      setFlashIds(new Set(fresh.map((o) => o.id)));
-      const t = window.setTimeout(() => setFlashIds(new Set()), 4000);
-      return () => window.clearTimeout(t);
-    }
-    return undefined;
-  }, [orders]);
+    let live = true;
+    (async () => {
+      const supabase = createClient();
+      const [{ data: items }, { data: cats }] = await Promise.all([
+        supabase.from('menu_items').select('id,name,image_url,category_id').eq('restaurant_id', restaurantId),
+        supabase.from('menu_categories').select('id,name').eq('restaurant_id', restaurantId),
+      ]);
+      if (!live) return;
+      const byId = new Map<string, MenuInfo>();
+      const byName = new Map<string, MenuInfo>();
+      for (const m of items ?? []) {
+        const info = { image_url: m.image_url ?? null, category_id: m.category_id ?? null };
+        byId.set(m.id, info);
+        byName.set(String(m.name).trim().toLowerCase(), info);
+      }
+      setMenuById(byId);
+      setMenuByName(byName);
+      setCatNameById(new Map((cats ?? []).map((c: any) => [c.id, c.name])));
+    })();
+    return () => {
+      live = false;
+    };
+  }, [restaurantId]);
 
-  const byStatus = useMemo(() => {
-    const m = new Map<OrderStatus, OrderWithItems[]>();
-    for (const c of COLUMNS) m.set(c.key, []);
-    for (const o of orders) m.get(o.status as OrderStatus)?.push(o);
-    return m;
-  }, [orders]);
+  const stationOf = (item: OrderItem): string => {
+    const info =
+      (item.menu_item_id && menuById.get(item.menu_item_id)) ||
+      menuByName.get(item.item_name.trim().toLowerCase());
+    const cid = info?.category_id;
+    return (cid && catNameById.get(cid)) || 'Other';
+  };
+
+  const thumbOf = (item: OrderItem): string => {
+    const info =
+      (item.menu_item_id && menuById.get(item.menu_item_id)) ||
+      menuByName.get(item.item_name.trim().toLowerCase());
+    return cdnUrl(info?.image_url);
+  };
+
+  // ── Station pills with real counts ──
+  const stations = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const o of orders) {
+      const touched = new Set(o.order_items.map(stationOf));
+      for (const s of touched) counts.set(s, (counts.get(s) ?? 0) + 1);
+    }
+    return [...counts.entries()]
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orders, menuById, menuByName, catNameById]);
+
+  const visibleOrders = useMemo(
+    () =>
+      station === 'all'
+        ? orders
+        : orders.filter((o) => o.order_items.some((it) => stationOf(it) === station)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [orders, station, menuById, menuByName, catNameById]
+  );
+
+  const groups = useMemo(() => {
+    const g: Record<'pending' | 'preparing' | 'ready', OrderWithItems[]> = {
+      pending: [],
+      preparing: [],
+      ready: [],
+    };
+    for (const o of visibleOrders) {
+      const k = o.status as 'pending' | 'preparing' | 'ready';
+      if (k === 'pending' || k === 'preparing' || k === 'ready') g[k].push(o);
+    }
+    return g;
+  }, [visibleOrders]);
+
+  // Keep selection valid as orders change
+  useEffect(() => {
+    if (selectedId && !visibleOrders.some((o) => o.id === selectedId)) setSelectedId(null);
+  }, [visibleOrders, selectedId]);
+  const selected = visibleOrders.find((o) => o.id === selectedId) ?? visibleOrders[0] ?? null;
+
+  // ── Optimistic status advance (same pattern as KitchenApp) ──
+  const advanceStatus = async (orderId: string, status: OrderStatus) => {
+    setBusyId(orderId);
+    setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status } : o)));
+    const { error } = await createClient().from('orders').update({ status }).eq('id', orderId);
+    setBusyId(null);
+    if (error) {
+      const { data } = await createClient()
+        .from('orders')
+        .select('*, order_items(*), tables(table_number)')
+        .eq('id', orderId)
+        .maybeSingle();
+      if (data) setOrders((prev) => prev.map((o) => (o.id === orderId ? (data as OrderWithItems) : o)));
+    }
+  };
+
+  // ── Performance strip (real) ──
+  const perf = useMemo(() => {
+    const done = orders
+      .filter((o) => (o.status === 'ready' || o.status === 'completed') && o.updated_at)
+      .map((o) => ({
+        at: new Date(o.updated_at).getTime(),
+        mins: (new Date(o.updated_at).getTime() - new Date(o.created_at).getTime()) / 60000,
+      }))
+      .filter((x) => x.mins > 2 && x.mins < 180);
+    const avg = done.length ? done.reduce((s, x) => s + x.mins, 0) / done.length : null;
+    const onTime = done.length
+      ? Math.round((done.filter((x) => x.mins <= 25).length / done.length) * 100)
+      : null;
+    const delayed = orders.filter(
+      (o) =>
+        ['pending', 'preparing'].includes(o.status) &&
+        (now.getTime() - new Date(o.created_at).getTime()) / 60000 >= 20
+    ).length;
+    const hr = Date.now() - 3600_000;
+    const lastHr = done.filter((x) => x.at >= hr).length;
+    const prevHr = done.filter((x) => x.at < hr && x.at >= hr - 3600_000).length;
+    const deltaPct = prevHr > 0 ? Math.round(((lastHr - prevHr) / prevHr) * 100) : lastHr > 0 ? 100 : null;
+    return { avg, onTime, delayed, deltaPct, lastHr };
+  }, [orders, now]);
+
+  const elapsedMin = (o: OrderWithItems) => (now.getTime() - new Date(o.created_at).getTime()) / 60000;
+  const etaMin =
+    selected && perf.avg != null && selected.status !== 'ready'
+      ? Math.max(1, Math.round(perf.avg - elapsedMin(selected)))
+      : null;
+
+  const stepIdx =
+    !selected ? 0 : selected.status === 'ready' ? 1 : selected.status === 'completed' ? 2 : 0;
+  const steps = ['Preparing', 'Ready', 'Completed'];
 
   return (
-    <div>
-      <SectionHead
-        title="Live kitchen"
-        sub={t('own_ktn_sub' as TKey, { n: orders.length })}
-        action={
-          <Tabs<View>
-            active={view}
-            onChange={setView}
-            tabs={[
-              { key: 'kanban', label: '🗂 Kanban' },
-              { key: 'list', label: '☰ List' },
-            ]}
-          />
-        }
-      />
+    <div className="p-4 sm:p-5">
+      {/* ── Header + station pills ── */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="font-display text-[19px] sm:text-[21px] font-black tracking-tight text-ink">
+            Kitchen Orders
+          </h2>
+          <p className="text-[12px] font-medium text-muted">Track and manage all kitchen orders in real time</p>
+        </div>
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-extrabold text-emerald-600 dark:text-emerald-400">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+          Live
+        </span>
+      </div>
+
+      <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <button
+          onClick={() => setStation('all')}
+          className={`shrink-0 rounded-[12px] px-3 py-1.5 text-[12px] font-extrabold transition-all ${
+            station === 'all'
+              ? 'bg-brand text-white shadow-lift'
+              : 'border border-line/70 bg-[var(--c-surface-solid)] text-muted hover:text-ink'
+          }`}
+        >
+          All Stations{' '}
+          <span className={`ml-1 rounded-full px-1.5 text-[10.5px] ${station === 'all' ? 'bg-white/25' : 'bg-soft'}`}>
+            {orders.length}
+          </span>
+        </button>
+        {stations.map((s) => (
+          <button
+            key={s.name}
+            onClick={() => setStation(s.name)}
+            className={`shrink-0 rounded-[12px] px-3 py-1.5 text-[12px] font-extrabold transition-all ${
+              station === s.name
+                ? 'bg-brand text-white shadow-lift'
+                : 'border border-line/70 bg-[var(--c-surface-solid)] text-muted hover:text-ink'
+            }`}
+          >
+            <span className="mr-1">{catIcon(s.name)}</span>
+            {s.name}{' '}
+            <span className={`ml-1 rounded-full px-1.5 text-[10.5px] ${station === s.name ? 'bg-white/25' : 'bg-soft'}`}>
+              {s.count}
+            </span>
+          </button>
+        ))}
+      </div>
+
       {orders.length === 0 ? (
-        <Empty title={t('own_ktn_no_orders' as TKey)} sub={t('own_ktn_no_orders_sub' as TKey)} />
-      ) : view === 'kanban' ? (
-        <div className="grid gap-4 md:grid-cols-3">
-          {COLUMNS.map((col) => {
-            const list = byStatus.get(col.key) ?? [];
-            return (
-              <div key={col.key} className="rounded-[20px] border border-line bg-soft/60 p-3">
-                <div className="mb-3 flex items-center justify-between px-1">
-                  <p className="font-display text-[14px] font-extrabold text-ink">{col.label}</p>
-                  <span className="rounded-full bg-ink px-2.5 py-0.5 font-mono text-[12px] font-bold text-white">{list.length}</span>
+        <div className="mt-4">
+          <Empty title="No active kitchen orders" sub="New orders will appear here in real time." />
+        </div>
+      ) : (
+        <div className="mt-4 grid gap-4 xl:grid-cols-12">
+          {/* ── Kanban columns ── */}
+          <div className="xl:col-span-8">
+            <div className="grid gap-3 md:grid-cols-3">
+              {COLUMNS.map((col) => (
+                <div key={col.key} className="rounded-[16px] border border-line/60 bg-soft/40 p-2.5">
+                  <div className="mb-2 flex items-center justify-between px-1">
+                    <p className="text-[12.5px] font-extrabold text-ink">{col.label}</p>
+                    <span className="rounded-full bg-soft px-2 py-0.5 font-mono text-[11px] font-bold text-muted">
+                      {groups[col.key].length}
+                    </span>
+                  </div>
+                  <div className="space-y-2.5">
+                    {groups[col.key].map((o) => {
+                      const late = elapsedMin(o) >= 20 && o.status !== 'ready';
+                      const isSel = selected?.id === o.id;
+                      const n = o.order_items.reduce((s, i) => s + i.quantity, 0);
+                      return (
+                        <button
+                          key={o.id}
+                          onClick={() => setSelectedId(o.id)}
+                          className={`w-full rounded-[14px] border bg-[var(--c-surface-solid)] p-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${
+                            isSel ? 'border-brand ring-2 ring-brand/25' : late ? 'border-danger/50' : 'border-line'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="font-mono text-[15px] font-extrabold text-ink">#{o.order_number}</p>
+                            <p className={`font-mono text-[11px] font-bold ${late ? 'text-danger' : 'text-muted'}`}>
+                              {fmtElapsed(now.getTime() - new Date(o.created_at).getTime())}
+                            </p>
+                          </div>
+                          <p className="mt-0.5 text-[11.5px] font-bold text-brand">
+                            {o.tables ? `Table ${o.tables.table_number}` : o.order_type} · {n} item{n !== 1 ? 's' : ''}
+                          </p>
+                          <ul className="mt-2 space-y-1.5 border-t border-line pt-2">
+                            {o.order_items.slice(0, 3).map((it) => {
+                              const thumb = thumbOf(it);
+                              return (
+                                <li key={it.id} className="flex items-center gap-2">
+                                  {thumb ? (
+                                    <img src={thumb} alt="" className="h-8 w-8 shrink-0 rounded-[8px] object-cover" loading="lazy" />
+                                  ) : (
+                                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-soft text-[13px]">
+                                      {catIcon(stationOf(it))}
+                                    </span>
+                                  )}
+                                  <span className="min-w-0 flex-1 truncate text-[12px] font-medium text-body">
+                                    <span className="mr-1 font-mono font-bold text-ink">{it.quantity}×</span>
+                                    {it.item_name}
+                                  </span>
+                                </li>
+                              );
+                            })}
+                            {o.order_items.length > 3 && (
+                              <li className="text-[11px] font-bold text-muted">
+                                +{o.order_items.length - 3} more
+                              </li>
+                            )}
+                          </ul>
+                        </button>
+                      );
+                    })}
+                    {groups[col.key].length === 0 && (
+                      <p className="px-1 py-4 text-center text-[11.5px] font-medium text-muted">Empty</p>
+                    )}
+                  </div>
                 </div>
-                <div className="max-h-[440px] space-y-2.5 overflow-y-auto pr-1">
-                  {list.length === 0 && <p className="px-1 py-4 text-center text-[12.5px] text-muted">—</p>}
-                  {list.map((o) => (
-                    <div key={o.id} className={flashIds.has(o.id) ? 'animate-flash-new rounded-[14px] ring-2 ring-brand' : ''}>
-                      <KanbanCard order={o} now={now} />
+              ))}
+            </div>
+          </div>
+
+          {/* ── Detail panel ── */}
+          <div className="xl:col-span-4">
+            {selected ? (
+              <div className="rounded-[18px] border border-line/60 bg-[var(--c-surface-solid)] p-4 shadow-sm lg:sticky lg:top-4">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="font-display text-[16px] font-black text-ink">Order #{selected.order_number}</h3>
+                  <StatusPill status={selected.status} />
+                </div>
+                <p className="mt-1 text-[11.5px] font-bold text-muted">
+                  {selected.tables ? `Table ${selected.tables.table_number}` : selected.order_type} ·{' '}
+                  {fmtElapsed(now.getTime() - new Date(selected.created_at).getTime())} ago
+                </p>
+
+                {/* Progress steps */}
+                <div className="mt-3 flex items-center gap-1">
+                  {steps.map((s, i) => (
+                    <div key={s} className="flex flex-1 items-center gap-1 last:flex-none">
+                      <div className="flex flex-col items-center gap-1">
+                        <span
+                          className={`flex h-7 w-7 items-center justify-center rounded-full text-[12px] font-black ${
+                            i < stepIdx
+                              ? 'bg-emerald-500 text-white'
+                              : i === stepIdx
+                              ? 'bg-brand text-white'
+                              : 'bg-soft text-muted'
+                          }`}
+                        >
+                          {i < stepIdx ? '✓' : i + 1}
+                        </span>
+                        <span className={`text-[9.5px] font-bold ${i <= stepIdx ? 'text-ink' : 'text-muted'}`}>{s}</span>
+                      </div>
+                      {i < steps.length - 1 && (
+                        <div className={`mb-4 h-0.5 flex-1 rounded ${i < stepIdx ? 'bg-emerald-500' : 'bg-line'}`} />
+                      )}
                     </div>
                   ))}
                 </div>
+
+                <p className="mt-3 text-[12px] font-extrabold uppercase tracking-wider text-muted">Order Items</p>
+                <ul className="mt-2 space-y-2">
+                  {selected.order_items.map((it) => {
+                    const thumb = thumbOf(it);
+                    return (
+                      <li key={it.id} className="flex items-center gap-2.5">
+                        {thumb ? (
+                          <img src={thumb} alt="" className="h-10 w-10 shrink-0 rounded-[10px] object-cover" loading="lazy" />
+                        ) : (
+                          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-soft text-[16px]">
+                            {catIcon(stationOf(it))}
+                          </span>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[12.5px] font-bold text-ink">{it.item_name}</p>
+                          {it.notes && <p className="truncate text-[11px] font-medium text-muted">· {it.notes}</p>}
+                        </div>
+                        <span className="font-mono text-[12px] font-bold text-muted">×{it.quantity}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+
+                {selected.notes && (
+                  <div className="mt-3 rounded-[12px] bg-soft/60 p-2.5">
+                    <p className="text-[11px] font-extrabold uppercase tracking-wider text-muted">Special Notes</p>
+                    <p className="mt-0.5 text-[12.5px] font-medium text-body">{selected.notes}</p>
+                  </div>
+                )}
+
+                {etaMin != null && (
+                  <div className="mt-3 flex items-center gap-2.5 rounded-[12px] border border-amber-500/25 bg-amber-500/[0.07] p-2.5">
+                    <span className="text-[18px]">⏱️</span>
+                    <div>
+                      <p className="text-[10.5px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                        Est. ready in
+                      </p>
+                      <p className="font-mono text-[15px] font-black text-ink">≈ {etaMin} min</p>
+                    </div>
+                  </div>
+                )}
+
+                {NEXT_STATUS[selected.status] ? (
+                  <button
+                    onClick={() => advanceStatus(selected.id, NEXT_STATUS[selected.status]!)}
+                    disabled={busyId === selected.id}
+                    className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-[13px] bg-brand px-4 py-2.5 text-[13px] font-black text-white shadow-lift transition-all hover:bg-brand-deep active:scale-[0.99] disabled:opacity-60"
+                  >
+                    {busyId === selected.id ? (
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    ) : (
+                      <>
+                        <span>✓</span>
+                        <span>{NEXT_LABEL[selected.status]}</span>
+                      </>
+                    )}
+                  </button>
+                ) : (
+                  <p className="mt-4 rounded-[13px] bg-emerald-500/10 px-4 py-2.5 text-center text-[12.5px] font-bold text-emerald-600 dark:text-emerald-400">
+                    Ready — waiting for payment at POS
+                  </p>
+                )}
               </div>
-            );
-          })}
+            ) : (
+              <div className="rounded-[18px] border border-line/60 bg-[var(--c-surface-solid)] p-6 text-center">
+                <p className="text-[13px] font-bold text-muted">Select an order to see details</p>
+              </div>
+            )}
+          </div>
         </div>
-      ) : (
-        <Card className="overflow-x-auto p-0">
-          <table className="w-full min-w-[640px] text-left text-[13px]">
-            <thead>
-              <tr className="border-b border-line text-[11.5px] uppercase tracking-wide text-muted">
-                <th className="px-4 py-3">Order</th>
-                <th className="px-4 py-3">Table</th>
-                <th className="px-4 py-3">Items</th>
-                <th className="px-4 py-3">Total</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">{t('own_ktn_col_elapsed' as TKey)}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {orders.map((o) => {
-                const elapsedMs = now.getTime() - new Date(o.created_at).getTime();
-                const late = elapsedMs > 20 * 60000 && o.status !== 'ready';
-                return (
-                  <tr key={o.id} className={`border-b border-line last:border-0 ${flashIds.has(o.id) ? 'animate-flash-new' : ''}`}>
-                    <td className="px-4 py-3 font-mono font-extrabold text-ink">#{o.order_number}</td>
-                    <td className="px-4 py-3 font-bold text-body">{o.tables ? `Table ${o.tables.table_number}` : o.order_type}</td>
-                    <td className="px-4 py-3 text-muted">{o.order_items.reduce((s, i) => s + i.quantity, 0)} items</td>
-                    <td className="px-4 py-3 font-mono font-bold text-ink">{fmtPKR(o.total_amount)}</td>
-                    <td className="px-4 py-3"><StatusPill status={o.status} /></td>
-                    <td className={`px-4 py-3 font-mono font-bold ${late ? 'text-danger' : 'text-muted'}`}>{fmtElapsed(elapsedMs)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </Card>
       )}
+
+      {/* ── Performance strip ── */}
+      <div className="mt-4 grid grid-cols-2 gap-2.5 rounded-[18px] border border-line/60 bg-[var(--c-surface-solid)] p-4 sm:grid-cols-5">
+        <div>
+          <p className="text-[10.5px] font-extrabold uppercase tracking-wider text-muted">Kitchen Performance</p>
+          <p className="mt-1 font-mono text-[17px] font-black text-ink">{orders.length} <span className="text-[11px] font-bold text-muted">active</span></p>
+        </div>
+        <div>
+          <p className="text-[10.5px] font-extrabold uppercase tracking-wider text-muted">Avg. Prep Time</p>
+          <p className="mt-1 font-mono text-[17px] font-black text-ink">
+            {perf.avg != null ? <>{Math.round(perf.avg)} <span className="text-[11px] font-bold text-muted">min</span></> : <span className="text-muted">—</span>}
+          </p>
+        </div>
+        <div>
+          <p className="text-[10.5px] font-extrabold uppercase tracking-wider text-muted">On-Time Orders</p>
+          <p className="mt-1 font-mono text-[17px] font-black text-ink">
+            {perf.onTime != null ? <>{perf.onTime}<span className="text-[11px] font-bold text-muted">%</span></> : <span className="text-muted">—</span>}
+          </p>
+        </div>
+        <div>
+          <p className="text-[10.5px] font-extrabold uppercase tracking-wider text-muted">Delayed Orders</p>
+          <p className="mt-1 font-mono text-[17px] font-black text-danger">{perf.delayed}</p>
+        </div>
+        <div>
+          <p className="text-[10.5px] font-extrabold uppercase tracking-wider text-muted">Vs. Last Hour</p>
+          <p className="mt-1 font-mono text-[17px] font-black text-ink">
+            {perf.deltaPct != null ? (
+              <span className={perf.deltaPct >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-danger'}>
+                {perf.deltaPct >= 0 ? '+' : ''}{perf.deltaPct}%
+              </span>
+            ) : (
+              <span className="text-muted">—</span>
+            )}
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
