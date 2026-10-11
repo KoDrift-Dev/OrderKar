@@ -15,25 +15,17 @@ import type { Order, OrderItem } from '@/lib/types';
 import {
   parseBillingConfig,
   calcBill,
-  chargeLabel,
   fmtReceipt,
   PAY_METHODS,
   type BillingConfig,
   type BillBreakdown,
 } from '@/lib/billing';
-
-interface BizInfo {
-  name: string;
-  address: string;
-  phone: string;
-  ntn: string;
-  strn: string;
-  logoUrl: string;
-}
-
-function esc(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
+import {
+  buildReceiptInner,
+  buildReceiptDoc,
+  downloadReceiptDoc,
+  type BizInfo,
+} from '@/lib/receipt';
 
 function fmtTime(d: Date): string {
   let h = d.getHours();
@@ -42,99 +34,6 @@ function fmtTime(d: Date): string {
   const ap = h >= 12 ? 'PM' : 'AM';
   h = h % 12 || 12;
   return `${String(h).padStart(2, '0')}:${m}:${s2}${ap}`;
-}
-
-/** Single source of truth for the receipt markup (screen + download + print). */
-function buildReceiptInner(
-  biz: BizInfo,
-  order: Order,
-  items: OrderItem[],
-  bill: BillBreakdown,
-  cfg: BillingConfig,
-  meta: { date: string; time: string; cashier: string; tableNo: string | null; waiterName: string | null; method: string },
-): string {
-  const dash = `<div style="border-top:1px dashed #000;margin:7px 0"></div>`;
-  const row = (label: string, value: string, bold = false) =>
-    `<div style="display:flex;justify-content:space-between;${bold ? 'font-weight:900;' : ''}"><span>${label}</span><span>${value}</span></div>`;
-
-  const itemRows = items
-    .map((it) => {
-      const amt = it.quantity * Number(it.unit_price);
-      return (
-        `<div style="display:flex;align-items:baseline;gap:6px;margin:2px 0">` +
-        `<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(it.item_name.toUpperCase())}</span>` +
-        `<span style="width:64px;text-align:right;flex-shrink:0">${fmtReceipt(Number(it.unit_price))}</span>` +
-        `<span style="width:34px;text-align:right;flex-shrink:0">${fmtReceipt(it.quantity)}</span>` +
-        `<span style="width:76px;text-align:right;flex-shrink:0;font-weight:700">${fmtReceipt(amt)}</span>` +
-        `</div>` +
-        (it.notes ? `<div style="font-size:10px;margin:-1px 0 2px">&gt; ${esc(it.notes)}</div>` : '')
-      );
-    })
-    .join('');
-
-  const totals =
-    row(`Items: ${items.reduce((s, i) => s + i.quantity, 0)}`, `Sub Total&nbsp;&nbsp;&nbsp;&nbsp;${fmtReceipt(bill.subtotal)}`) +
-    (bill.tax > 0
-      ? row('', `Tax ${chargeLabel(cfg.taxValue, cfg.taxType)}&nbsp;&nbsp;&nbsp;&nbsp;${fmtReceipt(bill.tax)}`)
-      : '') +
-    (bill.fbr > 0 ? row('', `FBR POS CHARGES&nbsp;&nbsp;&nbsp;&nbsp;${fmtReceipt(bill.fbr)}`) : '') +
-    (bill.tax > 0 || bill.fbr > 0 ? row('', `Grand Total&nbsp;&nbsp;&nbsp;&nbsp;${fmtReceipt(bill.grandTotal)}`, true) : '') +
-    (bill.svc > 0
-      ? row('', `Service Charges&nbsp;&nbsp;&nbsp;&nbsp;${fmtReceipt(bill.svc)}`)
-      : '') +
-    `<div style="display:flex;justify-content:space-between;font-weight:900;font-size:15px;margin-top:2px"><span>G. Total</span><span>${fmtReceipt(bill.total)}</span></div>`;
-
-  return (
-    `<div style="width:300px;max-width:100%;margin:0 auto;background:#fff;color:#000;font-family:'Courier New',Courier,monospace;font-size:12px;line-height:1.5;padding:10px 8px">` +
-    `<div style="text-align:center">` +
-    (biz.logoUrl ? `<img src="${esc(biz.logoUrl)}" alt="" style="max-height:64px;max-width:140px;margin-bottom:4px" />` : '') +
-    `<div style="font-weight:900;font-size:17px;letter-spacing:0.5px">${esc((biz.name || 'RESTAURANT').toUpperCase())}</div>` +
-    (biz.address ? `<div>${esc(biz.address)}</div>` : '') +
-    (biz.phone ? `<div>Tel : ${esc(biz.phone)}</div>` : '') +
-    (biz.ntn || biz.strn
-      ? `<div>NTN # ${esc(biz.ntn || '—')} : STRN # ${esc(biz.strn || '—')}</div>`
-      : '') +
-    `</div>` +
-    dash +
-    `<div style="display:flex;justify-content:space-between"><span>${esc(meta.date)}</span><span>${esc(meta.time)}</span><span>Cashier: ${esc(meta.cashier)}</span></div>` +
-    `<div style="display:flex;justify-content:space-between"><span>Chq#&nbsp;&nbsp;${esc(String(order.order_number))}</span><span>Table#&nbsp;&nbsp;${esc(meta.tableNo ?? '—')}</span></div>` +
-    `<div style="display:flex;justify-content:space-between"><span>${esc(order.order_type === 'takeaway' ? 'TAKEAWAY' : 'DINE IN')}</span>${meta.waiterName ? `<span>Waiter: ${esc(meta.waiterName)}</span>` : ''}</div>` +
-    dash +
-    `<div style="display:flex;gap:6px;font-weight:900;border-bottom:1px solid #000;padding-bottom:3px;margin-bottom:4px">` +
-    `<span style="flex:1">Description</span>` +
-    `<span style="width:64px;text-align:right;flex-shrink:0">Rate</span>` +
-    `<span style="width:34px;text-align:right;flex-shrink:0">Qty</span>` +
-    `<span style="width:76px;text-align:right;flex-shrink:0">Amount</span></div>` +
-    (itemRows || `<div>No items.</div>`) +
-    dash +
-    totals +
-    dash +
-    `<div style="text-align:center">Payment: ${esc(meta.method)}${order.payment_status === 'paid' ? ' · PAID' : ''}</div>` +
-    `<div style="text-align:center;margin-top:6px;font-size:11px">Powered by OrderKar</div>` +
-    `</div>`
-  );
-}
-
-function buildReceiptDoc(inner: string, orderNumber: string | number): string {
-  // The @page size is set from JS after measuring the receipt, so the printed
-  // page is exactly the receipt slip (80mm thermal) — no big blank paper.
-  return (
-    `<!doctype html><html><head><meta charset="utf-8"><title>Receipt #${esc(String(orderNumber))}</title>` +
-    `<style>*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff}</style></head>` +
-    `<body><div id="r">${inner}</div>` +
-    `<script>
-      function fitPage() {
-        var el = document.getElementById('r');
-        if (!el) return;
-        var hmm = Math.ceil((el.offsetHeight * 25.4) / 96) + 2;
-        var st = document.createElement('style');
-        st.textContent = '@page{size:80mm ' + hmm + 'mm;margin:0;}';
-        document.head.appendChild(st);
-      }
-      if (document.readyState === 'complete') fitPage();
-      else window.addEventListener('load', fitPage);
-    <\/script></body></html>`
-  );
 }
 
 export default function ReceiptModal({
@@ -219,15 +118,7 @@ export default function ReceiptModal({
   const inner = buildReceiptInner(biz, order, items, bill, cfg, meta);
 
   const download = () => {
-    const blob = new Blob([buildReceiptDoc(inner, order.order_number)], { type: 'text/html;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Receipt-${order.order_number}.html`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    window.setTimeout(() => URL.revokeObjectURL(url), 4000);
+    downloadReceiptDoc(buildReceiptDoc(inner, order.order_number), `Receipt-${order.order_number}.html`);
   };
 
   const print = () => {

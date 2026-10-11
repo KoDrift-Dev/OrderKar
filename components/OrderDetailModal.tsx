@@ -10,6 +10,7 @@ import type { Order, OrderItem } from '@/lib/types';
 import { fmtElapsed, fmtPKR } from '@/lib/format';
 import StatusPill from './StatusPill';
 import ReceiptModal from './ReceiptModal';
+import SmartImage from './SmartImage';
 
 export interface ModalMenuInfo {
   image_url: string | null;
@@ -117,9 +118,11 @@ export default function OrderDetailModal({
                 >
                   <div className="flex items-center gap-3">
                     {thumb ? (
-                      <img
+                      <SmartImage
                         src={thumb}
                         alt=""
+                        width={48}
+                        height={48}
                         className="h-12 w-12 shrink-0 rounded-[10px] object-cover"
                         loading="lazy"
                       />
