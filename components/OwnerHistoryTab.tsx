@@ -44,6 +44,12 @@ const ACTION_LABELS: Record<string, string> = {
   [ACT.BILLING_UPDATED]: 'Billing settings updated',
   [ACT.STAFF_LOGIN]: 'Staff login',
   [ACT.STAFF_LOGOUT]: 'Staff logout',
+  [ACT.INVENTORY_DEDUCTED]: 'Stock auto-deducted',
+  [ACT.SUPPLIER_ADDED]: 'Supplier added',
+  [ACT.SUPPLIER_UPDATED]: 'Supplier updated',
+  [ACT.SUPPLIER_DELETED]: 'Supplier deleted',
+  [ACT.PO_CREATED]: 'Purchase order created',
+  [ACT.PO_STATUS_CHANGED]: 'Purchase order status changed',
 };
 
 function actionLabel(action: string): string {

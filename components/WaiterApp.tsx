@@ -8,6 +8,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { deductInventoryForOrder } from '@/lib/inventory';
 import { logActivity, ACT } from '@/lib/activity';
 import type { DiningTable, OrderWithItems } from '@/lib/types';
 import { fmtPKR, fmtAgo } from '@/lib/format';
@@ -73,6 +74,7 @@ function WaiterAppInner({ restaurantId, waiterId }: { restaurantId: string; wait
         entityId: orderId,
         details: { payment_method: method },
       });
+      deductInventoryForOrder(createClient(), orderId, restaurantId);
     }
   };
 
