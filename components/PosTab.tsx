@@ -6,6 +6,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { deductInventoryForOrder } from '@/lib/inventory';
 import { useT, useLang } from '@/lib/i18n';
 import { logActivity, ACT } from '@/lib/activity';
 import { cdnUrl } from '@/lib/images';
@@ -404,6 +405,7 @@ export default function PosTab({
 
       const { error: iErr } = await supabase.from('order_items').insert(lines);
       if (iErr) throw iErr;
+      deductInventoryForOrder(supabase, orderId, restaurantId);
       logActivity(supabase, {
         restaurantId,
         action: ACT.ORDER_CREATED,
