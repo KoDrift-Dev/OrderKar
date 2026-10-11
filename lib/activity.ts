@@ -40,6 +40,12 @@ export const ACT = {
   BILLING_UPDATED: 'billing_updated',
   STAFF_LOGIN: 'staff_login',
   STAFF_LOGOUT: 'staff_logout',
+  INVENTORY_DEDUCTED: 'inventory_deducted',
+  SUPPLIER_ADDED: 'supplier_added',
+  SUPPLIER_UPDATED: 'supplier_updated',
+  SUPPLIER_DELETED: 'supplier_deleted',
+  PO_CREATED: 'po_created',
+  PO_STATUS_CHANGED: 'po_status_changed',
 } as const;
 
 export function logActivity(supabase: SupabaseClient, opts: ActivityOpts): void {

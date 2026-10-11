@@ -29,6 +29,8 @@ import OwnerAuditTab from './OwnerAuditTab';
 import OwnerReportsTab, { type ReportSubTab } from './OwnerReportsTab';
 import OwnerInventoryTab from './OwnerInventoryTab';
 import OwnerHistoryTab from './OwnerHistoryTab';
+import SupplierManager from './SupplierManager';
+import PurchaseOrderManager from './PurchaseOrderManager';
 import OwnerFoodCostTab from './OwnerFoodCostTab';
 import PosTab from './PosTab';
 import { useSectionData, RANGE_KEYS, type Range } from './useRangeAnalytics';
@@ -159,6 +161,10 @@ function OwnerAppInner({
   const [loading, setLoading] = useState(true);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [ordersTruncated, setOrdersTruncated] = useState(false);
+  type InvAlert = { id: string; name: string; kind: 'out' | 'low' | 'expiry'; detail: string };
+  const [alerts, setAlerts] = useState<InvAlert[]>([]);
+  const [bellOpen, setBellOpen] = useState(false);
+  const [invSub, setInvSub] = useState<'stock' | 'suppliers' | 'pos'>('stock');
   const [displayName, setDisplayName] = useState(restaurantName);
 
   const ORDER_COLS =
@@ -188,6 +194,44 @@ function OwnerAppInner({
 
   // Fixed fetch window: last 61 days. Every section filters its own range
   // locally via useSectionData — no refetch needed when a section changes range.
+  // Lightweight alert feed for the notification bell: out-of-stock,
+  // low-stock (<= par) and expiring (<= 7 days or past) inventory items.
+  const loadAlerts = async () => {
+    try {
+      const { data } = await createClient()
+        .from('inventory_items')
+        .select('id, name, unit, current_stock, par_level, expiry_date')
+        .eq('restaurant_id', restaurantId)
+        .limit(200);
+      const out: InvAlert[] = [];
+      const now = new Date();
+      for (const r of (data ?? []) as Array<{
+        id: string; name: string; unit: string | null;
+        current_stock: number | string | null; par_level: number | string | null;
+        expiry_date: string | null;
+      }>) {
+        const stock = Number(r.current_stock ?? 0);
+        const par = Number(r.par_level ?? 0);
+        const unit = r.unit || 'pcs';
+        if (stock <= 0) {
+          out.push({ id: r.id, name: r.name, kind: 'out', detail: `Out of stock` });
+          continue;
+        }
+        if (par > 0 && stock <= par) {
+          out.push({ id: r.id, name: r.name, kind: 'low', detail: `${stock} ${unit} left (par ${par})` });
+        }
+        if (r.expiry_date) {
+          const days = Math.ceil((new Date(r.expiry_date).getTime() - now.getTime()) / 86400000);
+          if (days < 0) out.push({ id: r.id + ':exp', name: r.name, kind: 'expiry', detail: `Expired ${-days}d ago` });
+          else if (days <= 7) out.push({ id: r.id + ':exp', name: r.name, kind: 'expiry', detail: `Expires in ${days}d` });
+        }
+      }
+      setAlerts(out.slice(0, 30));
+    } catch {
+      /* alerts are best-effort */
+    }
+  };
+
   const loadOrders = async (showCenterSpinner: boolean) => {
     const supabase = createClient();
     if (showCenterSpinner) setOrdersLoading(true);
@@ -232,7 +276,7 @@ function OwnerAppInner({
     let live = true;
     setLoading(true);
     (async () => {
-      await Promise.all([loadStatic(), loadOrders(false)]);
+      await Promise.all([loadStatic(), loadOrders(false), loadAlerts()]);
       if (live) {
         setLoading(false);
       }
@@ -760,18 +804,68 @@ function OwnerAppInner({
             {/* Notification Bell with Red Badge Dot */}
             <div className="relative">
               <button
-                onClick={() => selectTab('sales')}
+                onClick={() => {
+                  setBellOpen((v) => !v);
+                  loadAlerts();
+                }}
                 className="flex h-10 w-10 items-center justify-center rounded-full border border-line bg-[var(--c-surface-solid)] text-muted hover:text-ink hover:border-brand/40 transition-colors shadow-2xs relative"
                 aria-label="Notifications"
+                aria-expanded={bellOpen}
                 title="Notifications"
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
                   <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
                 </svg>
-                {/* Red dot badge */}
-                <span className="absolute top-2 right-2.5 h-2 w-2 rounded-full bg-rose-500 animate-pulse ring-2 ring-[var(--c-surface-solid)]" />
+                {alerts.length > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-black text-white ring-2 ring-[var(--c-surface-solid)]">
+                    {alerts.length > 9 ? '9+' : alerts.length}
+                  </span>
+                )}
               </button>
+              {bellOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setBellOpen(false)} aria-hidden />
+                  <div className="absolute right-0 z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-line bg-[var(--c-surface-solid)] shadow-2xl">
+                    <div className="flex items-center justify-between border-b border-line px-4 py-3">
+                      <p className="text-[13px] font-extrabold text-ink">Stock Alerts</p>
+                      <button
+                        onClick={() => {
+                          setBellOpen(false);
+                          selectTab('inventory');
+                        }}
+                        className="text-[11.5px] font-bold text-brand hover:underline"
+                      >
+                        View inventory
+                      </button>
+                    </div>
+                    <div className="max-h-80 overflow-y-auto p-2">
+                      {alerts.length === 0 ? (
+                        <p className="px-3 py-6 text-center text-[12.5px] text-muted">
+                          All clear — no stock or expiry alerts. 🎉
+                        </p>
+                      ) : (
+                        alerts.map((a) => (
+                          <button
+                            key={a.id}
+                            onClick={() => {
+                              setBellOpen(false);
+                              selectTab('inventory');
+                            }}
+                            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-soft"
+                          >
+                            <span aria-hidden>{a.kind === 'out' ? '🔴' : a.kind === 'low' ? '🟡' : '⏳'}</span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-[12.5px] font-bold text-ink">{a.name}</span>
+                              <span className="block text-[11px] text-muted">{a.detail}</span>
+                            </span>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* User Profile Capsule (Ahmed Hassan, Restaurant Manager) */}
@@ -992,9 +1086,32 @@ function OwnerAppInner({
                 />
               </div>
 
-              {/* 6b. Inventory */}
+              {/* 6b. Inventory: Stock | Suppliers | Purchase Orders */}
               <div className={tab === 'inventory' ? '' : 'hidden'}>
-                <OwnerInventoryTab restaurantId={restaurantId} />
+                <div className="mb-4 flex flex-wrap gap-2">
+                  {(
+                    [
+                      { key: 'stock', label: '📦 Stock' },
+                      { key: 'suppliers', label: '🚚 Suppliers' },
+                      { key: 'pos', label: '🧾 Purchase Orders' },
+                    ] as const
+                  ).map((t) => (
+                    <button
+                      key={t.key}
+                      onClick={() => setInvSub(t.key)}
+                      className={`rounded-full px-4 py-2 text-[12.5px] font-bold transition-all ${
+                        invSub === t.key
+                          ? 'bg-brand text-white shadow-md'
+                          : 'border border-line bg-[var(--c-surface-solid)] text-muted hover:text-ink'
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+                {invSub === 'stock' && <OwnerInventoryTab restaurantId={restaurantId} />}
+                {invSub === 'suppliers' && <SupplierManager restaurantId={restaurantId} />}
+                {invSub === 'pos' && <PurchaseOrderManager restaurantId={restaurantId} />}
               </div>
 
               {/* 6c. Food Cost & Profit */}
