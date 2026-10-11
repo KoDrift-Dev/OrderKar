@@ -118,7 +118,7 @@ export default function OrderTracker({
                       ? 'border-ok bg-ok text-white'
                       : i === idx
                         ? 'border-brand bg-brand shadow-glow'
-                        : 'border-line bg-soft grayscale opacity-60'
+                        : 'border-line/12 bg-soft grayscale opacity-60'
                   }`}
                 >
                   {i < idx ? <span className="text-[16px] font-bold text-white">✓</span> : <span className={i === idx ? 'animate-bounce' : ''}>{s.icon}</span>}

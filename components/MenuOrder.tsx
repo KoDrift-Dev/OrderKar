@@ -53,7 +53,7 @@ function ItemCard({
   return (
     <div
       onClick={onOpen}
-      className="group cursor-pointer overflow-hidden rounded-[18px] border border-line bg-[var(--c-surface-solid)] shadow-lift transition-transform active:scale-[0.98]"
+      className="group cursor-pointer overflow-hidden rounded-[18px] border border-line/12 bg-[var(--c-surface-solid)] shadow-lift transition-transform active:scale-[0.98]"
     >
       <div className="relative">
         <SmartImage src={img} alt={item.name} width={800} height={600} loading="lazy" className="aspect-[4/3] w-full object-cover transition-transform duration-500 group-hover:scale-105" />
@@ -106,7 +106,7 @@ function MenuSkeleton({ label }: { label: string }) {
       </div>
       <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-4">
         {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="overflow-hidden rounded-[18px] border border-line">
+          <div key={i} className="overflow-hidden rounded-[18px] border border-line/12">
             <div className="aspect-[4/3] animate-pulse bg-soft" />
             <div className="space-y-2 p-2.5">
               <div className="h-3.5 w-4/5 animate-pulse rounded bg-soft" />
@@ -576,7 +576,7 @@ export default function MenuOrder({
               <span className="text-[22px] leading-none">{categoryEmoji(g.cat.name)}</span>
               <h2 className="font-display text-[17px] font-extrabold text-ink">{g.cat.name}</h2>
               <span className="rounded-full bg-soft px-2 py-0.5 text-[11px] font-bold text-muted">{g.items.length}</span>
-              <div className="ml-1 h-px flex-1 bg-line" />
+              <div className="ml-1 h-px flex-1 bg-line/12" />
             </div>
             {g.items.length === 0 ? (
               <p className="mb-6 text-[12.5px] text-muted">{t('mnu_no_items')}</p>
@@ -636,7 +636,7 @@ export default function MenuOrder({
           <div className="absolute inset-0 bg-ink/45 backdrop-blur-[2px]" onClick={() => setCartOpen(false)} />
           <div className="absolute inset-x-0 bottom-0 mx-auto flex max-h-[85dvh] w-full max-w-2xl flex-col rounded-t-[24px] bg-[var(--c-surface-solid)] shadow-2xl">
             <div className="px-4 pt-3">
-              <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line" />
+              <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line/12" />
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="font-display text-[16px] font-extrabold text-ink">
                   {t('mnu_your_order', { table: table.table_number })}
@@ -677,7 +677,7 @@ export default function MenuOrder({
                 </div>
               ))}
             </div>
-            <div className="border-t border-line bg-[var(--c-surface-solid)] px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <div className="border-t border-line/12 bg-[var(--c-surface-solid)] px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <div className="mb-3">
                 <label className="mb-1 block text-[12px] font-extrabold text-ink">{t('mnu_order_notes')}</label>
                 <Textarea
@@ -755,7 +755,7 @@ export default function MenuOrder({
                 </div>
               </div>
             </div>
-            <div className="rounded-b-[24px] border-t border-line bg-[var(--c-surface-solid)] p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <div className="rounded-b-[24px] border-t border-line/12 bg-[var(--c-surface-solid)] p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <div className="flex items-center gap-3">
                 <div className="glass flex items-center gap-1 !rounded-full p-1">
                   <button

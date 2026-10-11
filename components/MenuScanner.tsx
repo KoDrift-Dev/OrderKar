@@ -146,7 +146,7 @@ export default function MenuScanner({
         className="flex max-h-[92vh] w-full max-w-3xl flex-col p-0"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-line px-5 py-4">
+        <div className="flex items-center justify-between border-b border-line/12 px-5 py-4">
           <div>
             <h2 className="font-display text-[17px] font-extrabold text-ink">📷 AI Menu Scanner</h2>
             <p className="text-[12px] text-muted">Snap a paper menu — we&apos;ll digitize it for you.</p>
@@ -249,7 +249,7 @@ export default function MenuScanner({
                   <div
                     key={r.key}
                     className={`grid grid-cols-[auto_1fr] gap-2 rounded-xl border p-3 sm:grid-cols-[auto_52px_1fr_110px_130px_auto] sm:items-center ${
-                      r.include ? 'border-line bg-soft/40' : 'border-line/60 opacity-50'
+                      r.include ? 'border-line/12 bg-soft/40' : 'border-line/60 opacity-50'
                     }`}
                   >
                     <input
@@ -260,7 +260,7 @@ export default function MenuScanner({
                       className="mt-1 h-5 w-5 accent-[var(--c-brand)] sm:mt-0"
                     />
                     <label
-                      className={`relative flex h-[52px] w-[52px] cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-line bg-soft/60 ${uploadingPhoto === r.key ? 'opacity-50' : ''}`}
+                      className={`relative flex h-[52px] w-[52px] cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-line/12 bg-soft/60 ${uploadingPhoto === r.key ? 'opacity-50' : ''}`}
                       title={r.image_url ? 'Change dish photo' : 'Upload dish photo'}
                     >
                       {r.image_url ? (
@@ -326,7 +326,7 @@ export default function MenuScanner({
         </div>
 
         {step === 'review' && (
-          <div className="flex items-center justify-between gap-3 border-t border-line px-5 py-4">
+          <div className="flex items-center justify-between gap-3 border-t border-line/12 px-5 py-4">
             <button onClick={() => setStep('upload')} className="text-[13px] font-bold text-muted underline">
               ← Scan another photo
             </button>

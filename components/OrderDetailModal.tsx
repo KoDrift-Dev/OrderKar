@@ -69,9 +69,9 @@ export default function OrderDetailModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative flex max-h-[88vh] w-full max-w-lg flex-col overflow-hidden rounded-[20px] border border-line bg-[var(--c-surface-solid)] shadow-2xl">
+      <div className="relative flex max-h-[88vh] w-full max-w-lg flex-col overflow-hidden rounded-[20px] border border-line/12 bg-[var(--c-surface-solid)] shadow-2xl">
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 border-b border-line px-5 py-4">
+        <div className="flex items-start justify-between gap-3 border-b border-line/12 px-5 py-4">
           <div>
             <div className="flex items-center gap-2.5">
               <h3 className="font-display text-[18px] font-black text-ink">
@@ -184,7 +184,7 @@ export default function OrderDetailModal({
                 <span className="font-bold text-ink">{order.customer_name}</span>
               </div>
             )}
-            <div className="flex justify-between border-t border-line pt-2">
+            <div className="flex justify-between border-t border-line/12 pt-2">
               <span className="text-[13px] font-extrabold text-ink">Total</span>
               <span className="font-mono text-[16px] font-black text-ink">
                 {fmtPKR(Number(order.total_amount) || subtotal)}
@@ -195,7 +195,7 @@ export default function OrderDetailModal({
 
         {/* Footer */}
         {(onAdvance && advanceLabel) || collectable ? (
-          <div className="space-y-2.5 border-t border-line px-5 py-3.5">
+          <div className="space-y-2.5 border-t border-line/12 px-5 py-3.5">
             {onAdvance && advanceLabel && (
               <button
                 onClick={onAdvance}
