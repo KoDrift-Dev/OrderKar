@@ -29,7 +29,7 @@ export default async function AdminPage() {
 
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-40 border-b border-line bg-[var(--c-surface)] backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-line/12 bg-[var(--c-surface)] backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
           <div className="flex items-center gap-2.5">
             <Logo size={36} />
@@ -42,7 +42,7 @@ export default async function AdminPage() {
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-line/12 pb-4">
           <div>
             <h1 className="font-display text-[26px] font-black tracking-tight text-ink">
               All Restaurant Tenants

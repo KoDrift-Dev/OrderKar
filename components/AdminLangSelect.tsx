@@ -41,7 +41,7 @@ export default function AdminLangSelect({
   return (
     <div className="flex items-center justify-between gap-3">
       <span className="text-[13px] font-bold text-muted">🌐 Language{saving ? '…' : ''}</span>
-      <div className="flex overflow-hidden rounded-full border border-line text-[12px] font-extrabold">
+      <div className="flex overflow-hidden rounded-full border border-line/12 text-[12px] font-extrabold">
         {(['roman', 'english'] as Lang[]).map((l) => (
           <button
             key={l}

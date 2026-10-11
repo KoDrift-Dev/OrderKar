@@ -189,7 +189,7 @@ function LoginForm({ lang, onLang }: { lang: Lang; onLang: (l: Lang) => void }) 
             )}
           </form>
           {forgot && (
-            <form onSubmit={sendReset} className="mt-5 rounded-btn border border-dashed border-line p-4">
+            <form onSubmit={sendReset} className="mt-5 rounded-btn border border-dashed border-line/12 p-4">
               <p className="text-[13.5px] font-bold text-ink">{t('lgn_reset_title')}</p>
               <p className="mt-0.5 text-[12.5px] text-muted">{t('lgn_reset_hint')}</p>
               <div className="mt-2.5 flex gap-2">

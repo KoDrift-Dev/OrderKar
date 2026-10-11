@@ -51,7 +51,7 @@ function HistoryRow({
     };
   }, [order.id, order.token]);
   return (
-    <div className="flex items-center justify-between gap-2 border-b border-line py-2.5 last:border-0">
+    <div className="flex items-center justify-between gap-2 border-b border-line/12 py-2.5 last:border-0">
       <div className="min-w-0">
         <span className="font-mono text-[14px] font-bold text-ink">#{order.number}</span>
         <span className="ml-1.5 text-[12px] font-bold text-muted">🍽️ Table {tableNum}</span>
@@ -212,7 +212,7 @@ function TableContent({ params }: { params: { slug: string; id: string } }) {
 
   return (
     <div className="min-h-screen pb-28">
-      <header className="sticky top-0 z-40 border-b border-line bg-[var(--c-surface)] backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-line/12 bg-[var(--c-surface)] backdrop-blur-xl">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
           <Link href={`/r/${tenant.slug}`} className="flex items-center gap-2.5">
             <Logo size={36} />

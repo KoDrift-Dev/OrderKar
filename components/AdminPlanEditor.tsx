@@ -64,7 +64,7 @@ export default function AdminPlanEditor({
   };
 
   return (
-    <div className="rounded-xl border border-line bg-soft/50 p-3">
+    <div className="rounded-xl border border-line/12 bg-soft/50 p-3">
       <p className="mb-2 text-[11px] font-extrabold uppercase tracking-wider text-muted">
         💳 Subscription (manual)
       </p>
@@ -74,7 +74,7 @@ export default function AdminPlanEditor({
           onChange={(e) => setTier(e.target.value)}
           aria-label="Plan tier"
           disabled={busy}
-          className="rounded-lg border border-line bg-[var(--c-surface-solid)] px-2 py-1.5 text-[12px] font-bold text-ink"
+          className="rounded-lg border border-line/12 bg-[var(--c-surface-solid)] px-2 py-1.5 text-[12px] font-bold text-ink"
         >
           <option value="starter">Starter</option>
           <option value="pro">Pro</option>
@@ -85,7 +85,7 @@ export default function AdminPlanEditor({
           onChange={(e) => setStatus(e.target.value)}
           aria-label="Subscription status"
           disabled={busy}
-          className="rounded-lg border border-line bg-[var(--c-surface-solid)] px-2 py-1.5 text-[12px] font-bold text-ink"
+          className="rounded-lg border border-line/12 bg-[var(--c-surface-solid)] px-2 py-1.5 text-[12px] font-bold text-ink"
         >
           <option value="trial">Trial</option>
           <option value="active">Active</option>
@@ -102,7 +102,7 @@ export default function AdminPlanEditor({
         <button
           onClick={() => apply(true)}
           disabled={busy}
-          className="rounded-lg border border-line px-2.5 py-1.5 text-[12px] font-bold text-ink disabled:opacity-50"
+          className="rounded-lg border border-line/12 px-2.5 py-1.5 text-[12px] font-bold text-ink disabled:opacity-50"
         >
           +14d trial
         </button>

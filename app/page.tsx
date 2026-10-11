@@ -77,7 +77,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen">
       {/* Nav */}
-      <header className="sticky top-0 z-50 border-b border-line bg-[var(--c-surface)] backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-line/12 bg-[var(--c-surface)] backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
           <BrandMark />
           <div className="flex items-center gap-2">
@@ -126,7 +126,7 @@ export default function LandingPage() {
               { t: 'Kitchen', d: 'Live queue, timers, one-tap ready', c: 'text-amber' },
               { t: 'Owner', d: 'Revenue, rush hours, top items', c: 'text-teal' },
             ].map((s) => (
-              <div key={s.t} className="border-b border-line p-6 last:border-0 sm:border-b-0 sm:border-r sm:last:border-0">
+              <div key={s.t} className="border-b border-line/12 p-6 last:border-0 sm:border-b-0 sm:border-r sm:last:border-0">
                 <p className={`font-display text-lg font-extrabold ${s.c}`}>{s.t}</p>
                 <p className="mt-1 text-sm leading-relaxed text-muted">{s.d}</p>
                 <div className="mt-4 h-24 rounded-[14px] bg-gradient-to-br from-brand-soft via-transparent to-teal/10" />
@@ -194,7 +194,7 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-line">
+      <footer className="border-t border-line/12">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 py-8 text-sm text-muted sm:flex-row sm:px-6">
           <BrandMark />
           <p>© 2026 OrderKar · Built for Pakistani restaurants 🇵🇰</p>

@@ -74,7 +74,7 @@ function FeedbackInner() {
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line/12 react-hooks/exhaustive-deps
   }, [tenant.id]);
 
   const submit = async (e: React.FormEvent) => {

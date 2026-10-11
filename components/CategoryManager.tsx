@@ -51,7 +51,7 @@ export default function CategoryManager({ restaurantId }: { restaurantId: string
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line/12 react-hooks/exhaustive-deps
   }, [restaurantId]);
 
   const openNew = () => {
@@ -216,7 +216,7 @@ export default function CategoryManager({ restaurantId }: { restaurantId: string
         <div className="fixed inset-0 z-50" role="dialog" aria-modal="true">
           <div className="absolute inset-0 bg-ink/45 backdrop-blur-[2px]" onClick={() => !saving && setEditing(null)} />
           <div className="absolute inset-0 m-auto flex h-fit max-h-[92dvh] w-[calc(100%-2rem)] max-w-md flex-col rounded-[24px] bg-[var(--c-surface-solid)] shadow-2xl">
-            <div className="flex items-center justify-between border-b border-line p-4 sm:px-6">
+            <div className="flex items-center justify-between border-b border-line/12 p-4 sm:px-6">
               <h2 className="font-display text-[17px] font-extrabold text-ink">
                 {editing === 'new' ? 'Add Category' : 'Edit Category'}
               </h2>
@@ -239,7 +239,7 @@ export default function CategoryManager({ restaurantId }: { restaurantId: string
                       role="switch"
                       aria-checked={active}
                       onClick={() => setActive((a) => !a)}
-                      className={`relative h-6 w-11 rounded-full transition-colors ${active ? 'bg-ok' : 'bg-line'}`}
+                      className={`relative h-6 w-11 rounded-full transition-colors ${active ? 'bg-ok' : 'bg-line/12'}`}
                     >
                       <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${active ? 'left-[22px]' : 'left-0.5'}`} />
                     </button>
@@ -249,7 +249,7 @@ export default function CategoryManager({ restaurantId }: { restaurantId: string
               </div>
               {error && <p className="text-[13px] font-bold text-danger">{error}</p>}
             </div>
-            <div className="flex justify-end gap-2 border-t border-line p-4 sm:px-6">
+            <div className="flex justify-end gap-2 border-t border-line/12 p-4 sm:px-6">
               <button onClick={() => setEditing(null)} disabled={saving} className="rounded-btn px-4 py-2.5 text-[13.5px] font-bold text-muted hover:text-ink">
                 Cancel
               </button>
