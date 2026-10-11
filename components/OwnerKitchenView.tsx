@@ -9,11 +9,12 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import type { OrderStatus, OrderWithItems, OrderItem } from '@/lib/types';
+import type { OrderStatus, OrderWithItems, OrderItem, Profile } from '@/lib/types';
 import { fmtElapsed, fmtPKR } from '@/lib/format';
 import { useMenuMap } from './useMenuMap';
 import StatusPill from './StatusPill';
 import { Empty } from './ui';
+import OrderDetailModal from './OrderDetailModal';
 
 const COLUMNS: { key: 'pending' | 'preparing' | 'ready'; label: string }[] = [
   { key: 'pending', label: 'New' },
@@ -29,6 +30,25 @@ const NEXT_STATUS: Partial<Record<OrderStatus, OrderStatus>> = {
 const NEXT_LABEL: Partial<Record<OrderStatus, string>> = {
   pending: 'Start Preparing',
   preparing: 'Mark as Ready',
+};
+
+// Distinct card/column colors per status (darker borders for clear separation)
+const COL_STYLE: Record<'pending' | 'preparing' | 'ready', { col: string; card: string; header: string }> = {
+  pending: {
+    col: 'border-blue-500/30 bg-blue-500/[0.05]',
+    card: 'border-blue-500/40 bg-blue-500/[0.05] hover:border-blue-500/60',
+    header: 'text-blue-700 dark:text-blue-300',
+  },
+  preparing: {
+    col: 'border-amber-500/30 bg-amber-500/[0.05]',
+    card: 'border-amber-500/40 bg-amber-500/[0.05] hover:border-amber-500/60',
+    header: 'text-amber-700 dark:text-amber-300',
+  },
+  ready: {
+    col: 'border-emerald-500/30 bg-emerald-500/[0.05]',
+    card: 'border-emerald-500/40 bg-emerald-500/[0.05] hover:border-emerald-500/60',
+    header: 'text-emerald-700 dark:text-emerald-300',
+  },
 };
 
 function useClock(): Date {
@@ -56,11 +76,18 @@ function catIcon(name: string): string {
   return '\u{1F37D}\uFE0F';
 }
 
-export default function OwnerKitchenView({ restaurantId }: { restaurantId: string }) {
+export default function OwnerKitchenView({
+  restaurantId,
+  staff = [],
+}: {
+  restaurantId: string;
+  staff?: Profile[];
+}) {
   const [orders, setOrders] = useState<OrderWithItems[]>([]);
-  const { thumbOf, stationOf } = useMenuMap(restaurantId);
+  const { thumbOf, stationOf, menuInfoById } = useMenuMap(restaurantId);
   const [station, setStation] = useState<string>('all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [modalId, setModalId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const seenRef = useRef<Set<string>>(new Set());
   const now = useClock();
@@ -174,6 +201,11 @@ export default function OwnerKitchenView({ restaurantId }: { restaurantId: strin
     return { avg, onTime, delayed, deltaPct, lastHr };
   }, [orders, now]);
 
+  const waiterNameOf = (o: OrderWithItems): string | null => {
+    if (!o.waiter_id) return null;
+    return staff.find((x) => x.id === o.waiter_id)?.name ?? null;
+  };
+
   const elapsedMin = (o: OrderWithItems) => (now.getTime() - new Date(o.created_at).getTime()) / 60000;
   const etaMin =
     selected && perf.avg != null && selected.status !== 'ready'
@@ -243,9 +275,9 @@ export default function OwnerKitchenView({ restaurantId }: { restaurantId: strin
           <div className="xl:col-span-8">
             <div className="grid gap-3 md:grid-cols-3">
               {COLUMNS.map((col) => (
-                <div key={col.key} className="rounded-[16px] border border-line/60 bg-soft/40 p-2.5">
+                <div key={col.key} className={`rounded-[16px] border p-2.5 ${COL_STYLE[col.key].col}`}>
                   <div className="mb-2 flex items-center justify-between px-1">
-                    <p className="text-[12.5px] font-extrabold text-ink">{col.label}</p>
+                    <p className={`text-[12.5px] font-extrabold ${COL_STYLE[col.key].header}`}>{col.label}</p>
                     <span className="rounded-full bg-soft px-2 py-0.5 font-mono text-[11px] font-bold text-muted">
                       {groups[col.key].length}
                     </span>
@@ -258,9 +290,12 @@ export default function OwnerKitchenView({ restaurantId }: { restaurantId: strin
                       return (
                         <button
                           key={o.id}
-                          onClick={() => setSelectedId(o.id)}
-                          className={`w-full rounded-[14px] border bg-[var(--c-surface-solid)] p-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${
-                            isSel ? 'border-brand ring-2 ring-brand/25' : late ? 'border-danger/50' : 'border-line'
+                          onClick={() => {
+                            setSelectedId(o.id);
+                            setModalId(o.id);
+                          }}
+                          className={`w-full rounded-[14px] border p-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${COL_STYLE[col.key].card} ${
+                            isSel ? '!border-brand ring-2 ring-brand/25' : late ? '!border-danger/60' : ''
                           }`}
                         >
                           <div className="flex items-center justify-between gap-2">
@@ -418,6 +453,34 @@ export default function OwnerKitchenView({ restaurantId }: { restaurantId: strin
           </div>
         </div>
       )}
+
+      {/* ── Full order detail popup ── */}
+      {(() => {
+        const modalOrder = modalId ? orders.find((o) => o.id === modalId) ?? null : null;
+        if (!modalOrder) return null;
+        const menuById = new Map<string, { image_url: string | null; ingredients: string | null }>();
+        for (const it of modalOrder.order_items) {
+          if (it.menu_item_id && !menuById.has(it.menu_item_id)) {
+            const info = menuInfoById(it.menu_item_id);
+            if (info) menuById.set(it.menu_item_id, info);
+          }
+        }
+        const next = NEXT_STATUS[modalOrder.status];
+        return (
+          <OrderDetailModal
+            order={modalOrder}
+            items={modalOrder.order_items}
+            menuById={menuById}
+            thumbOf={thumbOf}
+            tableNo={modalOrder.tables?.table_number != null ? String(modalOrder.tables.table_number) : null}
+            waiterName={waiterNameOf(modalOrder)}
+            onClose={() => setModalId(null)}
+            onAdvance={next ? () => advanceStatus(modalOrder.id, next) : undefined}
+            advanceLabel={next ? NEXT_LABEL[modalOrder.status] : undefined}
+            busy={busyId === modalOrder.id}
+          />
+        );
+      })()}
 
       {/* ── Performance strip ── */}
       <div className="mt-4 grid grid-cols-2 gap-2.5 rounded-[18px] border border-line/60 bg-[var(--c-surface-solid)] p-4 sm:grid-cols-5">

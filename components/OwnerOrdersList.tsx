@@ -7,11 +7,12 @@
 
 import { useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import type { DiningTable, Order, OrderItem, OrderStatus } from '@/lib/types';
+import type { DiningTable, MenuItem, Order, OrderItem, OrderStatus, Profile } from '@/lib/types';
 import { fmtElapsed, fmtPKR } from '@/lib/format';
 import StatusPill from './StatusPill';
 import { useMenuMap } from './useMenuMap';
 import { Empty } from './ui';
+import OrderDetailModal from './OrderDetailModal';
 
 type ListTab = 'all' | 'active' | 'ready' | 'delayed';
 
@@ -40,6 +41,8 @@ export default function OwnerOrdersList({
   orders,
   items,
   tables,
+  menu = [],
+  staff = [],
   onNavigate,
   onRefresh,
 }: {
@@ -47,15 +50,26 @@ export default function OwnerOrdersList({
   orders: Order[];
   items: OrderItem[];
   tables: DiningTable[];
+  menu?: MenuItem[];
+  staff?: Profile[];
   onNavigate?: (tab: any) => void;
   onRefresh?: () => void;
 }) {
   const [tab, setTab] = useState<ListTab>('all');
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const [modalId, setModalId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const { thumbOf } = useMenuMap(restaurantId);
 
   const tableNoById = useMemo(() => new Map(tables.map((t) => [t.id, t.table_number])), [tables]);
+  const menuById = useMemo(
+    () =>
+      new Map(
+        menu.map((m) => [m.id, { image_url: m.image_url ?? null, ingredients: m.ingredients ?? null }])
+      ),
+    [menu]
+  );
+  const waiterNameById = useMemo(() => new Map(staff.map((x) => [x.id, x.name])), [staff]);
   const itemsByOrder = useMemo(() => {
     const m = new Map<string, OrderItem[]>();
     for (const it of items) {
@@ -145,14 +159,18 @@ export default function OwnerOrdersList({
                 <p className="col-span-1">Time</p>
                 <p className="col-span-1 text-right">Actions</p>
               </div>
-              <div className="divide-y divide-line/50">
+              <div className="max-h-[600px] divide-y divide-line/50 overflow-y-auto">
                 {visible.map((o) => {
                   const oItems = itemsByOrder.get(o.id) ?? [];
                   const tbl = o.table_id ? tableNoById.get(o.table_id) : null;
                   const late = isDelayed(o);
                   const next = NEXT_STATUS[o.status];
                   return (
-                    <div key={o.id} className="grid grid-cols-12 items-center gap-2 px-4 py-3">
+                    <div
+                      key={o.id}
+                      onClick={() => setModalId(o.id)}
+                      className="grid cursor-pointer grid-cols-12 items-center gap-2 px-4 py-3 transition-colors hover:bg-brand/[0.04]"
+                    >
                       <div className="col-span-6 md:col-span-2">
                         <div className="flex items-center gap-2">
                           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-brand/10 text-[15px]">
@@ -208,7 +226,10 @@ export default function OwnerOrdersList({
                       <div className="col-span-2 flex justify-end md:col-span-1">
                         <div className="relative">
                           <button
-                            onClick={() => setMenuOpenId(menuOpenId === o.id ? null : o.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setMenuOpenId(menuOpenId === o.id ? null : o.id);
+                            }}
                             className="rounded-[10px] p-1.5 text-[16px] font-black text-muted transition-colors hover:bg-soft hover:text-ink"
                             aria-label="Order actions"
                           >
@@ -253,6 +274,43 @@ export default function OwnerOrdersList({
             </div>
           )}
         </div>
+
+        {/* ── Full order detail popup ── */}
+        {(() => {
+          const modalOrder = modalId ? orders.find((o) => o.id === modalId) ?? null : null;
+          if (!modalOrder) return null;
+          const next = NEXT_STATUS[modalOrder.status];
+          return (
+            <OrderDetailModal
+              order={modalOrder}
+              items={itemsByOrder.get(modalOrder.id) ?? []}
+              menuById={menuById}
+              thumbOf={thumbOf}
+              tableNo={
+                modalOrder.table_id && tableNoById.get(modalOrder.table_id) != null
+                  ? String(tableNoById.get(modalOrder.table_id))
+                  : null
+              }
+              waiterName={modalOrder.waiter_id ? waiterNameById.get(modalOrder.waiter_id) ?? null : null}
+              onClose={() => setModalId(null)}
+              onAdvance={
+                next
+                  ? async () => {
+                      setBusyId(modalOrder.id);
+                      const { error } = await createClient()
+                        .from('orders')
+                        .update({ status: next })
+                        .eq('id', modalOrder.id);
+                      setBusyId(null);
+                      if (!error) onRefresh?.();
+                    }
+                  : undefined
+              }
+              advanceLabel={next ? NEXT_LABEL[modalOrder.status] : undefined}
+              busy={busyId === modalOrder.id}
+            />
+          );
+        })()}
 
         {/* ── Right rail ── */}
         <div className="space-y-4 xl:col-span-4">

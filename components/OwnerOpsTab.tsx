@@ -4,20 +4,32 @@
 // and kitchen fulfillment velocity benchmarks.
 
 import { useMemo } from 'react';
-import type { DiningTable, Order } from '@/lib/types';
+import type { DiningTable, Order, Profile } from '@/lib/types';
 import TableCard, { tableState } from './TableCard';
 import { fmtPKR, fmtNum } from '@/lib/format';
 import OwnerKitchenView from './OwnerKitchenView';
 import { Card, Empty, SectionHead } from './ui';
 import { useT, type TKey } from '@/lib/i18n';
 
-function TablePerformance({ orders, tables }: { orders: Order[]; tables: DiningTable[] }) {
+function TablePerformance({
+  orders,
+  activeOrders,
+  tables,
+}: {
+  orders: Order[];
+  activeOrders: Order[];
+  tables: DiningTable[];
+}) {
   const t = useT();
 
   const stats = useMemo(() => {
+    // Revenue: today's orders only (this section is "today" scoped).
+    const dayStart = new Date();
+    dayStart.setHours(0, 0, 0, 0);
     const m = new Map<string, { orders: number; revenue: number }>();
     for (const o of orders) {
       if (!o.table_id || o.status === 'cancelled') continue;
+      if (new Date(o.created_at) < dayStart) continue;
       const e = m.get(o.table_id) ?? { orders: 0, revenue: 0 };
       e.orders += 1;
       e.revenue += Number(o.total_amount);
@@ -27,10 +39,12 @@ function TablePerformance({ orders, tables }: { orders: Order[]; tables: DiningT
       .filter((t) => t.is_active)
       .map((t) => {
         const e = m.get(t.id) ?? { orders: 0, revenue: 0 };
-        return { table: t, ...e, state: tableState(t.id, orders) };
+        // Live occupancy from ACTIVE orders (not the date-filtered list) —
+        // a table with a fresh order never shows "Free".
+        return { table: t, ...e, state: tableState(t.id, activeOrders) };
       })
       .sort((a, b) => b.revenue - a.revenue);
-  }, [orders, tables]);
+  }, [orders, activeOrders, tables]);
 
   const totalTableRev = stats.reduce((s, t) => s + t.revenue, 0);
 
@@ -227,21 +241,25 @@ function Fulfillment({ orders }: { orders: Order[] }) {
 export default function OwnerOpsTab({
   restaurantId,
   orders,
+  activeOrders,
   tables,
+  staff,
 }: {
   restaurantId: string;
   orders: Order[];
+  activeOrders: Order[];
   tables: DiningTable[];
+  staff: Profile[];
 }) {
   return (
     <div className="space-y-8">
       {/* Live Kitchen Kanban Monitor */}
       <div className="rounded-[24px] border border-line bg-[var(--c-surface)] p-1 shadow-sm">
-        <OwnerKitchenView restaurantId={restaurantId} />
+        <OwnerKitchenView restaurantId={restaurantId} staff={staff} />
       </div>
 
       {/* Table Turnaround & Performance */}
-      <TablePerformance orders={orders} tables={tables} />
+      <TablePerformance orders={orders} activeOrders={activeOrders} tables={tables} />
 
       {/* Kitchen Velocity & Bottlenecks */}
       <Fulfillment orders={orders} />
