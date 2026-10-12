@@ -458,11 +458,7 @@ do $$
 declare
   poldef text;
 begin
-  select pg_get_expr(c.relrowsecurity, c.oid) into poldef
-  from pg_class c join pg_namespace n on n.oid = c.relnamespace
-  where n.nspname = 'public' and c.relname = 'restaurants' limit 1;
-
-  -- Check the policy definition mentions owner/manager role restriction
+  -- Check the UPDATE policy definitions mention owner/manager role restriction
   select string_agg(definition, ' | ') into poldef
   from (
     select pg_get_expr(pol.polqual, pol.polrelid) as definition
