@@ -4,9 +4,10 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Logo from './Logo';
 import ThemeToggle from './ThemeToggle';
+import { createClient } from '@/lib/supabase/client';
 
 const NAV_GROUPS = [
   {
@@ -27,8 +28,15 @@ const NAV_GROUPS = [
 
 export default function AdminSidebar({ adminName }: { adminName: string }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const logout = async () => {
+    await createClient().auth.signOut();
+    router.push('/login');
+    router.refresh();
+  };
 
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname === href || pathname.startsWith(href + '/');
@@ -168,6 +176,17 @@ export default function AdminSidebar({ adminName }: { adminName: string }) {
                 </Link>
                 <ThemeToggle />
               </div>
+              <button
+                onClick={logout}
+                className="flex w-full items-center justify-center gap-2 rounded-[14px] border border-white/10 bg-white/[0.05] px-3.5 py-2.5 text-[13px] font-bold text-white/70 transition-colors hover:bg-white/[0.1] hover:text-white"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+                Log out
+              </button>
             </div>
           ) : (
             <div className="flex flex-col items-center gap-2 py-1">
@@ -177,6 +196,17 @@ export default function AdminSidebar({ adminName }: { adminName: string }) {
               >
                 👑
               </div>
+              <button
+                onClick={logout}
+                title="Log out"
+                className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-white/[0.06] text-white/70 transition-colors hover:bg-white/[0.1] hover:text-white"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+              </button>
             </div>
           )}
         </div>

@@ -260,6 +260,7 @@ const D = {
   mnu_prep_time: { roman: '⏱ ~{n} min tayyari', english: '⏱ ~{n} min preparation' },
   mnu_notes_ph: { roman: 'e.g. kam mirch, pyaaz nahi…', english: 'e.g. less spicy, no onions…' },
   mnu_order_failed: { roman: 'Order nahi ho saka', english: 'Order failed' },
+  mnu_table_in_use: { roman: 'Is table par ek aur device se order chal raha hai', english: 'Another device is already ordering on this table' },
   mnu_order_notes: { roman: 'Order instructions', english: 'Order instructions' },
   mnu_order_notes_ph: { roman: 'e.g. ek biryani kam mirch…', english: 'e.g. one biryani less spicy…' },
   mnu_add_to_order: { roman: 'Order #{n} mein add karo', english: 'Add to order #{n}' },
