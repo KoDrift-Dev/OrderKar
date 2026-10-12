@@ -63,24 +63,24 @@ export default function SignupPage() {
           )}
           <form onSubmit={submit} className="mt-6 space-y-4">
             <div>
-              <Label>Restaurant name</Label>
-              <Input required value={form.restaurantName} onChange={set('restaurantName')} placeholder="Spice Villa" />
+              <Label htmlFor="signup-restaurant">Restaurant name</Label>
+              <Input id="signup-restaurant" required value={form.restaurantName} onChange={set('restaurantName')} placeholder="Spice Villa" />
             </div>
             <div>
-              <Label>Your name (owner)</Label>
-              <Input required value={form.ownerName} onChange={set('ownerName')} placeholder="Ali Raza" />
+              <Label htmlFor="signup-name">Your name (owner)</Label>
+              <Input id="signup-name" required value={form.ownerName} onChange={set('ownerName')} placeholder="Ali Raza" />
             </div>
             <div>
-              <Label>Email</Label>
-              <Input type="email" required value={form.email} onChange={set('email')} placeholder="owner@restaurant.pk" />
+              <Label htmlFor="signup-email">Email</Label>
+              <Input id="signup-email" type="email" required value={form.email} onChange={set('email')} placeholder="owner@restaurant.pk" />
             </div>
             <div>
-              <Label>Phone (optional)</Label>
-              <Input value={form.phone} onChange={set('phone')} placeholder="0300-1234567" />
+              <Label htmlFor="signup-phone">Phone (optional)</Label>
+              <Input id="signup-phone" value={form.phone} onChange={set('phone')} placeholder="0300-1234567" />
             </div>
             <div>
-              <Label>Password</Label>
-              <Input type="password" required value={form.password} onChange={set('password')} placeholder="Min. 6 characters" />
+              <Label htmlFor="signup-password">Password</Label>
+              <Input id="signup-password" type="password" required value={form.password} onChange={set('password')} placeholder="Min. 6 characters" />
             </div>
             {error && <p className="text-sm font-bold text-danger">{error}</p>}
             <Btn type="submit" className="w-full" size="lg" disabled={busy || !configured}>

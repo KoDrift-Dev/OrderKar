@@ -420,10 +420,12 @@ export default function MenuOrder({
       const notes = orderNotes.trim() || null;
       if (openOrder) {
         // One active order per table: append to the already-open order.
+        // p_tracking_token is required by the hardened append_order_items (FIX 5).
         const { error: aErr } = await supabase.rpc('append_order_items', {
           p_order_id: openOrder.id,
           p_items: rpcLines,
           p_notes: notes,
+          p_tracking_token: openOrder.token,
         });
         if (aErr) throw new Error(aErr.message);
         setCart([]);
@@ -433,33 +435,78 @@ export default function MenuOrder({
         recordAnonOrderTime();
         return;
       }
-      // id + tracking_token are generated client-side: anon can no longer
-      // SELECT orders back (tracking goes through the track_order RPC), so we
-      // must already know both values after the insert.
-      const orderId = crypto.randomUUID();
+      if (waiterId) {
+        // Authenticated staff path (waiter/owner): kept as-is. Writes go
+        // through tenant-scoped RLS policies tied to the signed-in staff.
+        // id + tracking_token are generated client-side: staff cannot SELECT
+        // orders back (tracking goes through the track_order RPC), so we
+        // must already know both values after the insert.
+        const orderId = crypto.randomUUID();
+        const trackingToken = crypto.randomUUID();
+        const { error: oErr } = await supabase.from('orders').insert({
+          id: orderId,
+          tracking_token: trackingToken,
+          restaurant_id: restaurantId,
+          table_id: table.id,
+          waiter_id: waiterId,
+          customer_name: customerName?.trim() || null,
+          status: 'pending',
+          total_amount: total,
+          notes,
+        });
+        if (oErr) throw new Error(oErr.message);
+        const lines = cart.map((l) => ({
+          order_id: orderId,
+          menu_item_id: l.item.id,
+          item_name: l.item.name,
+          quantity: l.qty,
+          unit_price: l.item.price,
+          notes: l.notes.trim() || null,
+        }));
+        const { error: iErr } = await supabase.from('order_items').insert(lines);
+        if (iErr) throw new Error(iErr.message);
+        setCart([]);
+        setCartOpen(false);
+        setOrderNotes('');
+        onPlaced(orderId, trackingToken);
+        logActivity(supabase, {
+          restaurantId,
+          action: ACT.ORDER_CREATED,
+          entityType: 'order',
+          entityId: orderId,
+          details: { total, items: cart.length, table_id: table.id },
+        });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+      // Anonymous customer (QR) path: goes through the server-side
+      // /api/orders/anon wrapper around the create_anon_order SECURITY
+      // DEFINER RPC. The route enforces a server-side rate limit (5/hr per
+      // IP+table); the RPC re-prices every line from menu_items and forces
+      // status='pending' / payment_status='unpaid' — client-supplied
+      // prices/totals are never trusted. Tracking goes through the
+      // track_order RPC, so we must already know the token after the call.
       const trackingToken = crypto.randomUUID();
-      const { error: oErr } = await supabase.from('orders').insert({
-        id: orderId,
-        tracking_token: trackingToken,
-        restaurant_id: restaurantId,
-        table_id: table.id,
-        waiter_id: waiterId ?? null,
-        customer_name: customerName?.trim() || null,
-        status: 'pending',
-        total_amount: total,
-        notes,
+      const anonRes = await fetch('/api/orders/anon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          restaurantId,
+          tableId: table.id,
+          items: rpcLines,
+          trackingToken,
+          customerName: customerName?.trim() || null,
+          notes,
+        }),
       });
-      if (oErr) throw new Error(oErr.message);
-      const lines = cart.map((l) => ({
-        order_id: orderId,
-        menu_item_id: l.item.id,
-        item_name: l.item.name,
-        quantity: l.qty,
-        unit_price: l.item.price,
-        notes: l.notes.trim() || null,
-      }));
-      const { error: iErr } = await supabase.from('order_items').insert(lines);
-      if (iErr) throw new Error(iErr.message);
+      const anonBody = (await anonRes.json().catch(() => ({}))) as {
+        order_id?: string;
+        total_amount?: number;
+        error?: string;
+      };
+      if (!anonRes.ok) throw new Error(anonBody.error || t('mnu_order_failed'));
+      const orderId = anonBody.order_id;
+      if (!orderId) throw new Error(t('mnu_order_failed'));
       setCart([]);
       setCartOpen(false);
       setOrderNotes('');
@@ -470,7 +517,7 @@ export default function MenuOrder({
         action: ACT.ORDER_CREATED,
         entityType: 'order',
         entityId: orderId,
-        details: { total, items: cart.length, table_id: table.id },
+        details: { total: anonBody.total_amount ?? total, items: cart.length, table_id: table.id },
       });
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (e) {

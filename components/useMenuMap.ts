@@ -31,14 +31,16 @@ export function useMenuMap(restaurantId: string) {
       if (!live) return;
       const byId = new Map<string, MenuInfo>();
       const byName = new Map<string, MenuInfo>();
-      for (const m of (items ?? []) as any[]) {
+      // Shape of the selected columns (untyped supabase client returns any).
+      type ItemRow = { id: string; name: string; image_url: string | null; category_id: string | null; ingredients: string | null };
+      for (const m of ((items ?? []) as ItemRow[])) {
         const info: MenuInfo = { image_url: m.image_url ?? null, category_id: m.category_id ?? null, ingredients: m.ingredients ?? null };
         byId.set(m.id, info);
         byName.set(String(m.name).trim().toLowerCase(), info);
       }
       setMenuById(byId);
       setMenuByName(byName);
-      setCatNameById(new Map(((cats ?? []) as any[]).map((c) => [c.id, c.name])));
+      setCatNameById(new Map((((cats ?? []) as { id: string; name: string }[])).map((c) => [c.id, c.name])));
     })();
     return () => {
       live = false;

@@ -12,6 +12,7 @@ import {
   buildBrowser,
   buildThermal,
   downloadReceiptDoc,
+  fmtDate,
   payMethodLabel,
   pkr,
   typeLabel,
@@ -21,11 +22,6 @@ import {
 
 // Re-exported so existing callers (`from './Receipt'`) keep working.
 export type { ReceiptDataT as ReceiptData, ReceiptItemT as ReceiptItem };
-
-function fmtDate(d: Date): string {
-  const pad2 = (n: number) => String(n).padStart(2, '0');
-  return `${pad2(d.getDate())}-${d.toLocaleString('en', { month: 'short' })}-${String(d.getFullYear()).slice(2)} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
-}
 
 /**
  * Open a print window with the receipt. Call from a click handler.

@@ -24,6 +24,26 @@ const ROLE_HOME: Record<string, string> = {
 
 const LANG_KEY = 'orderkar-lang';
 
+// Only allow safe in-app redirect targets: a relative path starting with a
+// single '/'. Rejects absolute URLs, protocol-relative '//', backslashes, and
+// URL-encoded tricks (decoded twice to catch %252f-style double encoding).
+function safeNext(raw: string | null): string | null {
+  if (!raw) return null;
+  let decoded = raw;
+  try {
+    decoded = decodeURIComponent(decoded);
+    decoded = decodeURIComponent(decoded);
+  } catch {
+    return null;
+  }
+  if (!decoded.startsWith('/')) return null;
+  if (decoded.startsWith('//')) return null;
+  if (decoded.includes('\\')) return null;
+  if (/^\/[a-z][a-z0-9+.-]*:/i.test(decoded)) return null;
+  if (/[\r\n]/.test(decoded)) return null;
+  return decoded;
+}
+
 function LoginForm({ lang, onLang }: { lang: Lang; onLang: (l: Lang) => void }) {
   const t = useT();
   const router = useRouter();
@@ -77,7 +97,7 @@ function LoginForm({ lang, onLang }: { lang: Lang; onLang: (l: Lang) => void }) 
         });
       }
 
-      const next = params.get('next');
+      const next = safeNext(params.get('next'));
       if (next) {
         router.push(next);
         router.refresh();
@@ -153,18 +173,18 @@ function LoginForm({ lang, onLang }: { lang: Lang; onLang: (l: Lang) => void }) 
           )}
           <form onSubmit={submit} className="mt-6 space-y-4" autoComplete="off">
             <div>
-              <Label>Email</Label>
-              <Input type="email" name="ok-email" autoComplete="off" required disabled={busy} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@restaurant.pk" />
+              <Label htmlFor="login-email">Email</Label>
+              <Input id="login-email" type="email" name="ok-email" autoComplete="off" required disabled={busy} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@restaurant.pk" />
             </div>
             <div>
               <div className="flex items-center justify-between">
-                <Label>Password</Label>
+                <Label htmlFor="login-password">Password</Label>
                 <button type="button" onClick={() => { setForgot((f) => !f); setResetMsg(''); }} className="text-[12.5px] font-bold text-brand hover:underline">
                   {t('lgn_forgot')}
                 </button>
               </div>
               <div className="relative">
-                <Input type={showPass ? 'text' : 'password'} name="ok-password" autoComplete="new-password" required disabled={busy} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="!pr-12" />
+                <Input id="login-password" type={showPass ? 'text' : 'password'} name="ok-password" autoComplete="new-password" required disabled={busy} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="!pr-12" />
                 <button type="button" onClick={() => setShowPass((s) => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[16px] text-muted" title={showPass ? t('lgn_hide_pass') : t('lgn_show_pass')}>
                   {showPass ? '\u{1F648}' : '\u{1F441}\uFE0F'}
                 </button>
@@ -193,7 +213,7 @@ function LoginForm({ lang, onLang }: { lang: Lang; onLang: (l: Lang) => void }) 
               <p className="text-[13.5px] font-bold text-ink">{t('lgn_reset_title')}</p>
               <p className="mt-0.5 text-[12.5px] text-muted">{t('lgn_reset_hint')}</p>
               <div className="mt-2.5 flex gap-2">
-                <Input type="email" required value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} placeholder="you@restaurant.pk" className="flex-1" />
+                <Input id="login-reset-email" type="email" required value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} placeholder="you@restaurant.pk" className="flex-1" aria-label="Reset email" />
                 <Btn type="submit" disabled={resetBusy}>{resetBusy ? t('lgn_sending') : t('lgn_send_link')}</Btn>
               </div>
               {resetMsg && <p className="mt-2 text-[12.5px] font-bold text-ink">{resetMsg}</p>}
