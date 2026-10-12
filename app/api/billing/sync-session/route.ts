@@ -23,10 +23,14 @@ export async function POST(req: Request) {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role, restaurant_id')
+    .select('role, restaurant_id, is_active')
     .eq('id', user.id)
     .maybeSingle();
   const myRestaurant = (profile as { restaurant_id?: string } | null)?.restaurant_id;
+  const isActive = (profile as { is_active?: boolean } | null)?.is_active;
+  if (!profile || isActive === false) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
 
   let session;
   try {

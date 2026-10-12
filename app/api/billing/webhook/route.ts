@@ -34,7 +34,7 @@ export async function POST(req: Request) {
   }
 
   const supabase = createClient();
-  const apply = (args: {
+  const apply = async (args: {
     customerId: string;
     status: 'trial' | 'active' | 'past_due' | 'cancelled';
     plan: string;
@@ -43,8 +43,8 @@ export async function POST(req: Request) {
     periodStart?: string | null;
     periodEnd?: string | null;
     cancelAt?: boolean;
-  }) =>
-    supabase.rpc('stripe_webhook_apply', {
+  }) => {
+    const { error } = await supabase.rpc('stripe_webhook_apply', {
       p_customer_id: args.customerId,
       p_status: args.status,
       p_plan: args.plan,
@@ -54,6 +54,9 @@ export async function POST(req: Request) {
       p_period_end: args.periodEnd ?? null,
       p_cancel_at: args.cancelAt ?? false,
     });
+    // A failed apply must surface as a processing failure so Stripe retries.
+    if (error) throw new Error(`stripe_webhook_apply failed: ${error.message}`);
+  };
 
   const periodTs = (s: Stripe.Subscription, key: 'current_period_start' | 'current_period_end') => {
     const direct = (s as unknown as Record<string, unknown>)[key];
@@ -126,7 +129,14 @@ export async function POST(req: Request) {
         break;
     }
   } catch (e) {
-    console.error('[billing webhook]', e);
+    // Return 500 so Stripe retries the event. Log only safe fields —
+    // never the raw body, signature, or customer data.
+    console.error('[billing webhook] processing failed', {
+      eventId: event.id,
+      type: event.type,
+      message: e instanceof Error ? e.message : 'unknown error',
+    });
+    return NextResponse.json({ error: 'webhook processing failed' }, { status: 500 });
   }
 
   return NextResponse.json({ received: true });

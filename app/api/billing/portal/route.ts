@@ -30,13 +30,20 @@ export async function POST(req: Request) {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, role, restaurant_id')
+    .select('id, role, restaurant_id, is_active')
     .eq('id', user.id)
     .maybeSingle();
   const role = (profile as { role?: string } | null)?.role;
   const profileRest = (profile as { restaurant_id?: string } | null)?.restaurant_id;
-  if (!profile || (profileRest !== restaurantId && role !== 'super_admin')) {
+  const isActive = (profile as { is_active?: boolean } | null)?.is_active;
+  if (!profile || isActive === false) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  if (profileRest !== restaurantId && role !== 'super_admin') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  if (role !== 'owner' && role !== 'manager' && role !== 'super_admin') {
+    return NextResponse.json({ error: 'Only owners or managers can open the billing portal' }, { status: 403 });
   }
 
   const { data: sub } = await supabase
