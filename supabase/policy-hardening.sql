@@ -87,7 +87,7 @@ begin
       null,
       'order_created',
       'order',
-      NEW.id::text,
+      NEW.id,
       jsonb_build_object(
         'total', NEW.total_amount,
         'table_id', NEW.table_id,
