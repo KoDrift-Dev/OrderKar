@@ -8,6 +8,7 @@ import AdminPlanEditor from '@/components/AdminPlanEditor';
 import AdminLangSelect from '@/components/AdminLangSelect';
 import AdminRestaurantEditor from '@/components/AdminRestaurantEditor';
 import AdminSectionToggles from '@/components/AdminSectionToggles';
+import UsageMeters, { buildUsageMetrics } from '@/components/UsageMeters';
 
 export default async function AdminRestaurantDetail({ params }: { params: { id: string } }) {
   const supabase = createClient();
@@ -18,14 +19,35 @@ export default async function AdminRestaurantDetail({ params }: { params: { id: 
   const today = new Date().toISOString().slice(0, 10);
   const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
 
-  const [{ data: todayOrders }, { data: weekOrders }, { count: staffCount }, { count: menuCount }, { count: tableCount }] =
-    await Promise.all([
-      supabase.from('orders').select('total').eq('restaurant_id', r.id).gte('created_at', `${today}T00:00:00`),
-      supabase.from('orders').select('total').eq('restaurant_id', r.id).gte('created_at', weekAgo),
-      supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('restaurant_id', r.id),
-      supabase.from('menu_items').select('id', { count: 'exact', head: true }).eq('restaurant_id', r.id),
-      supabase.from('dining_tables').select('id', { count: 'exact', head: true }).eq('restaurant_id', r.id),
-    ]);
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  monthStart.setHours(0, 0, 0, 0);
+
+  const [
+    { data: todayOrders },
+    { data: weekOrders },
+    { count: staffCount },
+    { count: menuCount },
+    { count: tableCount },
+    { count: monthOrderCount },
+    { count: photoCount },
+  ] = await Promise.all([
+    supabase.from('orders').select('total').eq('restaurant_id', r.id).gte('created_at', `${today}T00:00:00`),
+    supabase.from('orders').select('total').eq('restaurant_id', r.id).gte('created_at', weekAgo),
+    supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('restaurant_id', r.id),
+    supabase.from('menu_items').select('id', { count: 'exact', head: true }).eq('restaurant_id', r.id),
+    supabase.from('dining_tables').select('id', { count: 'exact', head: true }).eq('restaurant_id', r.id),
+    supabase.from('orders').select('id', { count: 'exact', head: true }).eq('restaurant_id', r.id).gte('created_at', monthStart.toISOString()),
+    supabase.from('menu_items').select('id', { count: 'exact', head: true }).eq('restaurant_id', r.id).not('photo_url', 'is', null),
+  ]);
+
+  const usageMetrics = buildUsageMetrics({
+    tables: tableCount ?? 0,
+    ordersThisMonth: monthOrderCount ?? 0,
+    menuItems: menuCount ?? 0,
+    staff: staffCount ?? 0,
+    files: photoCount ?? 0,
+  });
 
   const todayRevenue = (todayOrders ?? []).reduce((s, o) => s + Number(o?.total ?? 0), 0);
   const weekRevenue = (weekOrders ?? []).reduce((s, o) => s + Number(o?.total ?? 0), 0);
@@ -86,7 +108,7 @@ export default async function AdminRestaurantDetail({ params }: { params: { id: 
           <h3 className="mb-4 font-display text-[16px] font-extrabold text-ink">Platform Controls</h3>
           <div className="space-y-3">
             <AdminPosToggle restaurantId={r.id} initial={tc.pos_enabled !== false} />
-            <AdminPlanEditor restaurantId={r.id} initialTier={r.subscription_tier ?? 'starter'} />
+            <AdminPlanEditor restaurantId={r.id} initialTier={r.subscription_tier ?? 'monthly'} />
             <AdminLangSelect restaurantId={r.id} initial={tc.language === 'roman' ? 'roman' : 'english'} />
           </div>
           <div className="mt-5 border-t border-line/70 pt-4">
@@ -96,6 +118,12 @@ export default async function AdminRestaurantDetail({ params }: { params: { id: 
           </div>
         </Card>
       </div>
+
+      {/* Usage vs fair-use limits */}
+      <Card className="mt-6 p-5">
+        <h3 className="mb-4 font-display text-[16px] font-extrabold text-ink">Usage & Fair-Use Limits</h3>
+        <UsageMeters metrics={usageMetrics} />
+      </Card>
 
       {/* Section visibility */}
       <Card className="mt-6 p-5">

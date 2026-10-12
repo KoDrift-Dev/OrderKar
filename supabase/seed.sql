@@ -19,9 +19,9 @@ delete from restaurants where slug in ('spice-villa', 'lahore-grill');
 
 insert into restaurants (id, name, slug, theme_config, subscription_tier) values
   ('11111111-1111-1111-1111-111111111111', 'Spice Villa', 'spice-villa',
-   '{"address": "G.T. Road, Kharian", "phone": "+92 300 1234567"}', 'pro'),
+   '{"address": "G.T. Road, Kharian", "phone": "+92 300 1234567"}', 'monthly'),
   ('22222222-2222-2222-2222-222222222222', 'Lahore Grill House', 'lahore-grill',
-   '{"address": "Main Boulevard, Gulberg, Lahore", "phone": "+92 300 7654321"}', 'starter');
+   '{"address": "Main Boulevard, Gulberg, Lahore", "phone": "+92 300 7654321"}', 'monthly');
 
 -- ── Tables (6 per restaurant) ───────────────────────────────────────────────
 
@@ -111,8 +111,8 @@ insert into menu_items (id, restaurant_id, category_id, name, description, price
 -- ── Subscriptions ───────────────────────────────────────────────────────────
 
 insert into subscriptions (restaurant_id, plan_type, status, amount) values
-  ('11111111-1111-1111-1111-111111111111', 'pro', 'active', 9999),
-  ('22222222-2222-2222-2222-222222222222', 'starter', 'trial', 4999);
+  ('11111111-1111-1111-1111-111111111111', 'monthly', 'active', 7999),
+  ('22222222-2222-2222-2222-222222222222', 'monthly', 'trial', 7999);
 
 -- ════════════════════════════════════════════════════════════════════════════
 -- STAFF PROFILES — template. Auth users CANNOT be created from SQL, so:

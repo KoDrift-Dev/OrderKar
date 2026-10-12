@@ -46,31 +46,42 @@ const FEATURES = [
   },
 ];
 
-const PLANS = [
+const BILLING_OPTIONS = [
   {
-    name: 'Starter',
-    price: '4,999',
-    blurb: 'For small cafés getting started.',
-    features: ['QR ordering', 'Waiter app', 'Kitchen display', 'Basic dashboard', 'Up to 10 tables'],
+    name: 'Monthly',
+    price: '7,999',
+    per: 'PKR/month',
+    blurb: 'Fixed monthly fee. Cancel anytime.',
     cta: 'Start free trial',
     hot: false,
   },
   {
-    name: 'Pro',
-    price: '9,999',
-    blurb: 'For growing dine-in restaurants.',
-    features: ['Everything in Starter', 'AI menu scanner', 'Waste tracking', 'Inventory', 'Up to 50 tables', 'API access'],
+    name: '6 Months',
+    price: '43,999',
+    per: 'PKR one-time',
+    blurb: 'One payment, half a year covered.',
+    cta: 'Start free trial',
+    hot: false,
+  },
+  {
+    name: 'Yearly',
+    price: '79,999',
+    per: 'PKR one-time',
+    blurb: 'Best value — a full year, one payment.',
     cta: 'Start free trial',
     hot: true,
   },
-  {
-    name: 'Enterprise',
-    price: '24,999',
-    blurb: 'For chains and 5+ locations.',
-    features: ['Everything in Pro', 'Multi-branch', 'Custom branding', 'Priority support'],
-    cta: 'Talk to us',
-    hot: false,
-  },
+];
+
+const ALL_FEATURES = [
+  'QR customer ordering',
+  'Waiter + Kitchen apps',
+  'Owner dashboard & reports',
+  'Inventory & suppliers',
+  'Recipe auto-deduction',
+  'Up to 50 tables',
+  'Up to 500 menu items',
+  '5,000 orders/month',
 ];
 
 export default function LandingPage() {
@@ -159,30 +170,25 @@ export default function LandingPage() {
       {/* Pricing */}
       <section id="pricing" className="mx-auto max-w-6xl scroll-mt-20 px-4 pb-20 sm:px-6">
         <div className="text-center">
-          <h2 className="font-display text-3xl font-extrabold text-ink sm:text-4xl">Simple PKR pricing</h2>
-          <p className="mx-auto mt-3 max-w-xl text-muted">Start free for 14 days. Upgrade when the orders roll in.</p>
+          <h2 className="font-display text-3xl font-extrabold text-ink sm:text-4xl">One plan. Simple pricing.</h2>
+          <p className="mx-auto mt-3 max-w-xl text-muted">
+            Every restaurant gets <b>all features</b>. Start free for 14 days — no credit card required.
+          </p>
         </div>
         <div className="mt-10 grid gap-4 lg:grid-cols-3">
-          {PLANS.map((p) => (
+          {BILLING_OPTIONS.map((p) => (
             <Card key={p.name} deep={p.hot} className={`relative flex flex-col p-7 ${p.hot ? 'ring-2 ring-brand' : ''}`}>
               {p.hot && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <Pill tone="brand">Most popular</Pill>
+                  <Pill tone="brand">Best value</Pill>
                 </div>
               )}
               <h3 className="font-display text-xl font-extrabold text-ink">{p.name}</h3>
               <p className="mt-1 text-sm text-muted">{p.blurb}</p>
               <p className="mt-4">
                 <span className="font-mono text-4xl font-bold text-ink">{p.price}</span>
-                <span className="ml-1 text-sm font-bold text-muted">PKR/mo</span>
+                <span className="ml-1 text-sm font-bold text-muted">{p.per}</span>
               </p>
-              <ul className="mt-5 flex-1 space-y-2.5">
-                {p.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2 text-[14px] font-semibold text-body">
-                    <span className="mt-0.5 text-ok">✓</span> {f}
-                  </li>
-                ))}
-              </ul>
               <Link href="/signup" className="mt-6">
                 <Btn variant={p.hot ? 'primary' : 'secondary'} className="w-full" size="lg">
                   {p.cta}
@@ -191,6 +197,18 @@ export default function LandingPage() {
             </Card>
           ))}
         </div>
+        <Card className="mx-auto mt-6 max-w-3xl p-6">
+          <h3 className="text-center font-display text-[17px] font-extrabold text-ink">
+            Everything included — fair-use limits
+          </h3>
+          <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+            {ALL_FEATURES.map((f) => (
+              <div key={f} className="flex items-start gap-2 text-[13px] font-semibold text-body">
+                <span className="mt-0.5 shrink-0 text-ok">✓</span> {f}
+              </div>
+            ))}
+          </div>
+        </Card>
       </section>
 
       {/* Footer */}

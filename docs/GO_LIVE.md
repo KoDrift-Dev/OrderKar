@@ -40,6 +40,28 @@
 - **Activity logging** — order creation, payments, tracking history
 - **Security** — RLS tenant isolation, server-side rate limiting, open-redirect protection, billing paywall guard, slug immutability, deactivated-staff API gate
 
+## Pricing (v1.1)
+
+Single plan for all restaurants — no tiers. 14-day free trial (no credit card).
+
+| Billing Period | Price |
+|---|---|
+| Monthly | Rs 7,999/mo |
+| 6 Months (one-time) | Rs 43,999 |
+| Yearly (one-time) | Rs 79,999 |
+
+### Fair-Use Limits (per restaurant)
+
+| Resource | Limit |
+|---|---|
+| Tables | 50 |
+| Orders | 5,000/month |
+| Menu items | 500 |
+| Staff accounts | 20 |
+| Storage | 5 GB |
+
+Usage is tracked per restaurant in the superadmin dashboard (Usage & Fair-Use Limits section).
+
 ## Known Deferred Items (Not Blockers)
 
 - Live JazzCash/EasyPaisa gateway (customers pay via QR/card machine directly)

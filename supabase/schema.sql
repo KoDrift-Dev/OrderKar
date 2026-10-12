@@ -31,8 +31,8 @@ create table if not exists restaurants (
   slug              text not null unique,
   logo_url          text,
   theme_config      jsonb not null default '{}'::jsonb,
-  subscription_tier text not null default 'starter'
-                    check (subscription_tier in ('starter', 'pro', 'enterprise')),
+  subscription_tier text not null default 'monthly'
+                    check (subscription_tier in ('monthly', '6month', 'yearly')),
   created_at        timestamptz not null default now()
 );
 
@@ -207,7 +207,7 @@ create table if not exists reviews (
 create table if not exists subscriptions (
   id            uuid primary key default gen_random_uuid(),
   restaurant_id uuid not null references restaurants (id) on delete cascade,
-  plan_type     text not null check (plan_type in ('starter', 'pro', 'enterprise')),
+  plan_type     text not null check (plan_type in ('monthly', '6month', 'yearly')),
   status        text not null default 'active'
                 check (status in ('trial', 'active', 'cancelled', 'past_due')),
   start_date    date not null default current_date,
