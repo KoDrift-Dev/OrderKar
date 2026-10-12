@@ -65,6 +65,12 @@ const SHOWCASE = [
     img: 'https://res.cloudinary.com/duo55lhwh/image/upload/v1791801359/orderkar/showcase/s5ozacgs0b8avso7ksjy.jpg',
     alt: 'OrderKar kitchen display with live order cards',
   },
+  {
+    title: 'Waiter App',
+    desc: 'Tableside ordering, live table status and one-tap billing — the floor runs itself.',
+    img: 'https://res.cloudinary.com/duo55lhwh/image/upload/v1791802137/orderkar/showcase/giumdmht2fyujd138cle.jpg',
+    alt: 'OrderKar waiter app with live table cards',
+  },
 ];
 
 const BILLING_OPTIONS = [
@@ -160,7 +166,7 @@ export default function LandingPage() {
             Real screenshots from a live restaurant — no mockups, no renders.
           </p>
         </div>
-        <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-10 grid gap-5 md:grid-cols-2">
           {SHOWCASE.map((s) => (
             <div
               key={s.title}
