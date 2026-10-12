@@ -22,13 +22,13 @@ export function getStripe(): Stripe {
   return client;
 }
 
-export function getPriceId(plan: string): string | null {
+export function getPriceId(period: string): string | null {
   const map: Record<string, string | undefined> = {
-    starter: process.env.STRIPE_PRICE_STARTER,
-    pro: process.env.STRIPE_PRICE_PRO,
-    enterprise: process.env.STRIPE_PRICE_ENTERPRISE,
+    monthly: process.env.STRIPE_PRICE_MONTHLY,
+    '6month': process.env.STRIPE_PRICE_6MONTH,
+    yearly: process.env.STRIPE_PRICE_ANNUAL,
   };
-  return map[plan] ?? null;
+  return map[period] ?? null;
 }
 
 export function getWebhookSecret(): string | null {

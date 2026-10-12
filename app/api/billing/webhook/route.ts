@@ -11,7 +11,7 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient } from '@/lib/supabase/server';
 import { billingIsConfigured, getStripe, getWebhookSecret } from '@/lib/stripe';
-import { toPlanKey } from '@/lib/subscription';
+import { toBillingPeriod } from '@/lib/subscription';
 
 export async function POST(req: Request) {
   if (!billingIsConfigured()) {
@@ -71,7 +71,7 @@ export async function POST(req: Request) {
     switch (event.type) {
       case 'checkout.session.completed': {
         const s = event.data.object as Stripe.Checkout.Session;
-        const plan = toPlanKey(s.metadata?.plan);
+        const plan = toBillingPeriod(s.metadata?.plan);
         if (typeof s.customer === 'string') {
           await apply({
             customerId: s.customer,
@@ -85,7 +85,7 @@ export async function POST(req: Request) {
       case 'customer.subscription.updated':
       case 'customer.subscription.deleted': {
         const sub = event.data.object as Stripe.Subscription;
-        const plan = toPlanKey(sub.metadata?.plan);
+        const plan = toBillingPeriod(sub.metadata?.plan);
         const status =
           event.type === 'customer.subscription.deleted'
             ? 'cancelled'
@@ -120,7 +120,7 @@ export async function POST(req: Request) {
           await apply({
             customerId: inv.customer,
             status: 'past_due',
-            plan: toPlanKey((data as { plan_type?: string } | null)?.plan_type),
+            plan: toBillingPeriod((data as { plan_type?: string } | null)?.plan_type),
           });
         }
         break;

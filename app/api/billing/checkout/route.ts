@@ -1,11 +1,11 @@
-// POST /api/billing/checkout — create a Stripe Checkout session for a plan.
-// Body: { restaurantId: string, plan: 'starter' | 'pro' | 'enterprise' }
+// POST /api/billing/checkout — create a Stripe Checkout session for a billing period.
+// Body: { restaurantId: string, period: 'monthly' | '6month' | 'yearly' }
 // Only owner/manager of the restaurant may start checkout.
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { billingIsConfigured, getStripe, getPriceId } from '@/lib/stripe';
-import { toPlanKey } from '@/lib/subscription';
+import { toBillingPeriod } from '@/lib/subscription';
 
 function appUrl(req: Request): string {
   return (
@@ -22,18 +22,18 @@ export async function POST(req: Request) {
       { status: 503 },
     );
   }
-  const { restaurantId, plan } = (await req.json().catch(() => ({}))) as {
+  const { restaurantId, period } = (await req.json().catch(() => ({}))) as {
     restaurantId?: string;
-    plan?: string;
+    period?: string;
   };
-  const planKey = toPlanKey(plan);
+  const periodKey = toBillingPeriod(period);
   if (!restaurantId) {
     return NextResponse.json({ error: 'restaurantId is required' }, { status: 400 });
   }
-  const priceId = getPriceId(planKey);
+  const priceId = getPriceId(periodKey);
   if (!priceId) {
     return NextResponse.json(
-      { error: `No Stripe price configured for the ${planKey} plan.` },
+      { error: `No Stripe price configured for the ${periodKey} billing period.` },
       { status: 400 },
     );
   }
@@ -88,7 +88,7 @@ export async function POST(req: Request) {
     customerId = customer.id;
     await supabase.from('subscriptions').insert({
       restaurant_id: restaurantId,
-      plan_type: planKey,
+      plan_type: periodKey,
       status: 'trial',
       stripe_customer_id: customerId,
     });
@@ -100,8 +100,8 @@ export async function POST(req: Request) {
     mode: 'subscription',
     customer: customerId,
     line_items: [{ price: priceId, quantity: 1 }],
-    metadata: { restaurant_id: restaurantId, plan: planKey },
-    subscription_data: { metadata: { restaurant_id: restaurantId, plan: planKey } },
+    metadata: { restaurant_id: restaurantId, plan: periodKey },
+    subscription_data: { metadata: { restaurant_id: restaurantId, plan: periodKey } },
     success_url: `${base}/r/${slug}/owner?billing=success&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${base}/r/${slug}/owner?billing=cancelled`,
   });

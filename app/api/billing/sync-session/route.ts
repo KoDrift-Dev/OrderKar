@@ -6,7 +6,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { billingIsConfigured, getStripe } from '@/lib/stripe';
-import { toPlanKey } from '@/lib/subscription';
+import { toBillingPeriod } from '@/lib/subscription';
 
 export async function POST(req: Request) {
   if (!billingIsConfigured()) {
@@ -46,7 +46,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, paid: false });
   }
 
-  const plan = toPlanKey(session.metadata?.plan);
+  const plan = toBillingPeriod(session.metadata?.plan);
   const customerId = typeof session.customer === 'string' ? session.customer : null;
   const subId = typeof session.subscription === 'string' ? session.subscription : null;
 

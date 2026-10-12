@@ -8,7 +8,7 @@ export interface Restaurant {
   slug: string;
   logo_url: string | null;
   theme_config: Record<string, unknown>;
-  subscription_tier: 'starter' | 'pro' | 'enterprise';
+  subscription_tier: 'monthly' | '6month' | 'yearly';
   created_at: string;
 }
 
