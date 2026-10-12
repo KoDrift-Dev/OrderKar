@@ -2,6 +2,7 @@
 
 import { createClient } from './supabase/server';
 import type { Profile, Role } from './types';
+import { ROLE_RANK } from './roles';
 
 export async function getSessionProfile(): Promise<{ profile: Profile | null; userId: string | null }> {
   const supabase = createClient();
@@ -19,14 +20,6 @@ export function canAccessRestaurant(profile: Profile | null, restaurantId: strin
   if (profile.is_super_admin) return true;
   return profile.restaurant_id === restaurantId;
 }
-
-const ROLE_RANK: Record<Role, number> = {
-  kitchen: 1,
-  waiter: 2,
-  manager: 3,
-  owner: 4,
-  super_admin: 5,
-};
 
 /** Minimum role required for a staff route (super_admin always passes). */
 export function hasRole(profile: Profile | null, minRole: Role): boolean {

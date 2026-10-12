@@ -55,28 +55,21 @@ export function deductInventoryForOrder(
       }
       if (deductByIngredient.size === 0) return;
 
-      // 4. Read current stock, then decrement (clamped at 0 — never negative).
-      const ingredientIds = [...deductByIngredient.keys()];
-      const { data: stock, error: stockErr } = await supabase
-        .from('inventory_items')
-        .select('id, current_stock')
-        .in('id', ingredientIds)
-        .eq('restaurant_id', restaurantId);
-      if (stockErr || !stock) return;
-
-      const deductions: { ingredient_id: string; deducted: number }[] = [];
-      for (const s of stock) {
-        const deduct = deductByIngredient.get(s.id) ?? 0;
-        if (deduct <= 0) continue;
-        const current = Number(s.current_stock ?? 0);
-        const applied = Math.min(current, deduct); // clamp: stock never goes below 0
-        const { error: updErr } = await supabase
-          .from('inventory_items')
-          .update({ current_stock: current - applied })
-          .eq('id', s.id);
-        if (updErr) continue;
-        deductions.push({ ingredient_id: s.id, deducted: applied });
-      }
+      // 4. Atomic deduction via RPC (no lost updates under concurrency).
+      const { data: rpcData, error: rpcErr } = await supabase.rpc('deduct_inventory_atomic', {
+        p_restaurant_id: restaurantId,
+        p_deductions: [...deductByIngredient.entries()].map(([id, qty]) => ({
+          inventory_item_id: id,
+          qty,
+        })),
+      });
+      if (rpcErr || !rpcData) return;
+      const deductions: { ingredient_id: string; deducted: number }[] = (
+        ((rpcData as { items?: { inventory_item_id: string; moved: number }[] }).items ?? []) as {
+          inventory_item_id: string;
+          moved: number;
+        }[]
+      ).map((it) => ({ ingredient_id: it.inventory_item_id, deducted: -it.moved }));
       if (deductions.length === 0) return;
 
       // 5. Audit trail.

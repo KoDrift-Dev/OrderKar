@@ -6,15 +6,10 @@
 import { redirect } from 'next/navigation';
 import { getSessionProfile, canAccessRestaurant } from './auth';
 import { getRestaurantBySlug } from './tenant';
+import { ROLE_RANK, roleRank } from './roles';
+import type { Role } from './types';
 
-const RANK: Record<string, number> = {
-  kitchen: 1,
-  waiter: 2,
-  manager: 3,
-  owner: 4,
-};
-
-export async function requireStaff(slug: string, minRole?: keyof typeof RANK) {
+export async function requireStaff(slug: string, minRole?: Role) {
   const restaurant = await getRestaurantBySlug(slug);
   if (!restaurant) redirect('/');
   const { profile } = await getSessionProfile();
@@ -22,11 +17,11 @@ export async function requireStaff(slug: string, minRole?: keyof typeof RANK) {
     redirect('/login');
   }
   if (minRole) {
-    const rank = profile.is_super_admin ? 5 : (RANK[profile.role] ?? 0);
-    if (rank < RANK[minRole]) {
+    const rank = profile.is_super_admin ? ROLE_RANK.super_admin : roleRank(profile.role);
+    if (rank < ROLE_RANK[minRole]) {
       // Send them to the highest page their role allows.
       const fallback =
-        rank >= RANK.manager
+        rank >= ROLE_RANK.manager
           ? `/r/${slug}/owner`
           : profile.role === 'kitchen'
             ? `/r/${slug}/kitchen`

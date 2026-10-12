@@ -14,6 +14,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { tenantFromHost } from './lib/tenant-url';
+import { ROLE_RANK, roleRank } from './lib/roles';
 
 const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'orderkar.pk';
 
@@ -48,14 +49,6 @@ const ROLE_ROUTES: { prefix: string; minRole: string }[] = [
   { prefix: '/menu', minRole: 'manager' },
   { prefix: '/team', minRole: 'manager' },
 ];
-
-const RANK: Record<string, number> = {
-  kitchen: 1,
-  waiter: 2,
-  manager: 3,
-  owner: 4,
-  super_admin: 5,
-};
 
 export async function middleware(req: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || PLACEHOLDER_URL;
@@ -148,11 +141,11 @@ export async function middleware(req: NextRequest) {
   // Role gate
   const gate = ROLE_ROUTES.find((r) => rest === r.prefix || rest.startsWith(r.prefix + '/'));
   if (gate) {
-    const rank = profile.is_super_admin ? RANK.super_admin : RANK[profile.role as string] ?? 0;
-    if (rank < RANK[gate.minRole]) {
+    const rank = profile.is_super_admin ? ROLE_RANK.super_admin : roleRank(profile.role);
+    if (rank < roleRank(gate.minRole)) {
       // send them to the highest route their role allows
       const fallback =
-        RANK[profile.role as string] >= RANK.manager
+        roleRank(profile.role) >= ROLE_RANK.manager
           ? `${base}/manager`
           : profile.role === 'kitchen'
             ? `${base}/kitchen`
