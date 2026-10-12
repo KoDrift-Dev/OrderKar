@@ -67,6 +67,10 @@ function WaiterAppInner({ restaurantId, waiterId }: { restaurantId: string; wait
     setPaying(false);
     if (!error) {
       setReceiptFor(null);
+      // Optimistically remove from local state so the table frees immediately,
+      // then refresh from server to confirm.
+      setOrders((prev) => prev.filter((o) => o.id !== orderId));
+      setAddingTo(null);
       load();
       logActivity(createClient(), {
         restaurantId,
@@ -76,6 +80,26 @@ function WaiterAppInner({ restaurantId, waiterId }: { restaurantId: string; wait
         details: { payment_method: method },
       });
       deductInventoryForOrder(createClient(), orderId, restaurantId);
+    }
+  };
+
+  const pickupOrder = async (orderId: string) => {
+    const { error } = await createClient()
+      .from('orders')
+      .update({ status: 'completed' })
+      .eq('id', orderId);
+    if (!error) {
+      // Optimistically remove so the table frees immediately.
+      setOrders((prev) => prev.filter((o) => o.id !== orderId));
+      setAddingTo(null);
+      load();
+      logActivity(createClient(), {
+        restaurantId,
+        action: ACT.ORDER_STATUS_CHANGED,
+        entityType: 'order',
+        entityId: orderId,
+        details: { to: 'completed', via: 'pickup' },
+      });
     }
   };
 
@@ -137,10 +161,17 @@ function WaiterAppInner({ restaurantId, waiterId }: { restaurantId: string; wait
         !o.ready_for_bill,
     );
 
+  // Any live order on the table (pending/preparing/ready) — for the detail panel.
+  const liveForTable = (tableId: string) =>
+    orders.find(
+      (o) => o.table_id === tableId && ['pending', 'preparing', 'ready'].includes(o.status),
+    );
+
   const onTableTap = (tbl: DiningTable) => {
-    const open = openForTable(tbl.id);
-    if (open) {
-      setAddingTo(open);
+    const live = liveForTable(tbl.id);
+    if (live) {
+      // Show the order panel (details + status + actions) for any live order.
+      setAddingTo(live);
       setActiveTable(null);
     } else {
       setActiveTable(tbl);
@@ -321,25 +352,44 @@ function WaiterAppInner({ restaurantId, waiterId }: { restaurantId: string; wait
                     </li>
                   ))}
                 </ul>
-                <Btn onClick={() => lockForBill(addingTo.id)} className="mt-3 w-full !rounded-full">
-                  {t('wtr_ready_for_bill')}
-                </Btn>
+                {/* Status-based actions */}
+                <div className="mt-3 flex flex-col gap-2">
+                  {addingTo.status === 'ready' && (
+                    <Btn onClick={() => pickupOrder(addingTo.id)} className="w-full !rounded-full !bg-emerald-600">
+                      🛎️ Pick up from kitchen
+                    </Btn>
+                  )}
+                  {(addingTo.status === 'pending' || addingTo.status === 'preparing') && !addingTo.ready_for_bill && (
+                    <Btn onClick={() => lockForBill(addingTo.id)} className="w-full !rounded-full">
+                      {t('wtr_ready_for_bill')}
+                    </Btn>
+                  )}
+                  {(addingTo.ready_for_bill || addingTo.status === 'ready') && addingTo.payment_status !== 'paid' && (
+                    <Btn onClick={() => setReceiptFor(addingTo)} className="w-full !rounded-full !bg-amber-500">
+                      🧾 Collect payment · {fmtPKR(addingTo.total_amount)}
+                    </Btn>
+                  )}
+                </div>
                 {billError && (
                   <p className="mt-2 rounded-xl bg-red-500/10 px-3 py-2 text-[12px] font-bold text-red-600 dark:text-red-400">
                     {billError}
                   </p>
                 )}
               </Card>
-              <h2 className="mb-4 font-display text-xl font-extrabold text-ink">
-                {t('wtr_add_items')}
-              </h2>
-              <MenuOrder
-                restaurantId={restaurantId}
-                table={tables.find((x) => x.id === addingTo.table_id) ?? { id: addingTo.table_id ?? '', table_number: addingTo.tables?.table_number ?? 0 } as DiningTable}
-                waiterId={waiterId}
-                openOrder={{ id: addingTo.id, number: addingTo.order_number, token: (addingTo as unknown as { tracking_token?: string }).tracking_token ?? '' }}
-                onPlaced={(id) => afterAppend(id)}
-              />
+              {(addingTo.status === 'pending' || addingTo.status === 'preparing' || addingTo.status === 'ready') && !addingTo.ready_for_bill && (
+                <>
+                  <h2 className="mb-4 font-display text-xl font-extrabold text-ink">
+                    {t('wtr_add_items')}
+                  </h2>
+                  <MenuOrder
+                    restaurantId={restaurantId}
+                    table={tables.find((x) => x.id === addingTo.table_id) ?? { id: addingTo.table_id ?? '', table_number: addingTo.tables?.table_number ?? 0 } as DiningTable}
+                    waiterId={waiterId}
+                    openOrder={{ id: addingTo.id, number: addingTo.order_number, token: (addingTo as unknown as { tracking_token?: string }).tracking_token ?? '' }}
+                    onPlaced={(id) => afterAppend(id)}
+                  />
+                </>
+              )}
             </>
           ) : (
             activeTable && (
