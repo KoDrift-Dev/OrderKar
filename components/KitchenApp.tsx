@@ -518,6 +518,7 @@ function KitchenAppInner({ restaurantId }: { restaurantId: string }) {
           .select('*, order_items(*), tables(table_number)')
           .eq('restaurant_id', restaurantId)
           .in('status', ['pending', 'preparing', 'ready'])
+          .is('picked_up_at', null)
           .order('created_at', { ascending: true }),
         supabase.from('menu_items').select('id, ingredients, description').eq('restaurant_id', restaurantId),
       ]);

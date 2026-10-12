@@ -92,6 +92,7 @@ export interface Order {
   notes: string | null;
   cancel_reason: string | null;
   ready_for_bill: boolean;
+  picked_up_at: string | null;
   created_at: string;
   updated_at: string;
 }

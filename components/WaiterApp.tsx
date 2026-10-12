@@ -84,21 +84,23 @@ function WaiterAppInner({ restaurantId, waiterId }: { restaurantId: string; wait
   };
 
   const pickupOrder = async (orderId: string) => {
+    // Pickup = waiter takes food from kitchen. Order stays READY (table stays
+    // occupied) — only payment frees the table.
     const { error } = await createClient()
       .from('orders')
-      .update({ status: 'completed' })
+      .update({ picked_up_at: new Date().toISOString() })
       .eq('id', orderId);
     if (!error) {
-      // Optimistically remove so the table frees immediately.
-      setOrders((prev) => prev.filter((o) => o.id !== orderId));
-      setAddingTo(null);
-      load();
+      // Refresh to show picked-up state; table remains occupied.
+      const list = await load();
+      const fresh = list.find((o) => o.id === orderId) ?? null;
+      setAddingTo(fresh);
       logActivity(createClient(), {
         restaurantId,
         action: ACT.ORDER_STATUS_CHANGED,
         entityType: 'order',
         entityId: orderId,
-        details: { to: 'completed', via: 'pickup' },
+        details: { via: 'pickup' },
       });
     }
   };
@@ -354,10 +356,15 @@ function WaiterAppInner({ restaurantId, waiterId }: { restaurantId: string; wait
                 </ul>
                 {/* Status-based actions */}
                 <div className="mt-3 flex flex-col gap-2">
-                  {addingTo.status === 'ready' && (
+                  {addingTo.status === 'ready' && !addingTo.picked_up_at && (
                     <Btn onClick={() => pickupOrder(addingTo.id)} className="w-full !rounded-full !bg-emerald-600">
                       🛎️ Pick up from kitchen
                     </Btn>
+                  )}
+                  {addingTo.status === 'ready' && addingTo.picked_up_at && (
+                    <p className="rounded-full bg-emerald-600/10 px-4 py-2.5 text-center text-[13px] font-extrabold text-emerald-700 dark:text-emerald-300">
+                      ✓ Picked up — serve to table, then collect payment
+                    </p>
                   )}
                   {(addingTo.status === 'pending' || addingTo.status === 'preparing') && !addingTo.ready_for_bill && (
                     <Btn onClick={() => lockForBill(addingTo.id)} className="w-full !rounded-full">
