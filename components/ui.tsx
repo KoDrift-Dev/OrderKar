@@ -80,8 +80,12 @@ export function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
   );
 }
 
-export function Label({ children }: { children: React.ReactNode }) {
-  return <label className="mb-1.5 block text-[13px] font-bold text-body">{children}</label>;
+export function Label({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) {
+  return (
+    <label htmlFor={htmlFor} className="mb-1.5 block text-[13px] font-bold text-body">
+      {children}
+    </label>
+  );
 }
 
 /* ── Section heading ────────────────────────────────────────── */

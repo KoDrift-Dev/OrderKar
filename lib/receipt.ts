@@ -8,7 +8,8 @@ import { fmtReceipt, chargeLabel, type BillingConfig, type BillBreakdown } from 
 import type { Order, OrderItem } from '@/lib/types';
 
 // ── Shared HTML escaper ─────────────────────────────────────────────────────
-export function esc(s: string): string {
+export function esc(s: string | null | undefined): string {
+  if (s == null) return '';
   return s
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -84,7 +85,8 @@ function pad2(n: number): string {
   return String(n).padStart(2, '0');
 }
 
-function fmtDate(d: Date): string {
+/** Shared date formatter: `15-Jan-26 14:05`. Used by receipt builders + Receipt.tsx. */
+export function fmtDate(d: Date): string {
   return `${pad2(d.getDate())}-${d.toLocaleString('en', { month: 'short' })}-${String(d.getFullYear()).slice(2)} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 }
 

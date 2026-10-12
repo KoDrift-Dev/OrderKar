@@ -433,7 +433,9 @@ export function useT(): (key: TKey, vars?: Record<string, string | number>) => s
 
 /** Non-hook version for plain functions (e.g. receipt HTML builders). */
 export function tr(lang: Lang, key: TKey, vars?: Record<string, string | number>): string {
-  let s: string = D[key][lang];
+  // Fall back gracefully: requested lang → english → the key itself.
+  // A missing translation must never crash a receipt render.
+  let s: string = D[key]?.[lang] ?? D[key]?.english ?? key;
   if (vars) {
     for (const [k, v] of Object.entries(vars)) s = s.replaceAll(`{${k}}`, String(v));
   }
