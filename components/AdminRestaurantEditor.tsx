@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import PhotoDropzone from './PhotoDropzone';
 
 export default function AdminRestaurantEditor({
   restaurantId,
@@ -57,8 +58,18 @@ export default function AdminRestaurantEditor({
         <input className={input} value={name} onChange={(e) => setName(e.target.value)} maxLength={80} />
       </div>
       <div>
-        <label className="mb-1 block text-[12px] font-bold uppercase tracking-wider text-muted">Logo URL</label>
-        <input className={input} value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)} placeholder="https://…" maxLength={500} />
+        <label className="mb-1 block text-[12px] font-bold uppercase tracking-wider text-muted">Logo</label>
+        <PhotoDropzone
+          bucket="staff-photos"
+          folder="logos"
+          value={logoUrl}
+          onChange={(url) => setLogoUrl(url)}
+          onError={(msg) => setMsg(msg)}
+        />
+        <div className="mt-2 flex items-center gap-2">
+          <span className="shrink-0 text-[12px] font-bold text-muted">or URL:</span>
+          <input className={input} value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)} placeholder="https://…" maxLength={500} />
+        </div>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <div>

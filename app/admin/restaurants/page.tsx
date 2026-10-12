@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { Card, PageHeader, Empty } from '@/components/ui';
 import { fmtPKR } from '@/lib/format';
+import AdminAddRestaurant from '@/components/AdminAddRestaurant';
 
 export default async function AdminRestaurants() {
   const supabase = createClient();
@@ -29,6 +30,7 @@ export default async function AdminRestaurants() {
       <PageHeader
         title="Restaurants"
         sub={`${restaurants?.length ?? 0} tenants on the platform — click any card for details, edit & access`}
+        right={<AdminAddRestaurant />}
       />
 
       {(restaurants ?? []).length === 0 && (

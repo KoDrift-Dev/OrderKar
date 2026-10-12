@@ -7,6 +7,7 @@ import AdminPosToggle from '@/components/AdminPosToggle';
 import AdminPlanEditor from '@/components/AdminPlanEditor';
 import AdminLangSelect from '@/components/AdminLangSelect';
 import AdminRestaurantEditor from '@/components/AdminRestaurantEditor';
+import AdminSectionToggles from '@/components/AdminSectionToggles';
 
 export default async function AdminRestaurantDetail({ params }: { params: { id: string } }) {
   const supabase = createClient();
@@ -95,6 +96,15 @@ export default async function AdminRestaurantDetail({ params }: { params: { id: 
           </div>
         </Card>
       </div>
+
+      {/* Section visibility */}
+      <Card className="mt-6 p-5">
+        <h3 className="mb-4 font-display text-[16px] font-extrabold text-ink">Section Visibility</h3>
+        <AdminSectionToggles
+          restaurantId={r.id}
+          initial={((tc.sections ?? {}) as Record<string, boolean>)}
+        />
+      </Card>
 
       {/* Quick access */}
       <Card className="mt-6 p-5">

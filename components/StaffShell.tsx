@@ -52,8 +52,13 @@ export default function StaffShell({
     router.refresh();
   };
 
-  const roleTabs = ROLE_TABS.filter((n) => n.roles.includes(role));
-  const manageTabs = MANAGE_TABS.filter((n) => n.roles.includes(role));
+  // Per-restaurant section visibility (superadmin toggles, stored in theme_config.sections).
+  // Disabled sections are hidden from the restaurant's navigation entirely.
+  const tc = (tenant.theme_config ?? {}) as { sections?: Record<string, boolean> };
+  const sectionOn = (href: string) => tc.sections?.[href] !== false;
+
+  const roleTabs = ROLE_TABS.filter((n) => n.roles.includes(role) && sectionOn(n.href));
+  const manageTabs = MANAGE_TABS.filter((n) => n.roles.includes(role) && sectionOn(n.href));
   // On the owner page, OwnerApp provides the full-screen desktop sidebar shell.
   const onOwnerPage = pathname.endsWith('/owner');
   // Kitchen is a focused display screen — no tab clutter, just brand + actions.
