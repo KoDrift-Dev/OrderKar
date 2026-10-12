@@ -57,7 +57,39 @@ function LoginForm({ lang, onLang }: { lang: Lang; onLang: (l: Lang) => void }) 
   const [resetEmail, setResetEmail] = useState('');
   const [resetMsg, setResetMsg] = useState('');
   const [resetBusy, setResetBusy] = useState(false);
+  const [checking, setChecking] = useState(true);
   const configured = isSupabaseConfigured();
+
+  // If already signed in (e.g. browser back after replace fails, or direct
+  // visit), send them to their home instead of showing the login form.
+  useEffect(() => {
+    let live = true;
+    (async () => {
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!live || !user) return;
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role, is_super_admin, is_active, restaurants(slug)')
+          .eq('id', user.id)
+          .maybeSingle();
+        if (!live || !profile || !profile.is_active) return;
+        const next = safeNext(params.get('next'));
+        if (next) {
+          router.replace(next);
+        } else if (profile.is_super_admin) {
+          router.replace('/admin');
+        } else {
+          const slug = (profile as unknown as { restaurants?: { slug?: string } }).restaurants?.slug;
+          if (slug) router.replace(`/r/${slug}/${ROLE_HOME[profile.role] ?? 'waiter'}`);
+        }
+      } finally {
+        if (live) setChecking(false);
+      }
+    })();
+    return () => { live = false; };
+  }, []);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,17 +130,19 @@ function LoginForm({ lang, onLang }: { lang: Lang; onLang: (l: Lang) => void }) 
       }
 
       const next = safeNext(params.get('next'));
+      // Use replace (not push) so the login page is removed from browser
+      // history — pressing back won't return to the login form.
       if (next) {
-        router.push(next);
+        router.replace(next);
         router.refresh();
         return;
       }
       if (profile.is_super_admin) {
-        router.push('/admin');
+        router.replace('/admin');
       } else {
         const slug = (profile as unknown as { restaurants?: { slug?: string } }).restaurants?.slug;
         if (!slug) throw new Error(t('lgn_no_restaurant'));
-        router.push(`/r/${slug}/${ROLE_HOME[profile.role] ?? 'waiter'}`);
+        router.replace(`/r/${slug}/${ROLE_HOME[profile.role] ?? 'waiter'}`);
       }
       router.refresh();
     } catch (err) {
@@ -136,6 +170,14 @@ function LoginForm({ lang, onLang }: { lang: Lang; onLang: (l: Lang) => void }) 
       setResetBusy(false);
     }
   };
+
+  if (checking) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="text-[14px] font-bold text-muted">Loading…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
