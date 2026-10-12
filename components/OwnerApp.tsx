@@ -14,7 +14,6 @@ import OwnerSalesTab from './OwnerSalesTab';
 import OwnerOpsTab from './OwnerOpsTab';
 import OwnerStaffTab from './OwnerStaffTab';
 import OwnerCustomersTab from './OwnerCustomersTab';
-import OwnerGuide from './OwnerGuide';
 import TableManager from './TableManager';
 import OwnerSettings from './OwnerSettings';
 import ThemeToggle from './ThemeToggle';
@@ -170,6 +169,7 @@ function OwnerAppInner({
   const [invSub, setInvSub] = useState<'stock' | 'suppliers' | 'pos'>('stock');
   const [subState, setSubState] = useState<AccessState | null>(null);
   const [billingMsg, setBillingMsg] = useState('');
+  const [billingErr, setBillingErr] = useState('');
   const [displayName, setDisplayName] = useState(restaurantName);
 
   const ORDER_COLS =
@@ -282,7 +282,7 @@ function OwnerAppInner({
     setLoading(true);
     (async () => {
       await Promise.all([loadStatic(), loadOrders(false), loadAlerts()]);
-      fetchSubscription(restaurantId).then((sub) => { if (live) setSubState(accessState(sub)); }).catch(() => {});
+      fetchSubscription(restaurantId).then((sub) => { if (live) setSubState(accessState(sub)); }).catch(() => { if (live) setBillingErr('⚠️ Subscription status load nahi ho saka — billing info purani ho sakti hai.'); });
       if (live) {
         setLoading(false);
       }
@@ -615,7 +615,7 @@ function OwnerAppInner({
           setBillingMsg(`🎉 Payment successful — welcome to the ${j.plan ?? ''} plan!`.trim());
           fetchSubscription(restaurantId)
             .then((sub) => setSubState(accessState(sub)))
-            .catch(() => {});
+            .catch(() => setBillingErr('⚠️ Payment ho gayi, lekin plan refresh fail ho gaya — page refresh karein.'));
         }
         // Clean the URL so refresh doesn't re-sync.
         const url = new URL(window.location.href);
@@ -623,7 +623,7 @@ function OwnerAppInner({
         url.searchParams.delete('session_id');
         window.history.replaceState(null, '', url.toString());
       })
-      .catch(() => {});
+      .catch(() => setBillingErr('⚠️ Payment sync fail ho gaya — agar charge hua hai to retry se pehle support se rabta karein.'));
     // eslint-disable-next-line/12 react-hooks/exhaustive-deps
   }, []);
 
@@ -962,6 +962,14 @@ function OwnerAppInner({
           {billingMsg && (
             <div className="mx-4 sm:mx-6 lg:mx-8 mt-3 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-2.5 text-[12.5px] font-medium text-emerald-700 dark:text-emerald-300">
               {billingMsg}
+            </div>
+          )}
+          {billingErr && (
+            <div className="mx-4 sm:mx-6 lg:mx-8 mt-3 flex items-start justify-between gap-3 rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-2.5 text-[12.5px] font-medium text-rose-700 dark:text-rose-300">
+              <span>{billingErr}</span>
+              <button type="button" onClick={() => setBillingErr('')} className="shrink-0 font-black opacity-70 hover:opacity-100" aria-label="Dismiss error">
+                ×
+              </button>
             </div>
           )}
           {subState?.kind === 'trialing' && subState.daysLeft <= 3 && (

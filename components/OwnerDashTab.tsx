@@ -205,7 +205,10 @@ export default function OwnerDashTab({
           .select('created_at,total_amount,status')
           .eq('restaurant_id', restaurantId)
           .gte('created_at', start.toISOString())
-          .neq('status', 'cancelled');
+          .neq('status', 'cancelled')
+          // Guard against unbounded growth: 30 days of orders should never
+          // approach this cap; it only prevents runaway memory use.
+          .limit(5000);
         if (!alive) return;
         setChartOrders((data ?? []) as ChartOrder[]);
       } catch {
