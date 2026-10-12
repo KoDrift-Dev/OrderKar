@@ -72,13 +72,13 @@ export default function AdminPlanEditor({
         <select
           value={tier}
           onChange={(e) => setTier(e.target.value)}
-          aria-label="Plan tier"
+          aria-label="Billing period"
           disabled={busy}
           className="rounded-lg border border-line/12 bg-[var(--c-surface-solid)] px-2 py-1.5 text-[12px] font-bold text-ink"
         >
-          <option value="starter">Starter</option>
-          <option value="pro">Pro</option>
-          <option value="enterprise">Enterprise</option>
+          <option value="monthly">Monthly — Rs 7,999</option>
+          <option value="6month">6 Months — Rs 43,999</option>
+          <option value="yearly">Yearly — Rs 79,999</option>
         </select>
         <select
           value={status}

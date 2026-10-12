@@ -1,22 +1,24 @@
 'use client';
 
-// Subscription & billing UI: current plan / trial status, plan picker,
-// Stripe Checkout + Customer Portal. Gracefully degrades when Stripe
+// Subscription & billing UI: current billing period / trial status, period
+// picker, Stripe Checkout + Customer Portal. Gracefully degrades when Stripe
 // isn't configured (shows a contact fallback instead of buttons).
 
 import { useEffect, useState } from 'react';
 import { Btn, Card } from './ui';
 import {
-  PLANS,
-  toPlanKey,
+  BILLING_PERIODS,
+  PLAN_FEATURES,
+  TRIAL_DAYS,
+  toBillingPeriod,
   accessState,
-  type PlanKey,
+  type BillingPeriod,
   type AccessState,
   type SubRow,
 } from '@/lib/subscription';
 import { fetchSubscription } from '@/lib/subscription-client';
 
-const PLAN_ORDER: PlanKey[] = ['starter', 'pro', 'enterprise'];
+const PERIOD_ORDER: BillingPeriod[] = ['monthly', '6month', 'yearly'];
 
 export default function SubscriptionCard({ restaurantId }: { restaurantId: string }) {
   const [state, setState] = useState<AccessState | null>(null);
@@ -38,14 +40,14 @@ export default function SubscriptionCard({ restaurantId }: { restaurantId: strin
     };
   }, [restaurantId]);
 
-  const startCheckout = async (plan: PlanKey) => {
-    setBusy(plan);
+  const startCheckout = async (period: BillingPeriod) => {
+    setBusy(period);
     setNotice('');
     try {
       const res = await fetch('/api/billing/checkout', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ restaurantId, plan }),
+        body: JSON.stringify({ restaurantId, period }),
       });
       const j = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
       if (!res.ok || !j.url) {
@@ -82,8 +84,8 @@ export default function SubscriptionCard({ restaurantId }: { restaurantId: strin
     }
   };
 
-  const currentPlan: PlanKey =
-    state && state.kind !== 'unknown' ? state.plan : 'starter';
+  const currentPeriod: BillingPeriod =
+    state && state.kind !== 'unknown' ? state.period : 'monthly';
 
   const statusBanner = () => {
     if (!state || state.kind === 'unknown') return null;
@@ -93,8 +95,8 @@ export default function SubscriptionCard({ restaurantId }: { restaurantId: strin
           🎉 You are on a <b>free trial</b>
           {state.daysLeft <= 3 ? (
             <>
-              {' '}— <b>{state.daysLeft} day{state.daysLeft === 1 ? '' : 's'} left</b>. Pick a plan
-              below to keep everything running.
+              {' '}— <b>{state.daysLeft} day{state.daysLeft === 1 ? '' : 's'} left</b>. Pick a billing
+              option below to keep everything running.
             </>
           ) : (
             <> — {state.daysLeft} days left. No card required yet.</>
@@ -105,7 +107,7 @@ export default function SubscriptionCard({ restaurantId }: { restaurantId: strin
     if (state.kind === 'active') {
       return (
         <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-[13px] font-medium text-emerald-700 dark:text-emerald-300">
-          ✅ Subscription <b>active</b> on the <b>{PLANS[state.plan].name}</b> plan.
+          ✅ Subscription <b>active</b> ({BILLING_PERIODS[state.period].name} billing).
         </div>
       );
     }
@@ -118,7 +120,7 @@ export default function SubscriptionCard({ restaurantId }: { restaurantId: strin
     }
     return (
       <div className="rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-[13px] font-medium text-rose-700 dark:text-rose-300">
-        ⏳ Your trial/subscription has <b>expired</b>. Pick a plan below to reactivate.
+        ⏳ Your trial/subscription has <b>expired</b>. Pick a billing option below to reactivate.
       </div>
     );
   };
@@ -133,11 +135,11 @@ export default function SubscriptionCard({ restaurantId }: { restaurantId: strin
       )}
 
       <div className="grid gap-4 md:grid-cols-3">
-        {PLAN_ORDER.map((key) => {
-          const p = PLANS[key];
-          const isCurrent = key === currentPlan;
-          const price =
-            p.monthlyPKR == null ? 'Custom' : `Rs ${p.monthlyPKR.toLocaleString('en-PK')}/mo`;
+        {PERIOD_ORDER.map((key) => {
+          const p = BILLING_PERIODS[key];
+          const isCurrent = key === currentPeriod;
+          const price = `Rs ${p.pricePKR.toLocaleString('en-PK')}`;
+          const per = key === 'monthly' ? '/month' : key === '6month' ? '/6 months' : '/year';
           return (
             <Card key={key} className={`p-5 ${isCurrent ? 'ring-2 ring-brand' : ''}`}>
               <div className="flex items-center justify-between">
@@ -148,10 +150,13 @@ export default function SubscriptionCard({ restaurantId }: { restaurantId: strin
                   </span>
                 )}
               </div>
-              <p className="mt-1 text-[22px] font-black text-ink">{price}</p>
+              <p className="mt-1 text-[22px] font-black text-ink">
+                {price}
+                <span className="text-[13px] font-bold text-muted">{per}</span>
+              </p>
               <p className="mt-1 text-[12px] text-muted">{p.tagline}</p>
               <ul className="mt-3 space-y-1.5">
-                {p.features.map((f) => (
+                {PLAN_FEATURES.map((f) => (
                   <li key={f} className="flex items-start gap-2 text-[12.5px] text-ink">
                     <span className="text-emerald-500" aria-hidden>✓</span>
                     <span>{f}</span>
@@ -159,19 +164,9 @@ export default function SubscriptionCard({ restaurantId }: { restaurantId: strin
                 ))}
               </ul>
               <div className="mt-4">
-                {key === 'enterprise' ? (
-                  <Btn
-                    variant="secondary"
-                    className="w-full"
-                    onClick={() =>
-                      setNotice('For Enterprise, message us on WhatsApp and we will set it up for you.')
-                    }
-                  >
-                    Contact Us
-                  </Btn>
-                ) : isCurrent ? (
+                {isCurrent ? (
                   <Btn variant="secondary" className="w-full" disabled>
-                    Current Plan
+                    Current Billing
                   </Btn>
                 ) : (
                   <Btn
@@ -196,11 +191,11 @@ export default function SubscriptionCard({ restaurantId }: { restaurantId: strin
         </div>
       )}
       <p className="text-[11.5px] text-muted">
-        Payments are processed securely by Stripe. Prices exclude any applicable taxes.
+        {TRIAL_DAYS}-day free trial included. Payments are processed securely by Stripe. Prices exclude any applicable taxes.
       </p>
     </div>
   );
 }
 
 // Re-export for the paywall in OwnerApp.
-export { toPlanKey };
+export { toBillingPeriod as toPlanKey };

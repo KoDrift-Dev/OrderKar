@@ -18,7 +18,7 @@ export default function AdminAddRestaurant() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
-  const [tier, setTier] = useState('starter');
+  const [tier, setTier] = useState('monthly');
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
   const router = useRouter();
@@ -112,9 +112,9 @@ export default function AdminAddRestaurant() {
               <div>
                 <label className="mb-1 block text-[12px] font-bold uppercase tracking-wider text-muted">Plan</label>
                 <select className={input} value={tier} onChange={(e) => setTier(e.target.value)}>
-                  <option value="starter">Starter — Rs 4,999/mo</option>
-                  <option value="pro">Pro — Rs 9,999/mo</option>
-                  <option value="enterprise">Enterprise — Rs 24,999/mo</option>
+                  <option value="monthly">Monthly — Rs 7,999/mo</option>
+                  <option value="6month">6 Months — Rs 43,999 one-time</option>
+                  <option value="yearly">Yearly — Rs 79,999 one-time</option>
                 </select>
               </div>
             </div>
