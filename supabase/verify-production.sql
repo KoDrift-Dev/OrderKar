@@ -6,8 +6,8 @@
 --   4. supabase/perf-indexes.sql
 -- Then run THIS file. It prints PASS/FAIL lines via RAISE NOTICE.
 -- Nothing is modified — every block is a SELECT / catalog check only.
-
-\set ON_ERROR_STOP off
+-- NOTE: This file uses only plain SQL + DO blocks (no psql backslash commands)
+-- so it runs cleanly in the Supabase SQL Editor.
 
 -- ═══════════════════════════════════════════════════════════════════
 -- Helper: PASS/FAIL printer
