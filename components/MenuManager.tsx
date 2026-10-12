@@ -140,7 +140,7 @@ export default function MenuManager({ restaurantId }: { restaurantId: string }) 
     setForm({
       name: item.name,
       category_id: item.category_id,
-      price: String(item.price),
+      price: item.price == null ? '' : String(item.price),
       description: item.description ?? '',
       ingredients: item.ingredients ?? '',
       allergens: (item.allergens ?? []).join(', '),
@@ -157,7 +157,7 @@ export default function MenuManager({ restaurantId }: { restaurantId: string }) 
 
   const save = () =>
     guard(async () => {
-    if (!form.name.trim() || !form.category_id || Number(form.price) < 0 || Number.isNaN(Number(form.price))) {
+    if (!form.name.trim() || !form.category_id || !form.price.trim() || Number(form.price) < 0 || Number.isNaN(Number(form.price))) {
       setError('Name, category and a valid price are required.');
       return;
     }
