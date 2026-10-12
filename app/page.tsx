@@ -46,6 +46,27 @@ const FEATURES = [
   },
 ];
 
+const SHOWCASE = [
+  {
+    title: 'Owner Console',
+    desc: 'Live revenue, occupied tables, prep times and AI insights — the whole restaurant at a glance.',
+    img: 'https://res.cloudinary.com/duo55lhwh/image/upload/v1791801357/orderkar/showcase/rvqhkhmwkom1dz664ioq.jpg',
+    alt: 'OrderKar owner dashboard with live KPIs and sales chart',
+  },
+  {
+    title: 'Customer Ordering',
+    desc: 'Guests scan the QR, browse the menu and order from their phones — with live order tracking.',
+    img: 'https://res.cloudinary.com/duo55lhwh/image/upload/v1791801358/orderkar/showcase/p0tg5o4ug5027fxtjy9p.jpg',
+    alt: 'OrderKar customer QR ordering with menu and live order status',
+  },
+  {
+    title: 'Kitchen Display',
+    desc: 'Orders hit the kitchen screen instantly — timers, one-tap ready, live queue that never misses.',
+    img: 'https://res.cloudinary.com/duo55lhwh/image/upload/v1791801359/orderkar/showcase/s5ozacgs0b8avso7ksjy.jpg',
+    alt: 'OrderKar kitchen display with live order cards',
+  },
+];
+
 const BILLING_OPTIONS = [
   {
     name: 'Monthly',
@@ -128,23 +149,43 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Product mock strip */}
+      {/* Product showcase — real screenshots */}
       <section className="mx-auto max-w-6xl px-4 sm:px-6">
-        <Card deep className="overflow-hidden p-0">
-          <div className="grid sm:grid-cols-3">
-            {[
-              { t: 'Customer', d: 'Scan → menu → order → live status', c: 'text-brand' },
-              { t: 'Kitchen', d: 'Live queue, timers, one-tap ready', c: 'text-amber' },
-              { t: 'Owner', d: 'Revenue, rush hours, top items', c: 'text-teal' },
-            ].map((s) => (
-              <div key={s.t} className="border-b border-line/12 p-6 last:border-0 sm:border-b-0 sm:border-r sm:last:border-0">
-                <p className={`font-display text-lg font-extrabold ${s.c}`}>{s.t}</p>
-                <p className="mt-1 text-sm leading-relaxed text-muted">{s.d}</p>
-                <div className="mt-4 h-24 rounded-[14px] bg-gradient-to-br from-brand-soft via-transparent to-teal/10" />
+        <div className="text-center">
+          <Pill tone="teal">✨ Live product tour</Pill>
+          <h2 className="mt-4 font-display text-3xl font-extrabold text-ink sm:text-4xl">
+            See OrderKar in action
+          </h2>
+          <p className="mx-auto mt-3 max-w-xl text-muted">
+            Real screenshots from a live restaurant — no mockups, no renders.
+          </p>
+        </div>
+        <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+          {SHOWCASE.map((s) => (
+            <div
+              key={s.title}
+              className="group overflow-hidden rounded-[20px] border border-line/12 bg-[var(--c-surface-solid)] shadow-lift transition-transform hover:-translate-y-1"
+            >
+              <div className="flex items-center gap-1.5 border-b border-line/12 bg-black/[0.03] px-4 py-2.5 dark:bg-white/[0.03]">
+                <span className="h-2.5 w-2.5 rounded-full bg-danger/70" />
+                <span className="h-2.5 w-2.5 rounded-full bg-amber/70" />
+                <span className="h-2.5 w-2.5 rounded-full bg-ok/70" />
               </div>
-            ))}
-          </div>
-        </Card>
+              <div className="overflow-hidden">
+                <img
+                  src={s.img}
+                  alt={s.alt}
+                  loading="lazy"
+                  className="aspect-[4/3] w-full object-cover object-top transition-transform duration-500 group-hover:scale-[1.03]"
+                />
+              </div>
+              <div className="p-5">
+                <h3 className="font-display text-[17px] font-extrabold text-ink">{s.title}</h3>
+                <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted">{s.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
 
       {/* Features */}
