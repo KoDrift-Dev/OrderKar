@@ -409,6 +409,134 @@ end $$;
 do $$
 begin
   raise notice '═══════════════════════════════════════════════════';
+  raise notice 'SECTION E — Policy-hardening follow-up (policy-hardening.sql)';
+  raise notice '═══════════════════════════════════════════════════';
+end $$;
+
+-- ═══════════════════════════════════════════════════════════════════
+-- E1. anon INSERT policies on orders/order_items are GONE
+-- ═══════════════════════════════════════════════════════════════════
+do $$
+declare
+  n int;
+begin
+  select count(*) into n
+  from pg_policies
+  where schemaname = 'public'
+    and ((tablename = 'orders' and policyname = 'orders_anon_insert')
+      or (tablename = 'order_items' and policyname = 'order_items_anon_insert'));
+  if n = 0 then
+    raise notice 'PASS  E1  anon INSERT policies on orders/order_items removed';
+  else
+    raise notice 'FAIL  E1  % anon INSERT policies still exist (direct anon insert possible)', n;
+  end if;
+end $$;
+
+-- ═══════════════════════════════════════════════════════════════════
+-- E2. anon INSERT policy on activity_log is GONE
+-- ═══════════════════════════════════════════════════════════════════
+do $$
+declare
+  n int;
+begin
+  select count(*) into n
+  from pg_policies
+  where schemaname = 'public' and tablename = 'activity_log'
+    and policyname = 'activity_log_anon_insert';
+  if n = 0 then
+    raise notice 'PASS  E2  activity_log anon INSERT policy removed';
+  else
+    raise notice 'FAIL  E2  activity_log anon INSERT policy still exists (spam risk)';
+  end if;
+end $$;
+
+-- ═══════════════════════════════════════════════════════════════════
+-- E3. restaurants_update restricted to owner/manager/super_admin
+--     (waiter/kitchen must NOT satisfy the policy)
+-- ═══════════════════════════════════════════════════════════════════
+do $$
+declare
+  poldef text;
+begin
+  select pg_get_expr(c.relrowsecurity, c.oid) into poldef
+  from pg_class c join pg_namespace n on n.oid = c.relnamespace
+  where n.nspname = 'public' and c.relname = 'restaurants' limit 1;
+
+  -- Check the policy definition mentions owner/manager role restriction
+  select string_agg(definition, ' | ') into poldef
+  from (
+    select pg_get_expr(pol.polqual, pol.polrelid) as definition
+    from pg_policy pol
+    join pg_class c on c.oid = pol.polrelid
+    join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'public' and c.relname = 'restaurants'
+      and pol.polcmd = 'w'
+  ) s;
+  if poldef ilike '%owner%' and poldef ilike '%manager%' then
+    raise notice 'PASS  E3  restaurants UPDATE policy references owner/manager roles';
+  else
+    raise notice 'FAIL  E3  restaurants UPDATE policy not role-restricted (def: %)', left(coalesce(poldef,'<none>'), 200);
+  end if;
+end $$;
+
+-- ═══════════════════════════════════════════════════════════════════
+-- E4. Anon order activity trigger exists (replaces anon logging)
+-- ═══════════════════════════════════════════════════════════════════
+do $$
+declare
+  ok boolean;
+begin
+  select exists(
+    select 1 from pg_trigger t
+    join pg_class c on c.oid = t.tgrelid
+    join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'public' and c.relname = 'orders'
+      and t.tgname = 'trg_log_anon_order_created'
+  ) into ok;
+  if ok then
+    raise notice 'PASS  E4  anon order activity trigger present (server-side logging)';
+  else
+    raise notice 'FAIL  E4  anon order activity trigger MISSING';
+  end if;
+end $$;
+
+-- ═══════════════════════════════════════════════════════════════════
+-- E5. create_anon_order still exists and is callable (not broken by hardening)
+-- ═══════════════════════════════════════════════════════════════════
+do $$
+declare
+  ok boolean;
+begin
+  select exists(
+    select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname = 'create_anon_order' and p.prosecdef
+  ) into ok;
+  if ok then
+    raise notice 'PASS  E5  create_anon_order intact (SECURITY DEFINER)';
+  else
+    raise notice 'FAIL  E5  create_anon_order missing or not SECURITY DEFINER';
+  end if;
+end $$;
+
+do $$
+begin
+  raise notice '═══════════════════════════════════════════════════';
+  raise notice 'NOTE: Behavioral tests (E6-E12) require role switching.';
+  raise notice 'Run them manually in SQL Editor with different API keys:';
+  raise notice '  E6  anon INSERT orders       → expect RLS DENY';
+  raise notice '  E7  anon INSERT order_items  → expect RLS DENY';
+  raise notice '  E8  anon INSERT activity_log → expect RLS DENY';
+  raise notice '  E9  manager UPDATE slug      → expect trigger DENY';
+  raise notice '  E10 owner UPDATE slug        → expect SUCCESS';
+  raise notice '  E11 create_anon_order (anon) → expect SUCCESS jsonb';
+  raise notice '  E12 waiter INSERT orders     → expect SUCCESS';
+  raise notice 'See policy-hardening.sql header for exact queries.';
+  raise notice '═══════════════════════════════════════════════════';
+end $$;
+
+do $$
+begin
+  raise notice '═══════════════════════════════════════════════════';
   raise notice 'VERIFICATION COMPLETE — review any FAIL lines above.';
   raise notice '═══════════════════════════════════════════════════';
 end $$;
