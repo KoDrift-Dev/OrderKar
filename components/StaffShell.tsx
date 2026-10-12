@@ -104,6 +104,15 @@ export default function StaffShell({
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2.5">
+            {role === 'super_admin' && (
+              <Link
+                href="/admin"
+                className="inline-flex items-center gap-1.5 rounded-btn border border-brand/30 bg-brand/10 px-3 py-1.5 text-[12.5px] font-extrabold text-brand shadow-sm transition-all hover:border-brand/60"
+                title="Back to superadmin dashboard"
+              >
+                ← Superadmin
+              </Link>
+            )}
             {isKitchenPage && canGoConsole && (
               <Link
                 href={`/r/${tenant.slug}/owner`}
