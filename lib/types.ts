@@ -56,6 +56,7 @@ export interface MenuItem {
   name: string;
   description: string | null;
   ingredients: string | null;
+  allergens: string[];
   price: number;
   image_url: string | null;
   is_available: boolean;

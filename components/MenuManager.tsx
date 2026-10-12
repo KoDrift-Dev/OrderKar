@@ -32,6 +32,7 @@ interface FormState {
   price: string;
   description: string;
   ingredients: string;
+  allergens: string;
   tags: string[];
   is_available: boolean;
   image_url: string;
@@ -43,6 +44,7 @@ const EMPTY_FORM: FormState = {
   price: '',
   description: '',
   ingredients: '',
+  allergens: '',
   tags: [],
   is_available: true,
   image_url: '',
@@ -141,6 +143,7 @@ export default function MenuManager({ restaurantId }: { restaurantId: string }) 
       price: String(item.price),
       description: item.description ?? '',
       ingredients: item.ingredients ?? '',
+      allergens: (item.allergens ?? []).join(', '),
       tags: [...item.tags],
       is_available: item.is_available,
       image_url: item.image_url ?? '',
@@ -163,37 +166,37 @@ export default function MenuManager({ restaurantId }: { restaurantId: string }) 
     setError('');
     try {
       const supabase = createClient();
-      const payload = {
+      const payload: Record<string, unknown> = {
         restaurant_id: restaurantId,
         category_id: form.category_id,
         name: form.name.trim(),
         description: form.description.trim() || null,
         ingredients: form.ingredients.trim() || null,
+        allergens: form.allergens.split(',').map((s) => s.trim()).filter(Boolean),
         price: Number(form.price),
         tags: form.tags,
         is_available: form.is_available,
         image_url: form.image_url || null,
       };
-      if (editing === 'new') {
-        const { error } = await supabase.from('menu_items').insert(payload);
-        if (error) throw new Error(error.message);
-        logActivity(supabase, {
-          restaurantId,
-          action: ACT.MENU_ITEM_CREATED,
-          entityType: 'menu_item',
-          details: { name: payload.name, price: payload.price },
-        });
-      } else if (editing) {
-        const { error } = await supabase.from('menu_items').update(payload).eq('id', editing.id);
-        if (error) throw new Error(error.message);
-        logActivity(supabase, {
-          restaurantId,
-          action: ACT.MENU_ITEM_UPDATED,
-          entityType: 'menu_item',
-          entityId: editing.id,
-          details: { name: payload.name, price: payload.price },
-        });
+      // Defensive write: retries without `allergens` if the column hasn't been
+      // migrated yet (safe deploy-before-migration window).
+      const write = (p: Record<string, unknown>) =>
+        editing === 'new'
+          ? supabase.from('menu_items').insert(p)
+          : supabase.from('menu_items').update(p).eq('id', (editing as MenuItem).id);
+      let { error } = await write(payload);
+      if (error && /allergens/i.test(error.message)) {
+        const { allergens: _drop, ...fallback } = payload;
+        ({ error } = await write(fallback));
       }
+      if (error) throw new Error(error.message);
+      logActivity(supabase, {
+        restaurantId,
+        action: editing === 'new' ? ACT.MENU_ITEM_CREATED : ACT.MENU_ITEM_UPDATED,
+        entityType: 'menu_item',
+        entityId: editing === 'new' ? undefined : (editing as MenuItem).id,
+        details: { name: payload.name as string, price: payload.price as number },
+      });
       setEditing(null);
       await load();
     } catch (e) {
@@ -206,18 +209,24 @@ export default function MenuManager({ restaurantId }: { restaurantId: string }) 
   const duplicate = (item: MenuItem) =>
     guard(async () => {
     const supabase = createClient();
-    const { error } = await supabase.from('menu_items').insert({
+    const payload: Record<string, unknown> = {
       restaurant_id: restaurantId,
       category_id: item.category_id,
       name: `${item.name} (copy)`,
       description: item.description,
       ingredients: item.ingredients,
+      allergens: item.allergens ?? [],
       price: item.price,
       tags: item.tags,
       is_available: false,
       image_url: item.image_url,
       prep_time_minutes: item.prep_time_minutes,
-    });
+    };
+    let { error } = await supabase.from('menu_items').insert(payload);
+    if (error && /allergens/i.test(error.message)) {
+      const { allergens: _drop, ...fallback } = payload;
+      ({ error } = await supabase.from('menu_items').insert(fallback));
+    }
     if (!error) load();
     });
 
@@ -448,6 +457,10 @@ export default function MenuManager({ restaurantId }: { restaurantId: string }) 
               <div>
                 <Label>Ingredients</Label>
                 <Textarea value={form.ingredients} onChange={(e) => setForm((f) => ({ ...f, ingredients: e.target.value }))} rows={2} placeholder="Chicken, tomatoes, ginger, green chillies…" className="mt-1.5" />
+              </div>
+              <div>
+                <Label>Allergens <span className="font-medium normal-case text-muted">(optional)</span></Label>
+                <Textarea value={form.allergens} onChange={(e) => setForm((f) => ({ ...f, allergens: e.target.value }))} rows={1} placeholder="Peanuts, dairy, gluten… (comma separated)" className="mt-1.5" aria-label="Allergens, comma separated, optional" />
               </div>
               <div className="flex flex-wrap items-center gap-4">
                 <div className="flex gap-2">

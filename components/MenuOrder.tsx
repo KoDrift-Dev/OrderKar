@@ -167,10 +167,23 @@ export default function MenuOrder({
     if (!configured) return;
     const supabase = createClient();
     (async () => {
-      const [{ data: c }, { data: it }] = await Promise.all([
+      const ITEM_COLS =
+        'id, restaurant_id, category_id, name, description, ingredients, allergens, price, image_url, tags, prep_time_minutes';
+      const [{ data: c }, first] = await Promise.all([
         supabase.from('menu_categories').select('id, restaurant_id, name, display_order').eq('restaurant_id', restaurantId).eq('is_active', true).order('display_order'),
-        supabase.from('menu_items').select('id, restaurant_id, category_id, name, description, ingredients, price, image_url, tags, prep_time_minutes').eq('restaurant_id', restaurantId).eq('is_available', true).order('name'),
+        supabase.from('menu_items').select(ITEM_COLS).eq('restaurant_id', restaurantId).eq('is_available', true).order('name'),
       ]);
+      // Fallback if the allergens column hasn't been migrated yet
+      let it: any[] | null = first.data;
+      if (first.error && /allergens/i.test(first.error.message)) {
+        const retry = await supabase
+          .from('menu_items')
+          .select(ITEM_COLS.replace(', allergens', ''))
+          .eq('restaurant_id', restaurantId)
+          .eq('is_available', true)
+          .order('name');
+        it = retry.data;
+      }
       const cats = (c ?? []) as MenuCategory[];
       setCats(cats);
       setItems((it ?? []) as MenuItem[]);
@@ -740,6 +753,12 @@ export default function MenuOrder({
                   <div className="mt-3">
                     <p className="text-[11.5px] font-extrabold uppercase tracking-wide text-muted">Ingredients</p>
                     <p className="mt-1 text-[13px] leading-relaxed text-ink">{detail.ingredients}</p>
+                  </div>
+                )}
+                {(detail.allergens ?? []).length > 0 && (
+                  <div className="mt-3">
+                    <p className="text-[11.5px] font-extrabold uppercase tracking-wide text-muted">⚠️ Allergens</p>
+                    <p className="mt-1 text-[13px] leading-relaxed text-ink">{(detail.allergens ?? []).join(', ')}</p>
                   </div>
                 )}
                 <p className="mt-3 text-[12px] font-bold text-muted">{t('mnu_prep_time', { n: detail.prep_time_minutes })}</p>
