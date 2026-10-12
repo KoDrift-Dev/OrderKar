@@ -3,7 +3,7 @@ import StaffShell from '@/components/StaffShell';
 import WaiterApp from '@/components/WaiterApp';
 
 export default async function WaiterPage({ params }: { params: { slug: string } }) {
-  const { restaurant, profile } = await requireStaff(params.slug);
+  const { restaurant, profile } = await requireStaff(params.slug, 'waiter');
   return (
     <StaffShell role={profile.role} name={profile.name}>
       <WaiterApp restaurantId={restaurant.id} waiterId={profile.id} />

@@ -3,7 +3,7 @@ import StaffShell from '@/components/StaffShell';
 import PosTab from '@/components/PosTab';
 
 export default async function PosPage({ params }: { params: { slug: string } }) {
-  const { restaurant, profile } = await requireStaff(params.slug);
+  const { restaurant, profile } = await requireStaff(params.slug, 'waiter');
 
   return (
     <StaffShell role={profile.role} name={profile.name}>
