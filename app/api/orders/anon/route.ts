@@ -66,7 +66,7 @@ export async function POST(req: Request) {
       : null;
 
   const supabase = createClient();
-  const { data: rpcData, error: rpcErr } = await supabase.rpc('create_anon_order', {
+  const rpcParams: Record<string, unknown> = {
     p_restaurant_id: restaurantId,
     p_table_id: tableId,
     p_items: items,
@@ -74,7 +74,15 @@ export async function POST(req: Request) {
     p_customer_name: customerName,
     p_notes: notes,
     p_device_id: deviceId,
-  });
+  };
+  let rpcRes = await supabase.rpc('create_anon_order', rpcParams);
+  if (rpcRes.error && /could not find the function public\.create_anon_order/i.test(rpcRes.error.message)) {
+    // table-device-lock.sql not run yet — retry without p_device_id so
+    // ordering keeps working (one-device-per-table stays inactive).
+    delete rpcParams.p_device_id;
+    rpcRes = await supabase.rpc('create_anon_order', rpcParams);
+  }
+  const { data: rpcData, error: rpcErr } = rpcRes;
   if (rpcErr) {
     // RPC raises for: unknown restaurant/table, cross-tenant items,
     // unavailable items, bad quantities. Surface the message, never internals.
