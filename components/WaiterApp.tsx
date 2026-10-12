@@ -354,28 +354,33 @@ function WaiterAppInner({ restaurantId, waiterId }: { restaurantId: string; wait
                     </li>
                   ))}
                 </ul>
-                {/* Status-based actions */}
+                {/* Status-based actions — correct restaurant flow:
+                    pending/preparing → details + add items only
+                    ready (not picked up) → pickup + add items
+                    ready (picked up) → ready for bill + collect payment
+                    locked → collect payment only */}
                 <div className="mt-3 flex flex-col gap-2">
                   {addingTo.status === 'ready' && !addingTo.picked_up_at && (
                     <Btn onClick={() => pickupOrder(addingTo.id)} className="w-full !rounded-full !bg-emerald-600">
                       🛎️ Pick up from kitchen
                     </Btn>
                   )}
-                  {addingTo.status === 'ready' && addingTo.picked_up_at && (
-                    <p className="rounded-full bg-emerald-600/10 px-4 py-2.5 text-center text-[13px] font-extrabold text-emerald-700 dark:text-emerald-300">
-                      ✓ Picked up — serve to table, then collect payment
-                    </p>
+                  {addingTo.status === 'ready' && addingTo.picked_up_at && !addingTo.ready_for_bill && (
+                    <>
+                      <p className="rounded-full bg-emerald-600/10 px-4 py-2 text-center text-[12.5px] font-extrabold text-emerald-700 dark:text-emerald-300">
+                        ✓ Picked up — served to table
+                      </p>
+                      <Btn onClick={() => lockForBill(addingTo.id)} className="w-full !rounded-full">
+                        {t('wtr_ready_for_bill')}
+                      </Btn>
+                    </>
                   )}
-                  {(addingTo.status === 'pending' || addingTo.status === 'preparing') && !addingTo.ready_for_bill && (
-                    <Btn onClick={() => lockForBill(addingTo.id)} className="w-full !rounded-full">
-                      {t('wtr_ready_for_bill')}
-                    </Btn>
-                  )}
-                  {(addingTo.ready_for_bill || addingTo.status === 'ready') && addingTo.payment_status !== 'paid' && (
-                    <Btn onClick={() => setReceiptFor(addingTo)} className="w-full !rounded-full !bg-amber-500">
-                      🧾 Collect payment · {fmtPKR(addingTo.total_amount)}
-                    </Btn>
-                  )}
+                  {(addingTo.ready_for_bill || (addingTo.status === 'ready' && addingTo.picked_up_at)) &&
+                    addingTo.payment_status !== 'paid' && (
+                      <Btn onClick={() => setReceiptFor(addingTo)} className="w-full !rounded-full !bg-amber-500">
+                        🧾 Collect payment · {fmtPKR(addingTo.total_amount)}
+                      </Btn>
+                    )}
                 </div>
                 {billError && (
                   <p className="mt-2 rounded-xl bg-red-500/10 px-3 py-2 text-[12px] font-bold text-red-600 dark:text-red-400">
