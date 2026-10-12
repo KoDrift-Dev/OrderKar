@@ -518,13 +518,15 @@ function KitchenAppInner({ restaurantId }: { restaurantId: string }) {
           .select('*, order_items(*), tables(table_number)')
           .eq('restaurant_id', restaurantId)
           .in('status', ['pending', 'preparing', 'ready'])
-          .is('picked_up_at', null)
           .order('created_at', { ascending: true }),
         supabase.from('menu_items').select('id, ingredients, description').eq('restaurant_id', restaurantId),
       ]);
       if (!live) return;
       if (data) {
-        const list = data as OrderWithItems[];
+        // Hide picked-up orders (waiter took food). Filter in JS so the
+        // kitchen keeps working even before supabase/waiter-flow.sql is run
+        // (picked_up_at is then simply undefined on every row).
+        const list = (data as OrderWithItems[]).filter((o) => !o.picked_up_at);
         // Detect brand-new orders AND orders that gained items.
         const fresh: string[] = [];
         for (const o of list) {
@@ -605,6 +607,8 @@ function KitchenAppInner({ restaurantId }: { restaurantId: string }) {
   const groups = useMemo(() => {
     const g: Record<'pending' | 'preparing' | 'ready', OrderWithItems[]> = { pending: [], preparing: [], ready: [] };
     for (const o of orders) {
+      // Picked-up orders leave the kitchen display (waiter took the food).
+      if (o.picked_up_at) continue;
       if (o.status === 'pending' || o.status === 'preparing' || o.status === 'ready') g[o.status].push(o);
     }
     // FIFO inside each section — longest waiting first.

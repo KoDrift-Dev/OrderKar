@@ -56,65 +56,84 @@ function WaiterAppInner({ restaurantId, waiterId }: { restaurantId: string; wait
   const [receiptFor, setReceiptFor] = useState<OrderWithItems | null>(null);
   const [detailFor, setDetailFor] = useState<OrderWithItems | null>(null);
   const [paying, setPaying] = useState(false);
-  const [billError, setBillError] = useState('');
+  const [actionError, setActionError] = useState('');
 
   const collectPayment = async (orderId: string, method: string) => {
+    setActionError('');
     setPaying(true);
     const { error } = await createClient()
       .from('orders')
       .update({ status: 'completed', payment_status: 'paid', payment_method: method })
       .eq('id', orderId);
     setPaying(false);
-    if (!error) {
-      setReceiptFor(null);
-      // Optimistically remove from local state so the table frees immediately,
-      // then refresh from server to confirm.
-      setOrders((prev) => prev.filter((o) => o.id !== orderId));
-      setAddingTo(null);
-      load();
-      logActivity(createClient(), {
-        restaurantId,
-        action: ACT.PAYMENT_COLLECTED,
-        entityType: 'order',
-        entityId: orderId,
-        details: { payment_method: method },
-      });
-      deductInventoryForOrder(createClient(), orderId, restaurantId);
+    if (error) {
+      // Never fail silently — the waiter must see why the table didn't free.
+      setActionError('Payment failed: ' + error.message);
+      return;
     }
+    setReceiptFor(null);
+    // Optimistically remove from local state so the table frees immediately,
+    // then refresh from server to confirm.
+    setOrders((prev) => prev.filter((o) => o.id !== orderId));
+    setAddingTo(null);
+    load();
+    logActivity(createClient(), {
+      restaurantId,
+      action: ACT.PAYMENT_COLLECTED,
+      entityType: 'order',
+      entityId: orderId,
+      details: { payment_method: method },
+    });
+    deductInventoryForOrder(createClient(), orderId, restaurantId);
   };
 
   const pickupOrder = async (orderId: string) => {
     // Pickup = waiter takes food from kitchen. Order stays READY (table stays
     // occupied) — only payment frees the table.
+    setActionError('');
     const { error } = await createClient()
       .from('orders')
       .update({ picked_up_at: new Date().toISOString() })
       .eq('id', orderId);
-    if (!error) {
-      // Refresh to show picked-up state; table remains occupied.
-      const list = await load();
-      const fresh = list.find((o) => o.id === orderId) ?? null;
-      setAddingTo(fresh);
-      logActivity(createClient(), {
-        restaurantId,
-        action: ACT.ORDER_STATUS_CHANGED,
-        entityType: 'order',
-        entityId: orderId,
-        details: { via: 'pickup' },
-      });
+    if (error) {
+      // The picked_up_at column comes from supabase/waiter-flow.sql — if the
+      // user hasn't run it yet, say so plainly instead of failing silently.
+      const missing = /picked_up_at/i.test(error.message);
+      setActionError(
+        missing
+          ? 'Pickup needs a database update: please run supabase/waiter-flow.sql in Supabase, then try again.'
+          : 'Pickup failed: ' + error.message,
+      );
+      return;
     }
+    // Refresh to show picked-up state; table remains occupied.
+    const list = await load();
+    const fresh = list.find((o) => o.id === orderId) ?? null;
+    setAddingTo(fresh);
+    logActivity(createClient(), {
+      restaurantId,
+      action: ACT.ORDER_STATUS_CHANGED,
+      entityType: 'order',
+      entityId: orderId,
+      details: { via: 'pickup' },
+    });
   };
 
   const completeOrder = async (orderId: string) => {
-    await createClient().from('orders').update({ status: 'completed' }).eq('id', orderId);
+    setActionError('');
+    const { error } = await createClient().from('orders').update({ status: 'completed' }).eq('id', orderId);
+    if (error) {
+      setActionError('Could not complete order: ' + error.message);
+      return;
+    }
     load();
   };
 
   const lockForBill = async (orderId: string) => {
-    setBillError('');
+    setActionError('');
     const { error } = await createClient().from('orders').update({ ready_for_bill: true }).eq('id', orderId);
     if (error) {
-      setBillError('Could not lock for bill: ' + error.message);
+      setActionError('Could not lock for bill: ' + error.message);
       return;
     }
     const list = await load();
@@ -382,9 +401,9 @@ function WaiterAppInner({ restaurantId, waiterId }: { restaurantId: string; wait
                       </Btn>
                     )}
                 </div>
-                {billError && (
+                {actionError && (
                   <p className="mt-2 rounded-xl bg-red-500/10 px-3 py-2 text-[12px] font-bold text-red-600 dark:text-red-400">
-                    {billError}
+                    {actionError}
                   </p>
                 )}
               </Card>
@@ -427,6 +446,11 @@ function WaiterAppInner({ restaurantId, waiterId }: { restaurantId: string; wait
 
       {view === 'orders' && (
         <div className="space-y-6">
+          {actionError && (
+            <p className="rounded-xl bg-red-500/10 px-3 py-2 text-[12px] font-bold text-red-600 dark:text-red-400">
+              {actionError}
+            </p>
+          )}
           {activeCount === 0 ? (
             <Empty title={t('wtr_no_orders')} sub={t('wtr_no_orders_sub')} />
           ) : (
