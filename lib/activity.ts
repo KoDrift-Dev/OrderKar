@@ -55,7 +55,7 @@ export function logActivity(supabase: SupabaseClient, opts: ActivityOpts): void 
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      await supabase.from('activity_log').insert({
+      const row = {
         restaurant_id: opts.restaurantId,
         actor_id: user?.id ?? null,
         action: opts.action,
@@ -63,10 +63,17 @@ export function logActivity(supabase: SupabaseClient, opts: ActivityOpts): void 
         entity_id: opts.entityId ?? null,
         details: opts.details ?? {},
         // Client-side: IP is not reliably available; user agent is.
-        ip_address: null,
+        ip_address: null as string | null,
         user_agent:
           typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 500) : null,
-      });
+      };
+      const { error } = await supabase.from('activity_log').insert(row);
+      if (error && /ip_address|user_agent/i.test(error.message)) {
+        // Older DBs lack these columns (see supabase/activity-log-columns.sql).
+        // Retry with the minimal column set so the audit trail keeps working.
+        const { ip_address: _ip, user_agent: _ua, ...minimal } = row;
+        await supabase.from('activity_log').insert(minimal);
+      }
     } catch {
       // Audit logging is best-effort — never break the user flow.
     }

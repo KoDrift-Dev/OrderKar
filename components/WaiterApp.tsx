@@ -56,6 +56,7 @@ function WaiterAppInner({ restaurantId, waiterId }: { restaurantId: string; wait
   const [receiptFor, setReceiptFor] = useState<OrderWithItems | null>(null);
   const [detailFor, setDetailFor] = useState<OrderWithItems | null>(null);
   const [paying, setPaying] = useState(false);
+  const [billError, setBillError] = useState('');
 
   const collectPayment = async (orderId: string, method: string) => {
     setPaying(true);
@@ -84,7 +85,12 @@ function WaiterAppInner({ restaurantId, waiterId }: { restaurantId: string; wait
   };
 
   const lockForBill = async (orderId: string) => {
-    await createClient().from('orders').update({ ready_for_bill: true }).eq('id', orderId);
+    setBillError('');
+    const { error } = await createClient().from('orders').update({ ready_for_bill: true }).eq('id', orderId);
+    if (error) {
+      setBillError('Could not lock for bill: ' + error.message);
+      return;
+    }
     const list = await load();
     const fresh = list.find((o) => o.id === orderId) ?? null;
     setAddingTo(fresh);
@@ -318,6 +324,11 @@ function WaiterAppInner({ restaurantId, waiterId }: { restaurantId: string; wait
                 <Btn onClick={() => lockForBill(addingTo.id)} className="mt-3 w-full !rounded-full">
                   {t('wtr_ready_for_bill')}
                 </Btn>
+                {billError && (
+                  <p className="mt-2 rounded-xl bg-red-500/10 px-3 py-2 text-[12px] font-bold text-red-600 dark:text-red-400">
+                    {billError}
+                  </p>
+                )}
               </Card>
               <h2 className="mb-4 font-display text-xl font-extrabold text-ink">
                 {t('wtr_add_items')}

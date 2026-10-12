@@ -81,6 +81,7 @@ export default function OwnerDashTab({
   viewerRole: _viewerRole = 'Owner',
   range,
   onRangeChange,
+  liveActiveOrders,
 }: {
   restaurantId: string;
   agg: DashAgg;
@@ -97,6 +98,7 @@ export default function OwnerDashTab({
   viewerRole?: string;
   range?: Range;
   onRangeChange?: (r: Range) => void;
+  liveActiveOrders?: Order[];
 }) {
   const chartId = useId();
   const [salesRange, setSalesRange] = useState<ChartRange>('today');
@@ -135,7 +137,12 @@ export default function OwnerDashTab({
   );
 
   // ── Active / delayed orders (status-based, real) ──
-  const activeOrders = useMemo(() => orders.filter((o) => ACTIVE_STATUSES.includes(o.status)), [orders]);
+  // NOTE: uses liveActiveOrders (unfiltered, all dates) when provided —
+  // the date-filtered `orders` prop would hide live orders outside the range.
+  const activeOrders = useMemo(
+    () => (liveActiveOrders ?? orders).filter((o) => ACTIVE_STATUSES.includes(o.status)),
+    [liveActiveOrders, orders]
+  );
   const delayedOrders = useMemo(() => {
     const now = Date.now();
     return orders.filter((o) => {

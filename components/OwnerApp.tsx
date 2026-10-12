@@ -1051,6 +1051,7 @@ function OwnerAppInner({
                   viewerRole={viewerRole}
                   range={dashRange}
                   onRangeChange={setDashRange}
+                  liveActiveOrders={activeOrders}
                 />
               </div>
 
