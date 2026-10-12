@@ -151,6 +151,11 @@ export default function MenuOrder({
   const [detailQty, setDetailQty] = useState(1);
   const [detailNotes, setDetailNotes] = useState('');
   const [cartOpen, setCartOpen] = useState(false);
+  // Stable per-device id (one device = one ordering session per table).
+  const [deviceId, setDeviceId] = useState('');
+  // True when another device already has an active order on this table.
+  const [tableLocked, setTableLocked] = useState(false);
+  const [lockChecking, setLockChecking] = useState(true);
   const configured = isSupabaseConfigured();
   const top = stickyTop ?? '0px';
   const t = useT();
@@ -346,6 +351,69 @@ export default function MenuOrder({
     };
   }, [detail, cartOpen]);
 
+  // Browser back button closes an open sheet/modal instead of leaving the page.
+  useEffect(() => {
+    if (!detail && !cartOpen) return;
+    window.history.pushState({ okSheet: true }, '');
+    const onPopState = () => {
+      setDetail(null);
+      setCartOpen(false);
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [detail, cartOpen]);
+
+  // Stable per-device id for the one-device-per-table rule.
+  useEffect(() => {
+    try {
+      let id = window.localStorage.getItem('orderkar:device_id');
+      if (!id) {
+        id = crypto.randomUUID();
+        try {
+          window.localStorage.setItem('orderkar:device_id', id);
+        } catch {
+          /* storage unavailable — session-only id */
+        }
+      }
+      setDeviceId(id);
+    } catch {
+      setDeviceId(crypto.randomUUID());
+    }
+  }, []);
+
+  // One device per table: if another device already has an active order on
+  // this table, block ordering here. Staff (waiterId) are exempt.
+  // Fail-open: if the check RPC is missing (migration not run yet),
+  // ordering keeps working.
+  const checkTableLocked = useCallback(async (): Promise<boolean> => {
+    if (waiterId || !deviceId || !table?.id) return false;
+    try {
+      const { data, error } = await createClient().rpc('check_table_device', {
+        p_table_id: table.id,
+        p_device_id: deviceId,
+      });
+      if (error) return false;
+      return data === true;
+    } catch {
+      return false;
+    }
+  }, [waiterId, deviceId, table]);
+
+  useEffect(() => {
+    let live = true;
+    setLockChecking(true);
+    checkTableLocked()
+      .then((locked) => {
+        if (live) setTableLocked(locked);
+      })
+      .finally(() => {
+        if (live) setLockChecking(false);
+      });
+    return () => {
+      live = false;
+    };
+  }, [checkTableLocked]);
+
   const addToCart = (item: MenuItem, qty: number, notes: string) =>
     setCart((prev) => {
       const ex = prev.find((l) => l.item.id === item.id);
@@ -372,42 +440,10 @@ export default function MenuOrder({
   const total = cart.reduce((s, l) => s + Number(l.item.price) * l.qty, 0);
   const count = cart.reduce((s, l) => s + l.qty, 0);
 
-  // Anon spam guard: max 5 orders/hour per device (waiters are exempt).
-  const checkAnonRateLimit = (): boolean => {
-    if (waiterId) return true;
-    try {
-      const now = Date.now();
-      const times = (JSON.parse(localStorage.getItem('ok_order_times') ?? '[]') as unknown[]).filter(
-        (t): t is number => typeof t === 'number' && now - t < 3600000,
-      );
-      return times.length < 5;
-    } catch {
-      return true;
-    }
-  };
-  const recordAnonOrderTime = () => {
-    if (waiterId) return;
-    try {
-      const now = Date.now();
-      const times = (JSON.parse(localStorage.getItem('ok_order_times') ?? '[]') as unknown[]).filter(
-        (t): t is number => typeof t === 'number' && now - t < 3600000,
-      );
-      times.push(now);
-      localStorage.setItem('ok_order_times', JSON.stringify(times.slice(-20)));
-    } catch {
-      /* storage unavailable — skip */
-    }
-  };
-
   const placeOrder = async () => {
     if (cart.length === 0 || placing) return;
     setPlacing(true);
     setError('');
-    if (!checkAnonRateLimit()) {
-      setPlacing(false);
-      setError('Too many orders from this device. Please wait a little before ordering again.');
-      return;
-    }
     try {
       const supabase = createClient();
       const rpcLines = cart.map((l) => ({
@@ -432,7 +468,6 @@ export default function MenuOrder({
         setCartOpen(false);
         setOrderNotes('');
         onPlaced(openOrder.id, openOrder.token);
-        recordAnonOrderTime();
         return;
       }
       if (waiterId) {
@@ -481,11 +516,18 @@ export default function MenuOrder({
       }
       // Anonymous customer (QR) path: goes through the server-side
       // /api/orders/anon wrapper around the create_anon_order SECURITY
-      // DEFINER RPC. The route enforces a server-side rate limit (5/hr per
-      // IP+table); the RPC re-prices every line from menu_items and forces
+      // DEFINER RPC. The RPC re-prices every line from menu_items and forces
       // status='pending' / payment_status='unpaid' — client-supplied
       // prices/totals are never trusted. Tracking goes through the
       // track_order RPC, so we must already know the token after the call.
+      // One device per table: re-check the lock right before placing, in
+      // case another device claimed the table while this one was browsing.
+      if (!waiterId && !openOrder && (await checkTableLocked())) {
+        setTableLocked(true);
+        setPlacing(false);
+        setError(t('mnu_table_in_use'));
+        return;
+      }
       const trackingToken = crypto.randomUUID();
       const anonRes = await fetch('/api/orders/anon', {
         method: 'POST',
@@ -497,6 +539,7 @@ export default function MenuOrder({
           trackingToken,
           customerName: customerName?.trim() || null,
           notes,
+          deviceId: deviceId || null,
         }),
       });
       const anonBody = (await anonRes.json().catch(() => ({}))) as {
@@ -511,7 +554,6 @@ export default function MenuOrder({
       setCartOpen(false);
       setOrderNotes('');
       onPlaced(orderId, trackingToken);
-      recordAnonOrderTime();
       logActivity(supabase, {
         restaurantId,
         action: ACT.ORDER_CREATED,
@@ -556,6 +598,11 @@ export default function MenuOrder({
       {openOrder && (
         <p className="mb-3 rounded-btn bg-brand/10 px-3.5 py-2 text-[12.5px] font-bold text-brand">
           {t('wtr_order_open', { n: openOrder.number })}
+        </p>
+      )}
+      {!waiterId && tableLocked && (
+        <p className="mb-3 rounded-btn bg-danger/10 px-3.5 py-2.5 text-[12.5px] font-bold text-danger">
+          ⚠️ {t('mnu_table_in_use')}
         </p>
       )}
       {/* Sticky search + emoji category pills */}
@@ -679,7 +726,7 @@ export default function MenuOrder({
                   }
                 }}
                 className={`btn-3d rounded-full px-5 py-2.5 text-[13.5px] font-bold text-white ${
-                  placing ? 'pointer-events-none opacity-60' : ''
+                  placing || (!waiterId && tableLocked) ? 'pointer-events-none opacity-60' : ''
                 }`}
               >
                 {openOrder ? (placing ? t('mnu_adding') : t('mnu_add_to_order', { n: openOrder.number })) : placing ? t('mnu_placing') : t('mnu_place_order')}
@@ -750,7 +797,7 @@ export default function MenuOrder({
               </div>
               <div className="flex items-center justify-between">
                 <p className="font-mono text-[16px] font-bold text-ink">{fmtPKR(total)}</p>
-                <Btn size="lg" onClick={placeOrder} disabled={placing} className="!rounded-full px-7">
+                <Btn size="lg" onClick={placeOrder} disabled={placing || (!waiterId && tableLocked)} className="!rounded-full px-7">
                   {openOrder ? (placing ? t('mnu_adding') : t('mnu_add_to_order', { n: openOrder.number })) : placing ? t('mnu_placing') : t('mnu_place_order_count', { n: count })}
                 </Btn>
               </div>

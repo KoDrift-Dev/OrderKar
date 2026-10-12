@@ -1,18 +1,14 @@
 // POST /api/orders/anon — anonymous (QR customer) order creation.
-// Body: { restaurantId, tableId, items, trackingToken, customerName?, notes? }
+// Body: { restaurantId, tableId, items, trackingToken, customerName?, notes?, deviceId? }
 //   items: [{ menu_item_id, quantity, item_name?, unit_price?, notes? }]
 //
 // Server-side wrapper around the create_anon_order SECURITY DEFINER RPC.
-// Exists so the fraud-critical anon order path gets a real server-side rate
-// limit (5 orders/hour per IP+table) — the old client-side localStorage
-// throttle was trivially bypassable. Pricing/trust still lives entirely in
-// the RPC: it re-prices every line from menu_items and forces
-// status='pending' / payment_status='unpaid'; client-supplied prices are
-// ignored by the database function itself.
+// Pricing/trust lives entirely in the RPC: it re-prices every line from
+// menu_items and forces status='pending' / payment_status='unpaid';
+// client-supplied prices are ignored by the database function itself.
 
 import { NextResponse } from 'next/server';
 import { createClient, isServerConfigured } from '@/lib/supabase/server';
-import { rateLimit, clientIp } from '@/lib/rate-limit';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -39,6 +35,7 @@ export async function POST(req: Request) {
     trackingToken?: unknown;
     customerName?: unknown;
     notes?: unknown;
+    deviceId?: unknown;
   };
 
   const { restaurantId, tableId, items, trackingToken } = body;
@@ -63,22 +60,10 @@ export async function POST(req: Request) {
       : null;
   const notes =
     typeof body.notes === 'string' && body.notes.trim() ? body.notes.trim().slice(0, 500) : null;
-
-  // 5 orders/hour per IP+table — mirrors the old client-side device throttle,
-  // now enforced server-side where it cannot be bypassed.
-  const rl = rateLimit(`anon-order:${clientIp(req)}:${tableId}`, {
-    limit: 5,
-    windowMs: 60 * 60 * 1000,
-  });
-  if (!rl.allowed) {
-    return NextResponse.json(
-      { error: 'Too many orders from this device. Please wait a little before ordering again.' },
-      {
-        status: 429,
-        headers: { 'Retry-After': String(Math.ceil(rl.retryAfterMs / 1000)) },
-      },
-    );
-  }
+  const deviceId =
+    typeof body.deviceId === 'string' && body.deviceId.trim()
+      ? body.deviceId.trim().slice(0, 64)
+      : null;
 
   const supabase = createClient();
   const { data: rpcData, error: rpcErr } = await supabase.rpc('create_anon_order', {
@@ -88,6 +73,7 @@ export async function POST(req: Request) {
     p_tracking_token: trackingToken,
     p_customer_name: customerName,
     p_notes: notes,
+    p_device_id: deviceId,
   });
   if (rpcErr) {
     // RPC raises for: unknown restaurant/table, cross-tenant items,
