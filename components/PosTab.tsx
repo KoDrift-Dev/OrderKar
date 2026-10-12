@@ -4,7 +4,7 @@
 // Designed with 2-in-row cards, categories pills, real-time discount,
 // cash/online payment calculation, and direct database persistence.
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { deductInventoryForOrder } from '@/lib/inventory';
 import { useT, useLang } from '@/lib/i18n';
@@ -449,16 +449,18 @@ export default function PosTab({
   return (
     <div
       className="w-full h-full flex flex-col lg:max-h-[calc(100vh-84px)]"
-      style={{
-        ['--c-brand' as any]: curPal.brand,
-        ['--c-brand-rgb' as any]: curPal.brandRgb,
-        ['--c-brand-deep' as any]: curPal.brandDeep,
-        ['--c-brand-soft' as any]: curPal.brandSoft,
-        ['--c-line/12' as any]: curPal.line,
-        ['--c-line-strong' as any]: curPal.lineStrong,
-        ['--shadow-lift' as any]: curPal.shadowLift,
-        ['--shadow-glow' as any]: curPal.shadowGlow,
-      }}
+      style={
+        {
+          '--c-brand': curPal.brand,
+          '--c-brand-rgb': curPal.brandRgb,
+          '--c-brand-deep': curPal.brandDeep,
+          '--c-brand-soft': curPal.brandSoft,
+          '--c-line/12': curPal.line,
+          '--c-line-strong': curPal.lineStrong,
+          '--shadow-lift': curPal.shadowLift,
+          '--shadow-glow': curPal.shadowGlow,
+        } as CSSProperties
+      }
     >
       {/* ── Top Header Banner (Exact 2nd picture header) ── */}
       <div className="shrink-0 mb-2 sm:mb-3">
@@ -696,6 +698,9 @@ export default function PosTab({
                   const inCart = cart.find((l) => l.item.id === item.id)?.qty ?? 0;
                   const catName = cats.find((c) => c.id === item.category_id)?.name ?? '';
                   const realImg = cdnUrl(item.image_url || categoryImage(catName));
+                  // Stock fields come from an optional inventory join; not on the base MenuItem type.
+                  const stockSrc = item as MenuItem & { stock_quantity?: number; stock?: number };
+                  const stockLabel = stockSrc.stock_quantity ?? stockSrc.stock ?? 24;
 
                   return (
                     <button
@@ -746,7 +751,7 @@ export default function PosTab({
 
                       {/* Stock / Subtitle */}
                       <p className="text-[9.5px] sm:text-[10px] font-bold text-muted/70 mt-0.5">
-                        Stock: {(item as any).stock_quantity ?? (item as any).stock ?? 24}
+                        Stock: {stockLabel}
                       </p>
                     </button>
                   );

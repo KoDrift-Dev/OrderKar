@@ -691,7 +691,7 @@ export default function OwnerReportsTab({
               <div className="flex flex-wrap items-center gap-2 text-[12px]">
                 <select
                   value={orderStatusFilter}
-                  onChange={(e) => setOrderStatusFilter(e.target.value as any)}
+                  onChange={(e) => setOrderStatusFilter(e.target.value as 'all' | 'completed' | 'active' | 'cancelled')}
                   className="rounded-xl border border-line/12 bg-[var(--c-surface-solid)] px-2.5 py-1.5 font-bold text-ink outline-none focus:border-brand text-[11.5px]"
                 >
                   <option value="all">All Statuses</option>
