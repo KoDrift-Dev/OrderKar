@@ -6,10 +6,11 @@
 //   2. "Orders": every active order grouped by stage (New / In kitchen /
 //      Ready / To serve) with contextual actions.
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { deductInventoryForOrder } from '@/lib/inventory';
 import { logActivity, ACT } from '@/lib/activity';
+import { notify, ensureNotificationPermission } from '@/lib/notify';
 import type { DiningTable, OrderWithItems } from '@/lib/types';
 import { fmtPKR, fmtAgo } from '@/lib/format';
 import { LangProvider, normalizeLang, useT, type Lang } from '@/lib/i18n';
@@ -57,6 +58,9 @@ function WaiterAppInner({ restaurantId, waiterId }: { restaurantId: string; wait
   const [detailFor, setDetailFor] = useState<OrderWithItems | null>(null);
   const [paying, setPaying] = useState(false);
   const [actionError, setActionError] = useState('');
+  // Previous snapshot for change detection → notifications.
+  const prevOrdersRef = useRef<Map<string, { status: string; itemCount: number }>>(new Map());
+  const firstLoadRef = useRef(true);
 
   const collectPayment = async (orderId: string, method: string) => {
     setActionError('');
@@ -154,18 +158,46 @@ function WaiterAppInner({ restaurantId, waiterId }: { restaurantId: string; wait
     ]);
     if (tb) setTables(tb as DiningTable[]);
     const list = (o ?? []) as OrderWithItems[];
+    // Detect changes since last load → sound + vibrate.
+    // Skip on first load so opening the page doesn't blast notifications.
+    if (!firstLoadRef.current) {
+      const prev = prevOrdersRef.current;
+      for (const order of list) {
+        const itemCount = order.order_items.reduce((s, i) => s + i.quantity, 0);
+        const was = prev.get(order.id);
+        if (!was) {
+          notify('new_order');
+        } else if (was.status !== 'ready' && order.status === 'ready') {
+          // Food is ready — waiter must pick up from kitchen.
+          notify('order_ready');
+        } else if (itemCount > was.itemCount) {
+          notify('items_added');
+        }
+      }
+    }
+    firstLoadRef.current = false;
+    prevOrdersRef.current = new Map(
+      list.map((order) => [
+        order.id,
+        { status: order.status, itemCount: order.order_items.reduce((s, i) => s + i.quantity, 0) },
+      ]),
+    );
     setOrders(list);
     return list;
   };
 
   useEffect(() => {
+    ensureNotificationPermission();
     load();
     const supabase = createClient();
     const ch = supabase
       .channel(`waiter-${restaurantId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `restaurant_id=eq.${restaurantId}` }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => load())
       .subscribe();
-    const poll = window.setInterval(() => load(), 8000);
+    // 3s poll as fallback until supabase/realtime.sql is run (realtime needs
+    // the tables in the supabase_realtime publication to fire instantly).
+    const poll = window.setInterval(() => load(), 3000);
     return () => {
       supabase.removeChannel(ch);
       window.clearInterval(poll);
@@ -231,7 +263,9 @@ function WaiterAppInner({ restaurantId, waiterId }: { restaurantId: string; wait
   const activeCount = orders.length;
 
   const renderOrderCard = (o: OrderWithItems) => {
-    const canAdd = (o.status === 'pending' || o.status === 'preparing') && !o.ready_for_bill;
+    const canAdd = (o.status === 'pending' || o.status === 'preparing' || o.status === 'ready') && !o.ready_for_bill;
+    const needsPickup = o.status === 'ready' && !o.picked_up_at;
+    const pickedUp = o.status === 'ready' && !!o.picked_up_at;
     const itemCount = o.order_items.reduce((s, i) => s + i.quantity, 0);
     const accent =
       o.status === 'pending'
@@ -271,6 +305,30 @@ function WaiterAppInner({ restaurantId, waiterId }: { restaurantId: string; wait
         )}
 
         <div className="mt-3 flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
+          {needsPickup && (
+            <button
+              onClick={() => pickupOrder(o.id)}
+              className="min-h-[44px] flex-1 rounded-btn bg-emerald-600 px-4 py-2.5 text-[13.5px] font-extrabold text-white transition-colors hover:bg-emerald-700 active:scale-95"
+            >
+              🛎️ Pick up from kitchen
+            </button>
+          )}
+          {pickedUp && !o.ready_for_bill && (
+            <button
+              onClick={() => lockForBill(o.id)}
+              className="min-h-[44px] flex-1 rounded-btn bg-brand px-4 py-2.5 text-[13.5px] font-extrabold text-white transition-colors hover:opacity-90 active:scale-95"
+            >
+              {t('wtr_ready_for_bill')}
+            </button>
+          )}
+          {pickedUp && o.payment_status !== 'paid' && (
+            <button
+              onClick={() => setReceiptFor(o)}
+              className="min-h-[44px] flex-1 rounded-btn bg-amber-500/15 px-4 py-2.5 text-[13.5px] font-extrabold text-amber-700 transition-colors hover:bg-amber-500/25 active:scale-95 dark:text-amber-300"
+            >
+              🧾 {t('wtr_collect_payment', { amount: fmtPKR(o.total_amount) })}
+            </button>
+          )}
           {canAdd && (
             <button
               onClick={() => {
@@ -281,14 +339,6 @@ function WaiterAppInner({ restaurantId, waiterId }: { restaurantId: string; wait
               className="min-h-[44px] rounded-btn bg-brand/10 px-4 py-2.5 text-[13px] font-extrabold text-brand transition-colors hover:bg-brand/20 active:scale-95"
             >
               ➕ {t('wtr_add_items')}
-            </button>
-          )}
-          {o.status === 'ready' && o.payment_status !== 'paid' && (
-            <button
-              onClick={() => setReceiptFor(o)}
-              className="min-h-[44px] flex-1 rounded-btn bg-emerald-600/10 px-4 py-2.5 text-[13.5px] font-extrabold text-emerald-700 transition-colors hover:bg-emerald-600/20 active:scale-95 dark:text-emerald-300"
-            >
-              🧾 {t('wtr_collect_payment', { amount: fmtPKR(o.total_amount) })}
             </button>
           )}
           {o.status === 'ready' && o.payment_status === 'paid' && (

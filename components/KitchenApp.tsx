@@ -10,6 +10,7 @@ import type { OrderStatus, OrderWithItems } from '@/lib/types';
 import { fmtElapsed, fmtPKR } from '@/lib/format';
 import { LangProvider, normalizeLang, useT, type Lang } from '@/lib/i18n';
 import { logActivity, ACT } from '@/lib/activity';
+import { notify, ensureNotificationPermission } from '@/lib/notify';
 import StatusPill from './StatusPill';
 import { Card, Empty, PageHeader } from './ui';
 
@@ -21,31 +22,8 @@ const STATUS_TINT: Record<string, string> = {
   ready: '!border-emerald-500/40 bg-emerald-500/[0.06]',
 };
 
-function beep(): void {
-  try {
-    const AC =
-      window.AudioContext ??
-      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!AC) return;
-    const ctx = new AC();
-    [0, 0.25, 0.5].forEach((delay) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = 'sine';
-      osc.frequency.value = 880;
-      const t = ctx.currentTime + delay;
-      gain.gain.setValueAtTime(0.001, t);
-      gain.gain.exponentialRampToValueAtTime(0.4, t + 0.03);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
-      osc.start(t);
-      osc.stop(t + 0.22);
-    });
-  } catch {
-    /* audio unavailable — visual flash still fires */
-  }
-}
+// ── notifications: shared lib/notify (sound + vibration) ────────────────────
+// (previously a local beep(); now with vibration for mobile/desktop alerts)
 
 function useClock(): Date {
   const [now, setNow] = useState(() => new Date());
@@ -541,7 +519,12 @@ function KitchenAppInner({ restaurantId }: { restaurantId: string }) {
         for (const id of [...seenRef.current.keys()]) if (!alive.has(id)) seenRef.current.delete(id);
         setOrders(list);
         if (fresh.length > 0) {
-          beep();
+          // New order or new items: sound + vibrate + flash.
+          const hasNewOrder = fresh.some((id) => {
+            const o = list.find((x) => x.id === id);
+            return o && o.status === 'pending';
+          });
+          notify(hasNewOrder ? 'new_order' : 'items_added');
           setFlashIds(new Set(fresh));
           window.setTimeout(() => setFlashIds(new Set()), 4000);
         }
@@ -556,6 +539,7 @@ function KitchenAppInner({ restaurantId }: { restaurantId: string }) {
     };
     load();
 
+    ensureNotificationPermission();
     const ch = supabase
       .channel(`kds-${restaurantId}`)
       .on(
@@ -570,7 +554,7 @@ function KitchenAppInner({ restaurantId }: { restaurantId: string }) {
       )
       .subscribe();
 
-    const poll = window.setInterval(load, 5000);
+    const poll = window.setInterval(load, 3000);
     return () => {
       live = false;
       supabase.removeChannel(ch);
